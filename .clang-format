@@ -1,0 +1,5 @@
+IndentWidth: 2
+ColumnLimit: 0
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AlignAfterOpenBracket: BlockIndent
