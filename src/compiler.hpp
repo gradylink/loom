@@ -5,11 +5,19 @@
 #include <string>
 #include <string_view>
 #include <tree_sitter/api.h>
+#include <unordered_map>
 #include <vector>
 
 class Compiler {
 public:
-  Compiler(const std::string_view source);
+  Compiler(const std::string_view &source);
+  ~Compiler();
+
+  struct CompiledFunction {
+    std::string data;
+    std::string name;
+  };
+  std::vector<CompiledFunction> compile(const std::string_view &source);
 
 private:
   enum class Type {
@@ -29,18 +37,29 @@ private:
 
   struct VariableData {
     std::string name;
+    std::string mangledName;
     Type type;
     TSNode scope;
     bool constant;
     std::optional<int32_t> value;
   };
 
-  const std::string_view source;
+  struct ExpressionData {
+    std::string data;
+    bool precomputed;
+  };
 
+  const std::string source;
+
+  TSParser *parser;
+  TSTree *tree;
   TSNode root;
 
-  std::vector<FunctionData> funcs;
-  std::vector<VariableData> vars;
+  std::unordered_map<std::string, FunctionData> funcs;
+  std::unordered_map<std::string, VariableData> vars;
+  unsigned int currentExpressionId = 0;
 
-  std::string compileExpression(TSNode root, uint8_t id);
+  ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
+
+  std::string_view getNodeText(TSNode node);
 };

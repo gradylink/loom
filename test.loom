@@ -1,5 +1,5 @@
 let myVar: int = 10; -- Semicolons are optional
-const myVar2: int = 8;
+const myVar2: int = -(-8);
 
 func getValue(): int {
   return 68

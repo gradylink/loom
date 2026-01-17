@@ -77,7 +77,6 @@ module.exports = grammar({
         $.binary_expression,
         $.unary_expression,
         $.function_call,
-        $.identifier,
         $.variable_ref,
         $.integer,
         seq("(", $._expression, ")"),
@@ -88,16 +87,21 @@ module.exports = grammar({
         ...["+", "-", "*", "/", "%"].map((op) =>
           prec.left(
             op === "*" || op === "/" ? 2 : 1,
-            seq($._expression, op, $._expression),
+            seq(
+              field("left", $._expression),
+              field("operator", op),
+              field("right", $._expression),
+            ),
           )
         ),
       ),
 
-    unary_expression: ($) => prec(3, seq("-", $._expression)),
+    unary_expression: ($) =>
+      prec(3, seq(field("operator", "-"), field("argument", $._expression))),
 
     function_call: ($) => seq(field("name", $.identifier), "(", ")"),
 
-    variable_ref: ($) => prec(2, seq("$", $.identifier)),
+    variable_ref: ($) => prec(2, seq("$", field("name", $.identifier))),
 
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
