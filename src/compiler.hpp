@@ -21,8 +21,8 @@ public:
   std::vector<CompiledFunction> compile();
 
 private:
-  enum class Type { Integer };
-  enum class ReturnType { Integer, Void };
+  enum class Type { Integer, Boolean };
+  enum class ReturnType { Integer, Boolean, Void };
 
   struct FunctionData {
     std::string name;
@@ -41,6 +41,7 @@ private:
   struct ExpressionData {
     std::string data;
     bool precomputed;
+    Type type;
   };
 
   const std::string source;

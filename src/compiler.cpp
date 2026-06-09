@@ -52,9 +52,17 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
   if (type == "integer") {
     if (precompute) {
-      return {.data = std::string(getNodeText(node)), .precomputed = true};
+      return {.data = std::string(getNodeText(node)), .precomputed = true, .type = Type::Integer};
     }
-    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, getNodeText(node)), .precomputed = false};
+    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, getNodeText(node)), .precomputed = false, .type = Type::Integer};
+  }
+
+  if (type == "boolean") {
+    const std::string &numericVal = (getNodeText(node) == "true") ? "1" : "0";
+    if (precompute) {
+      return {.data = numericVal, .precomputed = true, .type = Type::Boolean};
+    }
+    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, numericVal), .precomputed = false, .type = Type::Boolean};
   }
 
   if (type == "unary_expression") {
@@ -75,13 +83,13 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       }
 
       if (!precompute) {
-        return {.data = std::format("scoreboard players set expr_output{} temp {}", id, finalVal), .precomputed = false};
+        return {.data = std::format("scoreboard players set expr_output{} temp {}", id, finalVal), .precomputed = false, .type = Type::Integer};
       }
-      return {.data = finalVal, .precomputed = true};
+      return {.data = finalVal, .precomputed = true, .type = Type::Integer};
     }
 
     if (op == "-") {
-      return {.data = std::format("{}\nscoreboard players operation expr_output{} temp *= invert temp", subExpr.data, id), .precomputed = false};
+      return {.data = std::format("{}\nscoreboard players operation expr_output{} temp *= invert temp", subExpr.data, id), .precomputed = false, .type = Type::Integer};
     }
     throw std::runtime_error(formatError(node, "Unknown unary operation: " + std::string(op)));
   }
@@ -104,7 +112,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       pop = std::format("\nexecute store result score expr_output{} temp run data get storage loom:stack regs[-1]\ndata remove storage loom:stack regs[-1]", i) + pop;
     }
 
-    return {.data = std::format("{}execute store result score expr_output{} temp run function loom:{}{}", push, id, funcs[targetFunc].name, pop), .precomputed = false};
+    Type funcType = Type::Integer;
+    if (funcs[targetFunc].returnType == ReturnType::Boolean) funcType = Type::Boolean;
+
+    return {
+      .data = std::format("{}execute store result score expr_output{} temp run function loom:{}{}", push, id, funcs[targetFunc].name, pop),
+      .precomputed = false,
+      .type = funcType
+    };
   }
 
   if (type == "variable_ref") {
@@ -119,12 +134,16 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     if (vars[targetVar].value.has_value()) {
       if (precompute) {
-        return {.data = std::to_string(vars[targetVar].value.value()), .precomputed = true};
+        return {.data = std::to_string(vars[targetVar].value.value()), .precomputed = true, .type = vars[targetVar].type};
       }
-      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, vars[targetVar].value.value()), .precomputed = false};
+      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, vars[targetVar].value.value()), .precomputed = false, .type = vars[targetVar].type};
     }
 
-    return {.data = std::format("scoreboard players operation expr_output{} temp = {} vars", id, vars[targetVar].mangledName), .precomputed = false};
+    return {
+      .data = std::format("scoreboard players operation expr_output{} temp = {} vars", id, vars[targetVar].mangledName),
+      .precomputed = false,
+      .type = vars[targetVar].type
+    };
   }
 
   if (type == "binary_expression") {
@@ -142,8 +161,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       if (op == "/") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) / static_cast<int32_t>(std::stoi(right.data)));
       if (op == "%") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) % static_cast<int32_t>(std::stoi(right.data)));
 
-      if (precompute) return {.data = result, .precomputed = true};
-      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, result), .precomputed = false};
+      if (precompute) return {.data = result, .precomputed = true, .type = Type::Integer};
+      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, result), .precomputed = false, .type = Type::Integer};
     }
 
     if (left.precomputed) {
@@ -154,7 +173,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     return {
       .data = std::format("{}\n{}\nscoreboard players operation expr_output{} temp {}= expr_output{} temp", left.data, right.data, id, op, id + 1),
-      .precomputed = false
+      .precomputed = false,
+      .type = Type::Integer
     };
   }
 
@@ -259,7 +279,14 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       ReturnType retType = ReturnType::Void;
       TSNode typeNode = ts_node_child_by_field_name(child, "type", 4);
       if (!ts_node_is_null(typeNode)) {
-        retType = ReturnType::Integer;
+        const auto &typeText = getNodeText(typeNode);
+        if (typeText == "int" || typeText == "integer") {
+          retType = ReturnType::Integer;
+        } else if (typeText == "bool" || typeText == "boolean") {
+          retType = ReturnType::Boolean;
+        } else {
+          throw std::runtime_error(formatError(child, "Invalid type in function definition: " + std::string(typeText)));
+        }
       }
       funcs[name] = {name, retType};
     }
@@ -273,7 +300,17 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       const std::string name = std::string(getFieldText(child, "name"));
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
       const bool constant = getFieldText(child, "keyword") == "const";
+      const auto &typeText = getFieldText(child, "type");
       std::optional<int32_t> value = std::nullopt;
+
+      Type varType;
+      if (typeText == "int" || typeText == "integer") {
+        varType = Type::Integer;
+      } else if (typeText == "bool" || typeText == "boolean") {
+        varType = Type::Boolean;
+      } else {
+        throw std::runtime_error(formatError(child, "Invalid type in variable declaration: " + std::string(typeText)));
+      }
 
       if (constant && expr.precomputed) {
         value = std::stoi(expr.data);
@@ -285,7 +322,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         VariableData{
           .name = name,
           .mangledName = mangled,
-          .type = Type::Integer,
+          .type = varType,
           .scope = root,
           .constant = constant,
           .value = value,
@@ -330,6 +367,16 @@ std::string Compiler::compileBlock(TSNode node) {
       const std::string mangledName = name + "_" + randomMangleString();
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
       const bool constant = getFieldText(child, "keyword") == "const";
+      const auto &typeText = getFieldText(child, "type");
+
+      Type varType;
+      if (typeText == "int" || typeText == "integer") {
+        varType = Type::Integer;
+      } else if (typeText == "bool" || typeText == "boolean") {
+        varType = Type::Boolean;
+      } else {
+        throw std::runtime_error(formatError(child, "Invalid type in variable declaration: " + std::string(typeText)));
+      }
 
       std::optional<int32_t> value = std::nullopt;
       if (constant && expr.precomputed) {
@@ -341,7 +388,7 @@ std::string Compiler::compileBlock(TSNode node) {
         VariableData{
           .name = name,
           .mangledName = mangledName,
-          .type = Type::Integer,
+          .type = varType,
           .scope = node,
           .constant = constant,
           .value = value,
@@ -368,6 +415,10 @@ std::string Compiler::compileBlock(TSNode node) {
       }
 
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
+
+      if (vars[name].type == Type::Boolean && expr.type == Type::Integer) {
+        throw std::runtime_error(formatError(child, "Cannot assign an 'int' to 'bool' variable: " + name));
+      }
 
       if (expr.precomputed) {
         ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);

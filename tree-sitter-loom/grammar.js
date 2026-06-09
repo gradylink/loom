@@ -82,7 +82,8 @@ module.exports = grammar({
         $.function_call,
         $.variable_ref,
         $.integer,
-        $.parenthesized_expression, // <-- Changed from seq("(", $._expression, ")")
+        $.boolean,
+        $.parenthesized_expression,
       ),
 
     parenthesized_expression: ($) => seq("(", $._expression, ")"),
@@ -113,6 +114,8 @@ module.exports = grammar({
     type: () => /[a-z]+/i,
 
     integer: () => /\d+/,
+
+    boolean: () => choice("true", "const"),
 
     command_arg: () => token(prec(-1, /[^\s$;{}()]+/)),
 
