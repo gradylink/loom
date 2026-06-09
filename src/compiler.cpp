@@ -184,10 +184,11 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
   }
   if (!hasVars) return std::nullopt;
 
-  auto createJSONText = [&](const std::vector<TSNode> &argNodes) -> std::string {
+  auto buildJsonTextArray = [&](size_t startIdx) -> std::string {
+    if (startIdx >= args.size()) return "[]";
     std::string out = "[";
-    for (size_t i = 0; i < argNodes.size(); ++i) {
-      TSNode arg = argNodes[i];
+    for (size_t i = startIdx; i < args.size(); ++i) {
+      TSNode arg = args[i];
       std::string argType = ts_node_type(arg);
 
       if (argType == "variable_ref") {
@@ -198,7 +199,7 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
         out += std::format(R"({{"text":"{}","color":"white"}})", val);
       }
 
-      if (i < argNodes.size() - 1) out += R"(,{"text":" ","color":"white"},)";
+      if (i < args.size() - 1) out += R"(,{"text":" ","color":"white"},)";
     }
     out += "]";
     return out;
@@ -207,15 +208,38 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
   if (commandName == "say") {
     return std::format(
       R"(tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{}])",
-      createJSONText(args).substr(1)
+      buildJsonTextArray(0).substr(1)
     );
+  }
+
+  if (commandName == "tellraw" && args.size() >= 2) {
+    std::string target = std::string(getNodeText(args[0]));
+    return std::format("tellraw {} {}", target, buildJsonTextArray(1));
   }
 
   if (commandName == "title" && args.size() >= 3) {
     std::string target = std::string(getNodeText(args[0]));
     std::string position = std::string(getNodeText(args[1]));
-    std::vector<TSNode> textArgs(args.begin() + 2, args.end());
-    return std::format("title {} {} {}", target, position, createJSONText(textArgs));
+    return std::format("title {} {} {}", target, position, buildJsonTextArray(2));
+  }
+
+  if ((commandName == "msg" || commandName == "tell" || commandName == "w") && args.size() >= 2) {
+    std::string target = std::string(getNodeText(args[0]));
+    return std::format(
+      R"(tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{}])",
+      target,
+      target,
+      buildJsonTextArray(1).substr(1)
+    );
+  }
+
+  if (commandName == "bossbar" && args.size() >= 4) {
+    std::string action = std::string(getNodeText(args[1]));
+    std::string id = std::string(getNodeText(args[2]));
+    std::string property = std::string(getNodeText(args[3]));
+    if (action == "set" && property == "name") {
+      return std::format("bossbar set {} name {}", id, buildJsonTextArray(4));
+    }
   }
 
   return std::nullopt;
