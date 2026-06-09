@@ -2,10 +2,10 @@ let myVar: int = 10; -- Semicolons are optional
 const myVar2: int = -(-8);
 
 func getValue(): int {
-  return 68
+  return 68;
 }
 
-func sendMessage() {
+func sendMessage() { -- Implicit void return type
   say $myVar;
   title @a title "Hello: $myVar is the value";
 }
@@ -13,13 +13,13 @@ func sendMessage() {
 func load() {
   $myVar = $myVar + 1; -- Leading "$" here is optional
   sendMessage();
-  say $myVar2 is cool!
+  say $myVar2 is cool!;
  
   title @a subtitle "$myVar2";
 
   const myValue: int = getValue() + 3;
-  say $myValue
+  say $myValue;
 
   return;
-  say it will never get here
+  say it will never get here;
 }

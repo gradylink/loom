@@ -32,12 +32,12 @@ module.exports = grammar({
 
     variable_declaration: ($) =>
       seq(
-        choice("let", "const"),
+        field("keyword", choice("let", "const")),
         field("name", $.identifier),
         ":",
-        $.type,
+        field("type", $.type),
         "=",
-        $._expression,
+        field("value", $._expression),
       ),
 
     assignment: ($) =>
@@ -45,7 +45,7 @@ module.exports = grammar({
         optional("$"),
         field("name", $.identifier),
         "=",
-        $._expression,
+        field("value", $._expression),
       ),
 
     function_definition: ($) =>
@@ -54,8 +54,8 @@ module.exports = grammar({
         field("name", $.identifier),
         "(",
         ")",
-        optional(seq(":", $.type)),
-        $.block,
+        optional(seq(":", field("type", $.type))),
+        field("block", $.block),
       ),
 
     block: ($) => seq("{", repeat(choice($._statement, $._newline)), "}"),
@@ -67,10 +67,13 @@ module.exports = grammar({
       ),
 
     command_statement: ($) =>
-      prec.left(seq(
-        alias($.identifier, $.command_name),
-        repeat(choice($.command_arg, $.variable_ref, $.integer)),
-      )),
+      prec(
+        -1,
+        seq(
+          alias($.identifier, $.command_name),
+          repeat(choice($.command_arg, $.variable_ref, $.integer)),
+        ),
+      ),
 
     _expression: ($) =>
       choice(
@@ -79,8 +82,10 @@ module.exports = grammar({
         $.function_call,
         $.variable_ref,
         $.integer,
-        seq("(", $._expression, ")"),
+        $.parenthesized_expression, // <-- Changed from seq("(", $._expression, ")")
       ),
+
+    parenthesized_expression: ($) => seq("(", $._expression, ")"),
 
     binary_expression: ($) =>
       choice(

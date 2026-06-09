@@ -14,25 +14,19 @@ public:
   ~Compiler();
 
   struct CompiledFunction {
-    std::string data;
     std::string name;
+    std::string data;
   };
-  std::vector<CompiledFunction> compile(const std::string_view &source);
+
+  std::vector<CompiledFunction> compile();
 
 private:
-  enum class Type {
-    Integer
-  };
-
-  enum class ReturnType {
-    Integer,
-    Void
-  };
+  enum class Type { Integer };
+  enum class ReturnType { Integer, Void };
 
   struct FunctionData {
     std::string name;
     ReturnType returnType;
-    TSNode scope;
   };
 
   struct VariableData {
@@ -57,9 +51,19 @@ private:
 
   std::unordered_map<std::string, FunctionData> funcs;
   std::unordered_map<std::string, VariableData> vars;
-  unsigned int currentExpressionId = 0;
+  std::vector<CompiledFunction> compiledFunctions;
 
-  ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
+  unsigned int currentExpressionId = 0;
+  unsigned int currentGeneratedFunction = 0;
+
+  static constexpr const char *setupScoreboards = "scoreboard objectives add vars dummy\n"
+                                                  "scoreboard objectives add temp dummy\n"
+                                                  "scoreboard players set invert temp -1\n";
 
   std::string_view getNodeText(TSNode node);
+  std::string_view getFieldText(TSNode node, const std::string &field);
+
+  ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
+  std::string compileBlock(TSNode node);
+  std::optional<std::string> optimizeCommand(const std::string &commandName, const std::vector<TSNode> &args);
 };
