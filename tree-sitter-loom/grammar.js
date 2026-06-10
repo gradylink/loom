@@ -21,6 +21,7 @@ module.exports = grammar({
           $.variable_declaration,
           $.assignment,
           $.function_definition,
+          $.if,
           $.command_statement,
           $.return_statement,
           $.function_call,
@@ -57,6 +58,9 @@ module.exports = grammar({
         optional(seq(":", field("type", $.type))),
         field("block", $.block),
       ),
+
+    if: ($) =>
+      seq("if", field("expression", $._expression), field("block", $.block)),
 
     block: ($) => seq("{", repeat(choice($._statement, $._newline)), "}"),
 

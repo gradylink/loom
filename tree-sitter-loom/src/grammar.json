@@ -38,6 +38,10 @@
             },
             {
               "type": "SYMBOL",
+              "name": "if"
+            },
+            {
+              "type": "SYMBOL",
               "name": "command_statement"
             },
             {
@@ -207,6 +211,31 @@
               "type": "BLANK"
             }
           ]
+        },
+        {
+          "type": "FIELD",
+          "name": "block",
+          "content": {
+            "type": "SYMBOL",
+            "name": "block"
+          }
+        }
+      ]
+    },
+    "if": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "if"
+        },
+        {
+          "type": "FIELD",
+          "name": "expression",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_expression"
+          }
         },
         {
           "type": "FIELD",

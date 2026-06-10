@@ -23,6 +23,14 @@ func load() {
   let boolTest: bool = true || false;
   say $boolTest;
 
+  if $boolTest {
+    say hi!
+  }
+
+  if $myValue >= 100 {
+    title @a actionbar swizzle magic
+  }
+
   return;
   say it will never get here;
 }

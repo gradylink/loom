@@ -11,6 +11,32 @@
 
 extern "C" const TSLanguage *tree_sitter_loom(void);
 
+static std::string randomMangleString() {
+  static constexpr std::string_view chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  static constexpr unsigned int len = 8;
+  std::random_device rd;
+  std::mt19937 generator(rd());
+  std::uniform_int_distribution<> distribution(0, chars.length() - 1);
+
+  std::string ret;
+  ret.reserve(len);
+  for (unsigned int i = 0; i < len; i++) ret += chars[distribution(generator)];
+  return ret;
+}
+
+static std::string randomFuncionMangleString() {
+  static constexpr std::string_view chars = "abcdefghijklmnopqrstuvwxyz";
+  static constexpr unsigned int len = 12;
+  std::random_device rd;
+  std::mt19937 generator(rd());
+  std::uniform_int_distribution<> distribution(0, chars.length() - 1);
+
+  std::string ret;
+  ret.reserve(len);
+  for (unsigned int i = 0; i < len; i++) ret += chars[distribution(generator)];
+  return ret;
+}
+
 static std::string formatError(TSNode node, const std::string &message) {
   if (ts_node_is_null(node)) return message;
   TSPoint start = ts_node_start_point(node);
@@ -164,9 +190,6 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     if (vars.find(targetVar) == vars.end()) {
       throw std::runtime_error(formatError(node, "Unknown variable used in expression: " + targetVar));
     }
-    if (vars[targetVar].type != Type::Integer) {
-      throw std::runtime_error(formatError(node, "Attempted to use a non-integer variable in expression."));
-    }
 
     if (vars[targetVar].value.has_value()) {
       if (precompute) {
@@ -286,19 +309,6 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
   }
 
   throw std::runtime_error(formatError(node, "Unexpected type while compiling expression: " + type));
-}
-
-static std::string randomMangleString() {
-  static constexpr std::string_view chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  static constexpr unsigned int len = 8;
-  std::random_device rd;
-  std::mt19937 generator(rd());
-  std::uniform_int_distribution<> distribution(0, chars.length() - 1);
-
-  std::string ret;
-  ret.reserve(len);
-  for (unsigned int i = 0; i < len; i++) ret += chars[distribution(generator)];
-  return ret;
 }
 
 std::optional<std::string> Compiler::optimizeCommand(const std::string &commandName, const std::vector<TSNode> &args) {
@@ -473,6 +483,23 @@ std::string Compiler::compileBlock(TSNode node) {
   for (uint32_t i = 0; i < ts_node_named_child_count(node); i++) {
     TSNode child = ts_node_named_child(node, i);
     const std::string type = ts_node_type(child);
+
+    if (type == "if") {
+      const std::string &name = "if_" + randomMangleString();
+      const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "expression", 10));
+
+      if (expr.type != Type::Boolean) throw std::runtime_error(formatError(child, "Invalid type for if statement expression."));
+
+      if (expr.precomputed) {
+        if (expr.data != "1") continue;
+        ret += compileBlock(ts_node_child_by_field_name(child, "block", 5));
+      } else {
+        compiledFunctions.push_back({.name = name, .data = compileBlock(ts_node_child_by_field_name(child, "block", 5))});
+        ret += std::format("{}\nexecute if score expr_output1 temp matches 1 run function loom:{}\n", expr.data, name);
+      }
+
+      continue;
+    }
 
     if (type == "variable_declaration") {
       const std::string name = std::string(getFieldText(child, "name"));

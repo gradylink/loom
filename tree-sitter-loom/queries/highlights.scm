@@ -1,5 +1,6 @@
 "func" @keyword.function
 "return" @keyword.return
+"if" @keyword.conditional
 ["let" "const"] @keyword.storage
 
 (function_definition 
@@ -14,16 +15,16 @@
 (assignment 
   name: (identifier) @variable)
 
-(variable_ref) @variable.parameter
+(variable_ref) @variable.reference
 "$" @punctuation.special
 
 (command_name) @function.builtin
-
 (command_arg) @string
-
 (integer) @number
+(boolean) @boolean.macro
+
 (type) @type
 (comment) @comment @spell
 
-["=" "+" "-" "*" "/" "%"] @operator
+["=" "+" "-" "*" "/" "%" "==" "!=" "<" ">" "<=" ">=" "&&" "||"] @operator
 [":" ";" "(" ")" "{" "}"] @punctuation.delimiter
