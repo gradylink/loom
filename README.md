@@ -9,39 +9,38 @@ A programming language that compiles to Minecraft datapacks.
 
 - [x] Parsing
   - [ ] Parsing Errors
-- [ ] Compiling
-  - [ ] Improve Internal Errors (e.g. precomputed divide by `0`)
-  - [ ] Compiling Errors
-    - [ ] Fancy Errors
+- [x] ] Compiling
+  - [x] Improve Internal Errors (e.g. precomputed divide by `0`)
+  - [x] Compiling Errors
+    - [x] Fancy Errors (well kind of)
 - [x] Precompute math between literals
-- [ ] Generate Datapack
-- [ ] Command line stuff
-- [ ] Convert commands with variables to equivalent without variables
+- [x] Generate Datapack
+- [x] Command line stuff
+- [x] Convert commands with variables to equivalent without variables
       (optimizations)
   - [ ] Inside execute run
 - [ ] Inline literal const vars
 - [ ] Detect variable manipulation (`myVar = $myVar + 1`) and simplify
       operations there.
-- [ ] Scope variables
+- [x] Scope variables
 - [ ] Line numbers in expression parsing errors
-- [ ] Line numbers in compiler errors
-- [ ] Use constants scoreboard to avoid writing constants multiple times
-- [ ] Skip early exited code
-  - [ ] Unreachable if (e.g. `if true {} else` or `if false`)
-  - [ ] Return
-  - [ ] Continue
-  - [ ] Break
+- [x] Line numbers in compiler errors
+- [x] Skip early exited code
+  - [x] Unreachable if (e.g. `if true {} else` or `if false`)
+  - [x] Return
+  - [ ] Continue (not added yet)
+  - [ ] Break (not added yet)
 - [ ] Precompute functions used as variables (`return` only thing in function)
 - [ ] Remove unused functions
 
 ### Implemented Language Features
 
 - [ ] Datapack ID and other meta data
-- [ ] Comments
+- [x] Comments
 - [ ] Imports
-- [ ] Variables
-- [ ] Functions
-  - [ ] Returns
+- [x] Variables
+- [x] Functions
+  - [x] Returns
   - [ ] Arguments
   - [ ] Tags (`#init` on previous line would set init function for example)
   - [ ] Inline Functions
@@ -49,12 +48,12 @@ A programming language that compiles to Minecraft datapacks.
         file but this will be important later.)
 - [x] Integers
 - [ ] Strings
-- [ ] Booleans
+- [x] Booleans
 - [ ] Floats
 - [ ] Dictionaries
 - [ ] Lists
 - [ ] Conditionals
-  - [ ] `if`
+  - [x] `if`
   - [ ] `else`
   - [ ] `elif`
 - [ ] Loops
