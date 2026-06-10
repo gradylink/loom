@@ -594,7 +594,7 @@ std::string Compiler::compileBlock(TSNode node) {
       } else {
         ret += "return 0\n";
       }
-      continue;
+      break;
     }
 
     if (type == "command_statement") {
