@@ -24,7 +24,7 @@ static std::string randomMangleString() {
   return ret;
 }
 
-static std::string randomFuncionMangleString() {
+static std::string randomFunctionMangleString() {
   static constexpr std::string_view chars = "abcdefghijklmnopqrstuvwxyz";
   static constexpr unsigned int len = 12;
   std::random_device rd;
@@ -485,7 +485,7 @@ std::string Compiler::compileBlock(TSNode node) {
     const std::string type = ts_node_type(child);
 
     if (type == "if") {
-      const std::string &name = "if_" + randomMangleString();
+      const std::string &name = "if_" + randomFunctionMangleString();
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "expression", 10));
 
       if (expr.type != Type::Boolean) throw std::runtime_error(formatError(child, "Invalid type for if statement expression."));
