@@ -494,8 +494,16 @@ std::string Compiler::compileBlock(TSNode node) {
         if (expr.data != "1") continue;
         ret += compileBlock(ts_node_child_by_field_name(child, "block", 5));
       } else {
-        compiledFunctions.push_back({.name = name, .data = compileBlock(ts_node_child_by_field_name(child, "block", 5))});
-        ret += std::format("{}\nexecute if score expr_output1 temp matches 1 run function loom:{}\n", expr.data, name);
+        const std::string &data = compileBlock(ts_node_child_by_field_name(child, "block", 5));
+        const size_t lineCount = std::count(data.begin(), data.end(), '\n');
+
+        if (lineCount == 0) continue;
+        if (lineCount == 1) {
+          ret += std::format("{}\nexecute if score expr_output1 temp matches 1 run {}", expr.data, data);
+        } else {
+          compiledFunctions.push_back({.name = name, .data = data});
+          ret += std::format("{}\nexecute if score expr_output1 temp matches 1 run function loom:{}\n", expr.data, name);
+        }
       }
 
       continue;
