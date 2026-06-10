@@ -9,7 +9,7 @@ A programming language that compiles to Minecraft datapacks.
 
 - [x] Parsing
   - [ ] Parsing Errors
-- [x] ] Compiling
+- [x] Compiling
   - [x] Improve Internal Errors (e.g. precomputed divide by `0`)
   - [x] Compiling Errors
     - [x] Fancy Errors (well kind of)
