@@ -20,6 +20,9 @@ func load() {
   const myValue: int = getValue() + 3;
   say $myValue;
 
+  let boolTest: bool = true || false;
+  say $boolTest;
+
   return;
   say it will never get here;
 }

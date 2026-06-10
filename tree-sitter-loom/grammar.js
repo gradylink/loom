@@ -90,9 +90,9 @@ module.exports = grammar({
 
     binary_expression: ($) =>
       choice(
-        ...["+", "-", "*", "/", "%"].map((op) =>
+        ...["*", "/", "%"].map((op) =>
           prec.left(
-            op === "*" || op === "/" ? 2 : 1,
+            5,
             seq(
               field("left", $._expression),
               field("operator", op),
@@ -100,10 +100,62 @@ module.exports = grammar({
             ),
           )
         ),
+        ...["+", "-"].map((op) =>
+          prec.left(
+            4,
+            seq(
+              field("left", $._expression),
+              field("operator", op),
+              field("right", $._expression),
+            ),
+          )
+        ),
+        ...["<", ">", "<=", ">="].map((op) =>
+          prec.left(
+            3,
+            seq(
+              field("left", $._expression),
+              field("operator", op),
+              field("right", $._expression),
+            ),
+          )
+        ),
+        ...["==", "!="].map((op) =>
+          prec.left(
+            2,
+            seq(
+              field("left", $._expression),
+              field("operator", op),
+              field("right", $._expression),
+            ),
+          )
+        ),
+        prec.left(
+          1,
+          seq(
+            field("left", $._expression),
+            field("operator", "&&"),
+            field("right", $._expression),
+          ),
+        ),
+        prec.left(
+          0,
+          seq(
+            field("left", $._expression),
+            field("operator", "||"),
+            field("right", $._expression),
+          ),
+        ),
       ),
 
     unary_expression: ($) =>
-      prec(3, seq(field("operator", "-"), field("argument", $._expression))),
+      prec(
+        6,
+        seq(
+          field("operator", choice("-", "!")),
+          field("argument", $._expression),
+        ),
+      ),
 
     function_call: ($) => seq(field("name", $.identifier), "(", ")"),
 
@@ -115,7 +167,7 @@ module.exports = grammar({
 
     integer: () => /\d+/,
 
-    boolean: () => choice("true", "const"),
+    boolean: () => choice("true", "false"),
 
     command_arg: () => token(prec(-1, /[^\s$;{}()]+/)),
 

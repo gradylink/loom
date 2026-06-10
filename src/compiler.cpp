@@ -72,26 +72,62 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     const ExpressionData subExpr = compileExpression(argNode, id, true);
     const std::string_view op = getNodeText(opNode);
 
-    if (op == "-" && std::string(ts_node_type(argNode)) == "unary_expression" && getFieldText(argNode, "operator") == "-") {
+    Type expType;
+    if (op == "-") {
+      expType = Type::Integer;
+      if (subExpr.type != Type::Integer && subExpr.type != Type::Boolean) {
+        throw std::runtime_error(formatError(node, "Unary minus '-' can only be applied to integers and booleans."));
+      }
+    } else if (op == "!") {
+      expType = Type::Boolean;
+      if (subExpr.type != Type::Boolean) {
+        throw std::runtime_error(formatError(node, "Logical NOT operator '!' can only be applied to booleans."));
+      }
+    } else {
+      throw std::runtime_error(formatError(node, "Unknown unary operation: " + std::string(op)));
+    }
+
+    if (std::string(ts_node_type(argNode)) == "unary_expression" && op == getFieldText(argNode, "operator")) {
       return compileExpression(ts_node_child_by_field_name(argNode, "argument", 8), id, precompute);
     }
 
     if (subExpr.precomputed) {
-      std::string finalVal = std::string(op) + subExpr.data;
-      if (op == "-" && subExpr.data.starts_with('-')) {
-        finalVal = subExpr.data.substr(1);
+      std::string finalVal;
+      if (op == "-") {
+        if (subExpr.data.starts_with('-')) {
+          finalVal = subExpr.data.substr(1);
+        } else {
+          finalVal = std::string(op) + subExpr.data;
+        }
+      } else if (op == "!") {
+        finalVal = (subExpr.data == "1") ? "0" : "1";
       }
 
       if (!precompute) {
-        return {.data = std::format("scoreboard players set expr_output{} temp {}", id, finalVal), .precomputed = false, .type = Type::Integer};
+        return {.data = std::format("scoreboard players set expr_output{} temp {}", id, finalVal), .precomputed = false, .type = expType};
       }
-      return {.data = finalVal, .precomputed = true, .type = Type::Integer};
+      return {.data = finalVal, .precomputed = true, .type = expType};
     }
 
     if (op == "-") {
       return {.data = std::format("{}\nscoreboard players operation expr_output{} temp *= invert temp", subExpr.data, id), .precomputed = false, .type = Type::Integer};
     }
-    throw std::runtime_error(formatError(node, "Unknown unary operation: " + std::string(op)));
+
+    if (op == "!") {
+      return {
+        .data = std::format(
+          "{}\n"
+          "scoreboard players set internal1 temp 1\n"
+          "scoreboard players operation internal1 temp -= expr_output{} temp\n"
+          "scoreboard players operation expr_output{} temp = internal1 temp",
+          subExpr.data,
+          id,
+          id
+        ),
+        .precomputed = false,
+        .type = Type::Boolean
+      };
+    }
   }
 
   if (type == "function_call") {
@@ -153,16 +189,51 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     ExpressionData right = compileExpression(rightNode, id + 1, true);
     const std::string_view op = getFieldText(node, "operator");
 
-    if (left.precomputed && right.precomputed) {
-      std::string result;
-      if (op == "+") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) + static_cast<int32_t>(std::stoi(right.data)));
-      if (op == "-") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) - static_cast<int32_t>(std::stoi(right.data)));
-      if (op == "*") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) * static_cast<int32_t>(std::stoi(right.data)));
-      if (op == "/") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) / static_cast<int32_t>(std::stoi(right.data)));
-      if (op == "%") result = std::to_string(static_cast<int32_t>(std::stoi(left.data)) % static_cast<int32_t>(std::stoi(right.data)));
+    const bool isMath = (op == "+" || op == "-" || op == "*" || op == "/" || op == "%");
+    const bool isComparison = (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=");
+    const bool isLogical = (op == "&&" || op == "||");
 
-      if (precompute) return {.data = result, .precomputed = true, .type = Type::Integer};
-      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, result), .precomputed = false, .type = Type::Integer};
+    if (!isMath && !isComparison && !isLogical) {
+      throw std::runtime_error(formatError(node, "Unknown binary operation: " + std::string(op)));
+    }
+
+    if (isLogical) {
+      if (left.type != Type::Boolean || right.type != Type::Boolean) {
+        throw std::runtime_error(formatError(node, "Logical operators '&&' and '||' require boolean operands."));
+      }
+    } else {
+      if ((left.type != Type::Integer && left.type != Type::Boolean) || (right.type != Type::Integer && right.type != Type::Boolean)) {
+        throw std::runtime_error(formatError(node, "Invalid operand types for binary operation: " + std::string(op)));
+      }
+    }
+
+    const Type expectedReturnType = isMath ? Type::Integer : Type::Boolean;
+
+    if (left.precomputed && right.precomputed) {
+      const int32_t lVal = std::stoi(left.data);
+      const int32_t rVal = std::stoi(right.data);
+      std::string result;
+
+      if (op == "+") result = std::to_string(lVal + rVal);
+      else if (op == "-") result = std::to_string(lVal - rVal);
+      else if (op == "*") result = std::to_string(lVal * rVal);
+      else if (op == "/") {
+        if (rVal == 0) throw std::runtime_error(formatError(node, "Division by zero at compile-time."));
+        result = std::to_string(lVal / rVal);
+      } else if (op == "%") {
+        if (rVal == 0) throw std::runtime_error(formatError(node, "Modulo by zero at compile-time."));
+        result = std::to_string(lVal % rVal);
+      } else if (op == "==") result = (lVal == rVal) ? "1" : "0";
+      else if (op == "!=") result = (lVal != rVal) ? "1" : "0";
+      else if (op == "<") result = (lVal < rVal) ? "1" : "0";
+      else if (op == ">") result = (lVal > rVal) ? "1" : "0";
+      else if (op == "<=") result = (lVal <= rVal) ? "1" : "0";
+      else if (op == ">=") result = (lVal >= rVal) ? "1" : "0";
+      else if (op == "&&") result = (lVal && rVal) ? "1" : "0";
+      else if (op == "||") result = (lVal || rVal) ? "1" : "0";
+
+      if (precompute) return {.data = result, .precomputed = true, .type = expectedReturnType};
+      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, result), .precomputed = false, .type = expectedReturnType};
     }
 
     if (left.precomputed) {
@@ -171,11 +242,47 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       right.data = std::format("scoreboard players set expr_output{} temp {}", id + 1, right.data);
     }
 
-    return {
-      .data = std::format("{}\n{}\nscoreboard players operation expr_output{} temp {}= expr_output{} temp", left.data, right.data, id, op, id + 1),
-      .precomputed = false,
-      .type = Type::Integer
-    };
+    std::string runtimeCommands = left.data + "\n" + right.data + "\n";
+
+    if (isMath) {
+      runtimeCommands += std::format("scoreboard players operation expr_output{} temp {}= expr_output{} temp", id, op, id + 1);
+    } else if (isComparison) {
+      std::string mcOp = std::string(op);
+      std::string condType = "if";
+
+      if (op == "==") {
+        mcOp = "=";
+      } else if (op == "!=") {
+        mcOp = "=";
+        condType = "unless";
+      }
+
+      runtimeCommands += std::format(
+        "scoreboard players set internal1 temp 0\n"
+        "execute {} score expr_output{} temp {} expr_output{} temp run scoreboard players set internal1 temp 1\n"
+        "scoreboard players operation expr_output{} temp = internal1 temp",
+        condType,
+        id,
+        mcOp,
+        id + 1,
+        id
+      );
+    } else if (isLogical) {
+      if (op == "&&") {
+        runtimeCommands += std::format("scoreboard players operation expr_output{} temp *= expr_output{} temp", id, id + 1);
+      } else if (op == "||") {
+        runtimeCommands += std::format(
+          "scoreboard players operation expr_output{} temp += expr_output{} temp\n"
+          "execute if score expr_output{} temp matches 1.. run scoreboard players set expr_output{} temp 1",
+          id,
+          id + 1,
+          id,
+          id
+        );
+      }
+    }
+
+    return {.data = runtimeCommands, .precomputed = false, .type = expectedReturnType};
   }
 
   throw std::runtime_error(formatError(node, "Unexpected type while compiling expression: " + type));
