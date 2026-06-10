@@ -1,5 +1,5 @@
 <h1 valign="center">
-<img src="/gradylink/loom/media/branch/main/logo.svg" width="20">
+<img src="logo.svg" width="25">
 Loom
 </h1>
 
