@@ -457,7 +457,12 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     if (type != "comment") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
   }
 
-  compiledFunctions.push_back({.name = "load", .data = globalInit});
+  const auto &it = std::find_if(compiledFunctions.begin(), compiledFunctions.end(), [](CompiledFunction func) { return func.name == "load"; });
+  if (it != compiledFunctions.end()) {
+    it->data = globalInit + it->data;
+  } else {
+    compiledFunctions.push_back({.name = "load", .data = globalInit});
+  }
 
   return compiledFunctions;
 }
