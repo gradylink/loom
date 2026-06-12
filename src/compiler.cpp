@@ -427,7 +427,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         } else if (typeText == "bool" || typeText == "boolean") {
           retType = ReturnType::Boolean;
         } else {
-          throw std::runtime_error(formatError(child, "Invalid type in function definition: " + std::string(typeText)));
+          throw std::runtime_error(formatError(typeNode, "Invalid type in function definition: " + std::string(typeText)));
         }
       }
 
@@ -435,13 +435,15 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
         TSNode paramNode = ts_node_named_child(child, j);
         if (std::string(ts_node_type(paramNode)) == "parameter") {
-          std::string typeStr = std::string(getFieldText(paramNode, "type"));
+          TSNode paramTypeNode = ts_node_child_by_field_name(paramNode, "type", 4);
+          std::string typeStr = std::string(getNodeText(paramTypeNode));
+
           if (typeStr == "int" || typeStr == "integer") {
             paramTypes.push_back(Type::Integer);
           } else if (typeStr == "bool" || typeStr == "boolean") {
             paramTypes.push_back(Type::Boolean);
           } else {
-            throw std::runtime_error(formatError(paramNode, "Invalid parameter type: " + typeStr));
+            throw std::runtime_error(formatError(paramTypeNode, "Invalid parameter type: " + typeStr));
           }
         }
       }
@@ -457,7 +459,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       const std::string name = std::string(getFieldText(child, "name"));
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
       const bool constant = getFieldText(child, "keyword") == "const";
-      const auto &typeText = getFieldText(child, "type");
+      TSNode varTypeNode = ts_node_child_by_field_name(child, "type", 4);
+      const auto &typeText = getNodeText(varTypeNode);
       std::optional<int32_t> value = std::nullopt;
 
       Type varType;
@@ -466,7 +469,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       } else if (typeText == "bool" || typeText == "boolean") {
         varType = Type::Boolean;
       } else {
-        throw std::runtime_error(formatError(child, "Invalid type in variable declaration: " + std::string(typeText)));
+        throw std::runtime_error(formatError(varTypeNode, "Invalid type in variable declaration: " + std::string(typeText)));
       }
 
       if (constant && expr.precomputed) {
@@ -642,7 +645,8 @@ std::string Compiler::compileBlock(TSNode node) {
       const std::string mangledName = name + "_" + randomMangleString();
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
       const bool constant = getFieldText(child, "keyword") == "const";
-      const auto &typeText = getFieldText(child, "type");
+      TSNode varTypeNode = ts_node_child_by_field_name(child, "type", 4);
+      const auto &typeText = getNodeText(varTypeNode);
 
       Type varType;
       if (typeText == "int" || typeText == "integer") {
@@ -650,7 +654,7 @@ std::string Compiler::compileBlock(TSNode node) {
       } else if (typeText == "bool" || typeText == "boolean") {
         varType = Type::Boolean;
       } else {
-        throw std::runtime_error(formatError(child, "Invalid type in variable declaration: " + std::string(typeText)));
+        throw std::runtime_error(formatError(varTypeNode, "Invalid type in variable declaration: " + std::string(typeText)));
       }
 
       std::optional<int32_t> value = std::nullopt;
@@ -693,7 +697,7 @@ std::string Compiler::compileBlock(TSNode node) {
       const ExpressionData expr = compileExpression(expNode);
 
       if (vars[name].type == Type::Boolean && expr.type == Type::Integer) {
-        throw std::runtime_error(formatError(child, "Cannot assign an 'int' to 'bool' variable: " + name));
+        throw std::runtime_error(formatError(expNode, "Cannot assign an 'int' to 'bool' variable: " + name));
       }
 
       if (expr.precomputed) {
