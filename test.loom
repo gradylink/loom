@@ -25,6 +25,8 @@ func load() {
 
   if $boolTest {
     say hi!
+  } else {
+    say loom is awesome
   }
 
   if $myValue >= 100 {

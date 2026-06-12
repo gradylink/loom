@@ -60,7 +60,12 @@ module.exports = grammar({
       ),
 
     if: ($) =>
-      seq("if", field("expression", $._expression), field("block", $.block)),
+      seq(
+        "if",
+        field("expression", $._expression),
+        field("block", $.block),
+        optional(seq("else", choice($.if, $.block))),
+      ),
 
     block: ($) => seq("{", repeat(choice($._statement, $._newline)), "}"),
 

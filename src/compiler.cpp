@@ -14,8 +14,8 @@ extern "C" const TSLanguage *tree_sitter_loom(void);
 static std::string randomMangleString() {
   static constexpr std::string_view chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   static constexpr unsigned int len = 8;
-  std::random_device rd;
-  std::mt19937 generator(rd());
+  static std::random_device rd;
+  static std::mt19937 generator(rd());
   std::uniform_int_distribution<> distribution(0, chars.length() - 1);
 
   std::string ret;
@@ -27,8 +27,8 @@ static std::string randomMangleString() {
 static std::string randomFunctionMangleString() {
   static constexpr std::string_view chars = "abcdefghijklmnopqrstuvwxyz";
   static constexpr unsigned int len = 12;
-  std::random_device rd;
-  std::mt19937 generator(rd());
+  static std::random_device rd;
+  static std::mt19937 generator(rd());
   std::uniform_int_distribution<> distribution(0, chars.length() - 1);
 
   std::string ret;
@@ -477,6 +477,79 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   return compiledFunctions;
 }
 
+std::string Compiler::compileIf(TSNode ifRoot) {
+  std::string ret = "";
+
+  const std::string &name = "if_" + randomFunctionMangleString();
+  const ExpressionData expr = compileExpression(ts_node_child_by_field_name(ifRoot, "expression", 10));
+
+  if (expr.type != Type::Boolean) throw std::runtime_error(formatError(ifRoot, "Invalid type for if statement expression."));
+
+  TSNode blockNode = ts_node_child_by_field_name(ifRoot, "block", 5);
+
+  const bool hasElse = ts_node_named_child_count(ifRoot) > 2;
+  TSNode altNode;
+  if (hasElse) altNode = ts_node_named_child(ifRoot, 2);
+
+  if (expr.precomputed) {
+    if (expr.data == "1") {
+      ret += compileBlock(blockNode);
+    } else if (hasElse) {
+      std::string altType = ts_node_type(altNode);
+      if (altType == "block") {
+        ret += compileBlock(altNode);
+      } else if (altType == "if") {
+        ret += compileIf(altNode);
+      }
+    }
+    return ret;
+  }
+
+  ret += expr.data + "\n";
+
+  std::string condScore = "expr_output1";
+  if (hasElse) {
+    condScore = name + "_condition";
+    ret += std::format("scoreboard players operation {} temp = expr_output1 temp\n", condScore);
+  }
+
+  const std::string &trueData = compileBlock(blockNode);
+  const size_t trueLineCount = std::count(trueData.begin(), trueData.end(), '\n');
+
+  if (trueLineCount > 0) {
+    if (trueLineCount == 1) {
+      ret += std::format("execute if score {} temp matches 1 run {}\n", condScore, trueData);
+    } else {
+      compiledFunctions.push_back({.name = name + "_true", .data = trueData});
+      ret += std::format("execute if score {} temp matches 1 run function loom:{}_true\n", condScore, name);
+    }
+  }
+
+  if (hasElse) {
+    std::string altData;
+    std::string altType = ts_node_type(altNode);
+
+    if (altType == "block") {
+      altData = compileBlock(altNode);
+    } else if (altType == "if") {
+      altData = compileIf(altNode);
+    }
+
+    const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
+
+    if (altLineCount > 0) {
+      if (altLineCount == 1) {
+        ret += std::format("execute unless score {} temp matches 1 run {}\n", condScore, altData);
+      } else {
+        compiledFunctions.push_back({.name = name + "_false", .data = altData});
+        ret += std::format("execute unless score {} temp matches 1 run function loom:{}_false\n", condScore, name);
+      }
+    }
+  }
+
+  return ret;
+};
+
 std::string Compiler::compileBlock(TSNode node) {
   std::string ret = "";
 
@@ -485,27 +558,7 @@ std::string Compiler::compileBlock(TSNode node) {
     const std::string type = ts_node_type(child);
 
     if (type == "if") {
-      const std::string &name = "if_" + randomFunctionMangleString();
-      const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "expression", 10));
-
-      if (expr.type != Type::Boolean) throw std::runtime_error(formatError(child, "Invalid type for if statement expression."));
-
-      if (expr.precomputed) {
-        if (expr.data != "1") continue;
-        ret += compileBlock(ts_node_child_by_field_name(child, "block", 5));
-      } else {
-        const std::string &data = compileBlock(ts_node_child_by_field_name(child, "block", 5));
-        const size_t lineCount = std::count(data.begin(), data.end(), '\n');
-
-        if (lineCount == 0) continue;
-        if (lineCount == 1) {
-          ret += std::format("{}\nexecute if score expr_output1 temp matches 1 run {}", expr.data, data);
-        } else {
-          compiledFunctions.push_back({.name = name, .data = data});
-          ret += std::format("{}\nexecute if score expr_output1 temp matches 1 run function loom:{}\n", expr.data, name);
-        }
-      }
-
+      ret += compileIf(child);
       continue;
     }
 

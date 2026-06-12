@@ -352,6 +352,20 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "block",
+          "named": true
+        },
+        {
+          "type": "if",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -707,6 +721,10 @@
   },
   {
     "type": "const",
+    "named": false
+  },
+  {
+    "type": "else",
     "named": false
   },
   {

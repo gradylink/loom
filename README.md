@@ -52,10 +52,10 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] Floats
 - [ ] Dictionaries
 - [ ] Lists
-- [ ] Conditionals
+- [x] Conditionals
   - [x] `if`
-  - [ ] `else`
-  - [ ] `elif`
+  - [x] `else`
+  - [x] `else if`
 - [ ] Loops
   - [ ] `while`
   - [ ] `for`
