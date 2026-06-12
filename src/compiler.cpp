@@ -614,7 +614,8 @@ std::string Compiler::compileBlock(TSNode node) {
         throw std::runtime_error(formatError(child, "Cannot reassign constant variable: " + name));
       }
 
-      const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
+      TSNode expNode = ts_node_child_by_field_name(child, "value", 5);
+      const ExpressionData expr = compileExpression(expNode);
 
       if (vars[name].type == Type::Boolean && expr.type == Type::Integer) {
         throw std::runtime_error(formatError(child, "Cannot assign an 'int' to 'bool' variable: " + name));
@@ -623,6 +624,31 @@ std::string Compiler::compileBlock(TSNode node) {
       if (expr.precomputed) {
         ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
       } else {
+        if (std::string(ts_node_type(expNode)) == "binary_expression") {
+          const std::string_view op = getFieldText(expNode, "operator");
+
+          if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+            TSNode leftNode = ts_node_child_by_field_name(expNode, "left", 4);
+            TSNode rightNode = ts_node_child_by_field_name(expNode, "right", 5);
+
+            if (std::string(ts_node_type(leftNode)) == "variable_ref") {
+              if (std::string(getFieldText(leftNode, "name")) == name) {
+                const ExpressionData rightExpr = compileExpression(rightNode, 1, false);
+                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, name, op);
+                continue;
+              }
+            }
+
+            if (std::string(ts_node_type(rightNode)) == "variable_ref") {
+              if (std::string(getFieldText(rightNode, "name")) == name) {
+                const ExpressionData leftExpr = compileExpression(leftNode, 1, false);
+                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, name, op);
+                continue;
+              }
+            }
+          }
+        }
+
         ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, vars[name].mangledName);
       }
       continue;

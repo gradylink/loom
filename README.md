@@ -20,7 +20,7 @@ A programming language that compiles to Minecraft datapacks.
       (optimizations)
   - [ ] Inside execute run
 - [ ] Inline literal const vars
-- [ ] Detect variable manipulation (`myVar = $myVar + 1`) and simplify
+- [x] Detect variable manipulation (`myVar = $myVar + 1`) and simplify
       operations there.
 - [x] Scope variables
 - [ ] Line numbers in expression parsing errors
