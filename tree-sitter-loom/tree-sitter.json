@@ -24,13 +24,13 @@
       }
     ],
     "links": {
-      "repository": "https://codeberg.org/gradylink/tree-sitter-loom"
+      "repository": "https://github.com/gradylink/loom"
     }
   },
   "bindings": {
     "c": true,
     "go": false,
-    "node": false,
+    "node": true,
     "python": false,
     "rust": false,
     "swift": false,
