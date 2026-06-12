@@ -17,6 +17,10 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { Language, Node, Parser } from "web-tree-sitter";
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import { exec } from "child_process";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -24,14 +28,16 @@ const documents = new TextDocuments(TextDocument);
 let parser: Parser;
 const trees: Map<string, any> = new Map();
 
+const COMPILER_PATH = "/home/grady.link/loom/build/loom" as const;
+const WASM_PATH =
+  "/home/grady.link/loom/tree-sitter-loom/tree-sitter-loom.wasm" as const;
+
 connection.onInitialize(
   async (params: InitializeParams): Promise<InitializeResult> => {
     await Parser.init();
     parser = new Parser();
 
-    const LoomLanguage = await Language.load(
-      "/home/grady.link/loom/tree-sitter-loom/tree-sitter-loom.wasm", // TODO: find a better way to provide this path
-    );
+    const LoomLanguage = await Language.load(WASM_PATH);
     parser.setLanguage(LoomLanguage);
 
     return {
@@ -88,7 +94,69 @@ documents.onDidChangeContent((change) => {
   };
 
   traverse(tree.rootNode);
-  connection.sendDiagnostics({ uri: document.uri, diagnostics });
+
+  const tempDir = path.join(os.tmpdir(), "loom-lsp");
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+  const tempSourceFile = path.join(
+    tempDir,
+    `check-${path.basename(document.uri)}.loom`,
+  );
+  const tempOutDir = path.join(tempDir, "out");
+
+  fs.writeFileSync(tempSourceFile, text, "utf8");
+
+  const compileCmd =
+    `"${COMPILER_PATH}" "${tempSourceFile}" -o "${tempOutDir}"`;
+
+  exec(compileCmd, (error, stdout, stderr) => {
+    const errorStream = stderr || stdout || "";
+
+    if (errorStream) {
+      const errorRegex = /line\s+(\d+),\s+col\s+(\d+):\s+(.*)/g;
+      let match;
+
+      while ((match = errorRegex.exec(errorStream)) !== null) {
+        const cppLine = parseInt(match[1]!, 10) - 1;
+        const cppCol = parseInt(match[2]!, 10) - 1;
+        const message = match[3]!.trim();
+
+        const errorNode = tree.rootNode.namedDescendantForPosition({
+          row: cppLine,
+          column: cppCol,
+        });
+
+        const range = errorNode
+          ? {
+            start: {
+              line: errorNode.startPosition.row,
+              character: errorNode.startPosition.column,
+            },
+            end: {
+              line: errorNode.endPosition.row,
+              character: errorNode.endPosition.column,
+            },
+          }
+          : {
+            start: { line: cppLine, character: cppCol },
+            end: { line: cppLine, character: cppCol + 1 },
+          };
+
+        diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          range: range,
+          message: message,
+          source: "loom-compiler",
+        });
+      }
+    }
+
+    try {
+      fs.unlinkSync(tempSourceFile);
+    } catch {}
+
+    connection.sendDiagnostics({ uri: document.uri, diagnostics });
+  });
 });
 
 function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
