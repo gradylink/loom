@@ -634,7 +634,7 @@ std::string Compiler::compileBlock(TSNode node) {
             if (std::string(ts_node_type(leftNode)) == "variable_ref") {
               if (std::string(getFieldText(leftNode, "name")) == name) {
                 const ExpressionData rightExpr = compileExpression(rightNode, 1, false);
-                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, name, op);
+                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, vars[name].mangledName, op);
                 continue;
               }
             }
@@ -642,7 +642,7 @@ std::string Compiler::compileBlock(TSNode node) {
             if (std::string(ts_node_type(rightNode)) == "variable_ref") {
               if (std::string(getFieldText(rightNode, "name")) == name) {
                 const ExpressionData leftExpr = compileExpression(leftNode, 1, false);
-                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, name, op);
+                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, vars[name].mangledName, op);
                 continue;
               }
             }
