@@ -1,6 +1,7 @@
 "func" @keyword.function
 "return" @keyword.return
 "if" @keyword.conditional
+"else" @keyword.conditional
 ["let" "const"] @keyword.storage
 
 (function_definition 
