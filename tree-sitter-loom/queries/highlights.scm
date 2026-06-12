@@ -4,32 +4,23 @@
 "else" @keyword.conditional
 ["let" "const"] @keyword.storage
 
-(function_definition 
-  name: (identifier) @function)
+(function_definition name: (identifier) @function)
+(function_call name: (identifier) @function.call)
+(variable_declaration name: (identifier) @variable)
+(parameter name: (identifier) @variable.parameter)
 
-(function_call 
-  name: (identifier) @function.call)
+(assignment name: (identifier) @variable)
+(variable_ref "$" @punctuation.special name: (identifier) @variable.reference)
 
-(variable_declaration 
-  name: (identifier) @variable)
-
-(assignment 
-  name: (identifier) @variable)
-
-(variable_ref) @variable.reference
-
-(parameter
-  name: (identifier) @variable.parameter)
-
-(type) @type
 (command_name) @function.builtin
 (command_arg) @string
 
+(type) @type
 (integer) @number
 (boolean) @boolean
 
-"$" @punctuation.special
-["=" "+" "-" "*" "/" "%" "==" "!=" "<" ">" "<=" ">=" "&&" "||"] @operator
-[":" ";" "(" ")" "{" "}"] @punctuation.delimiter
+(unary_expression operator: _ @operator)
+(binary_expression operator: _ @operator)
+[":" ";" "(" ")" "{" "}" ","] @punctuation.delimiter
 
 (comment) @comment @spell
