@@ -27,6 +27,7 @@ private:
   struct FunctionData {
     std::string name;
     ReturnType returnType;
+    std::vector<Type> params;
   };
 
   struct VariableData {

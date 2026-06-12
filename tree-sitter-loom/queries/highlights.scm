@@ -17,15 +17,19 @@
   name: (identifier) @variable)
 
 (variable_ref) @variable.reference
-"$" @punctuation.special
 
-(command_name) @function.builtin
-(command_arg) @string
-(integer) @number
-(boolean) @boolean.macro
+(parameter
+  name: (identifier) @variable.parameter)
 
 (type) @type
-(comment) @comment @spell
+(command_name) @function.builtin
+(command_arg) @string
 
+(integer) @number
+(boolean) @boolean
+
+"$" @punctuation.special
 ["=" "+" "-" "*" "/" "%" "==" "!=" "<" ">" "<=" ">=" "&&" "||"] @operator
 [":" ";" "(" ")" "{" "}"] @punctuation.delimiter
+
+(comment) @comment @spell

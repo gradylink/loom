@@ -5,12 +5,19 @@ func getValue(): int {
   return 68;
 }
 
+func argsTest(swizzle1: int, swizzle2: int): int {
+  return $swizzle1 + $swizzle2 + 5
+}
+
 func sendMessage() { -- Implicit void return type
   say $myVar;
   title @a title "Hello: $myVar is the value";
 }
 
 func load() {
+  const argsResult: int = argsTest(7, 12);
+  say $argsResult
+
   $myVar = $myVar + 1; -- Leading "$" here is optional
   sendMessage();
   say $myVar2 is cool!;

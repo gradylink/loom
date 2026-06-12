@@ -163,8 +163,29 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     if (funcs.find(targetFunc) == funcs.end()) {
       throw std::runtime_error(formatError(node, "Unknown function: " + targetFunc));
     }
-    if (funcs[targetFunc].returnType != ReturnType::Integer) {
-      throw std::runtime_error(formatError(node, "Attempted to use a function that doesn't return an integer in expression."));
+
+    std::vector<TSNode> argNodes;
+    for (uint32_t i = 1; i < ts_node_named_child_count(node); i++) {
+      argNodes.push_back(ts_node_named_child(node, i));
+    }
+
+    if (argNodes.size() != funcs[targetFunc].params.size()) {
+      throw std::runtime_error(formatError(node, std::format("Function '{}' expects {} arguments, got {}", targetFunc, funcs[targetFunc].params.size(), argNodes.size())));
+    }
+
+    std::string argPushData = "";
+    for (size_t i = 0; i < argNodes.size(); i++) {
+      const ExpressionData argExpr = compileExpression(argNodes[i]);
+      if (argExpr.type != funcs[targetFunc].params[i]) {
+        throw std::runtime_error(formatError(argNodes[i], std::format("Argument {} type mismatch for function '{}'", i + 1, targetFunc)));
+      }
+
+      if (argExpr.precomputed) {
+        argPushData += std::format("data modify storage loom:stack regs append value {}\n", argExpr.data);
+      } else {
+        argPushData += argExpr.data + "\n";
+        argPushData += "execute store result storage loom:stack regs append int 1 run scoreboard players get expr_output1 temp\n";
+      }
     }
 
     std::string push;
@@ -177,11 +198,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     Type funcType = Type::Integer;
     if (funcs[targetFunc].returnType == ReturnType::Boolean) funcType = Type::Boolean;
 
-    return {
-      .data = std::format("{}execute store result score expr_output{} temp run function loom:{}{}", push, id, funcs[targetFunc].name, pop),
-      .precomputed = false,
-      .type = funcType
-    };
+    std::string callCommand;
+    if (funcs[targetFunc].returnType == ReturnType::Void) {
+      callCommand = std::format("function loom:{}", funcs[targetFunc].name);
+    } else {
+      callCommand = std::format("execute store result score expr_output{} temp run function loom:{}", id, funcs[targetFunc].name);
+    }
+
+    return {.data = std::format("{}{}{}{}", push, argPushData, callCommand, pop), .precomputed = false, .type = funcType};
   }
 
   if (type == "variable_ref") {
@@ -366,6 +390,7 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
       R"(tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{}])",
       target,
       target,
+      target,
       buildJsonTextArray(1).substr(1)
     );
   }
@@ -405,7 +430,22 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           throw std::runtime_error(formatError(child, "Invalid type in function definition: " + std::string(typeText)));
         }
       }
-      funcs[name] = {name, retType};
+
+      std::vector<Type> paramTypes;
+      for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
+        TSNode paramNode = ts_node_named_child(child, j);
+        if (std::string(ts_node_type(paramNode)) == "parameter") {
+          std::string typeStr = std::string(getFieldText(paramNode, "type"));
+          if (typeStr == "int" || typeStr == "integer") {
+            paramTypes.push_back(Type::Integer);
+          } else if (typeStr == "bool" || typeStr == "boolean") {
+            paramTypes.push_back(Type::Boolean);
+          } else {
+            throw std::runtime_error(formatError(paramNode, "Invalid parameter type: " + typeStr));
+          }
+        }
+      }
+      funcs[name] = {name, retType, paramTypes};
     }
   }
 
@@ -460,7 +500,42 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       std::string name = std::string(getFieldText(child, "name"));
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-      compiledFunctions.push_back({.name = name, .data = compileBlock(ts_node_child_by_field_name(child, "block", 5))});
+      TSNode blockNode = ts_node_child_by_field_name(child, "block", 5);
+
+      std::vector<TSNode> paramNodes;
+      for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
+        TSNode pNode = ts_node_named_child(child, j);
+        if (std::string(ts_node_type(pNode)) == "parameter") {
+          paramNodes.push_back(pNode);
+        }
+      }
+
+      std::string paramSetup = "";
+      for (auto it = paramNodes.rbegin(); it != paramNodes.rend(); ++it) {
+        TSNode pNode = *it;
+        std::string pName = std::string(getFieldText(pNode, "name"));
+        std::string pTypeStr = std::string(getFieldText(pNode, "type"));
+        Type pType = (pTypeStr == "int" || pTypeStr == "integer") ? Type::Integer : Type::Boolean;
+
+        std::string mangledName = pName + "_" + randomMangleString();
+
+        vars.emplace(
+          pName,
+          VariableData{
+            .name = pName,
+            .mangledName = mangledName,
+            .type = pType,
+            .scope = blockNode,
+            .constant = false,
+            .value = std::nullopt,
+          }
+        );
+
+        paramSetup += std::format("execute store result score {} vars run data get storage loom:stack regs[-1]\n", mangledName);
+        paramSetup += "data remove storage loom:stack regs[-1]\n";
+      }
+
+      compiledFunctions.push_back({.name = name, .data = paramSetup + compileBlock(blockNode)});
       continue;
     }
 
@@ -655,9 +730,8 @@ std::string Compiler::compileBlock(TSNode node) {
     }
 
     if (type == "function_call") {
-      std::string targetFunc = std::string(getFieldText(child, "name"));
-      std::transform(targetFunc.begin(), targetFunc.end(), targetFunc.begin(), ::tolower);
-      ret += std::format("function loom:{}\n", targetFunc);
+      ExpressionData expr = compileExpression(child, 1, false);
+      ret += expr.data + "\n";
       continue;
     }
 

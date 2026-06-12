@@ -7,6 +7,10 @@
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
+function commaSep(rule) {
+  return optional(seq(rule, repeat(seq(",", rule))));
+}
+
 module.exports = grammar({
   name: "loom",
 
@@ -49,11 +53,15 @@ module.exports = grammar({
         field("value", $._expression),
       ),
 
+    parameter: ($) =>
+      seq(field("name", $.identifier), ":", field("type", $.type)),
+
     function_definition: ($) =>
       seq(
         "func",
         field("name", $.identifier),
         "(",
+        field("parameters", commaSep($.parameter)),
         ")",
         optional(seq(":", field("type", $.type))),
         field("block", $.block),
@@ -166,7 +174,13 @@ module.exports = grammar({
         ),
       ),
 
-    function_call: ($) => seq(field("name", $.identifier), "(", ")"),
+    function_call: ($) =>
+      seq(
+        field("name", $.identifier),
+        "(",
+        field("arguments", commaSep($._expression)),
+        ")",
+      ),
 
     variable_ref: ($) => prec(2, seq("$", field("name", $.identifier))),
 
