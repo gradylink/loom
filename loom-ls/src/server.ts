@@ -38,7 +38,7 @@ connection.onInitialize(
       capabilities: {
         textDocumentSync: TextDocumentSyncKind.Incremental,
         definitionProvider: true,
-        hoverProvider: true, // Enable Hover
+        hoverProvider: true,
         completionProvider: {
           resolveProvider: false,
           triggerCharacters: ["$"],
@@ -91,31 +91,69 @@ documents.onDidChangeContent((change) => {
   connection.sendDiagnostics({ uri: document.uri, diagnostics });
 });
 
-function getDeclarationNode(rootNode: Node, targetName: string): Node | null {
-  let definitionNode: Node | null = null;
+function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
+  let curr: Node | null = cursorNode;
 
-  const find = (node: Node) => {
-    if (definitionNode) return;
+  while (curr) {
+    if (curr.type === "block" || curr.type === "source_file") {
+      for (let i = 0; i < curr.childCount; i++) {
+        const child = curr.child(i)!;
 
-    const isAssignment = node.type === "variable_declaration" ||
-      node.type === "function_definition" ||
-      node.type === "parameter";
+        if (child.startPosition.row > cursorNode.startPosition.row) break;
 
-    if (isAssignment) {
-      const nameNode = node.childForFieldName("name") || node.namedChild(0);
-      if (nameNode && nameNode.text === targetName) {
-        definitionNode = node;
-        return;
+        if (child.type === "variable_declaration") {
+          const nameNode = child.childForFieldName("name");
+          if (nameNode && nameNode.text === targetName) {
+            return child;
+          }
+        }
       }
     }
 
-    for (let i = 0; i < node.childCount; i++) {
-      find(node.child(i)!);
-    }
-  };
+    if (curr.type === "function_definition") {
+      const funcNameNode = curr.childForFieldName("name");
+      if (funcNameNode && funcNameNode.text === targetName) {
+        return curr;
+      }
 
-  find(rootNode);
-  return definitionNode;
+      const paramsNode = curr.childForFieldName("parameters");
+      if (paramsNode) {
+        let foundParam: Node | null = null;
+        const checkParam = (n: Node) => {
+          if (n.type === "parameter") {
+            const pName = n.childForFieldName("name");
+            if (pName && pName.text === targetName) {
+              foundParam = n;
+            }
+          }
+          for (let i = 0; i < n.childCount; i++) checkParam(n.child(i)!);
+        };
+        checkParam(paramsNode);
+        if (foundParam) return foundParam;
+      }
+    }
+
+    curr = curr.parent;
+  }
+
+  let root = cursorNode;
+  while (root.parent) root = root.parent;
+
+  let globalFunc: Node | null = null;
+  const findGlobalFunc = (node: Node) => {
+    if (globalFunc) return;
+    if (node.type === "function_definition") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode && nameNode.text === targetName) {
+        globalFunc = node;
+        return;
+      }
+    }
+    for (let i = 0; i < node.childCount; i++) findGlobalFunc(node.child(i)!);
+  };
+  findGlobalFunc(root);
+
+  return globalFunc;
 }
 
 connection.onDefinition((params: DefinitionParams): Location | null => {
@@ -126,13 +164,12 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
     row: params.position.line,
     column: params.position.character,
   };
-
   const cursorNode: Node = tree.rootNode.namedDescendantForPosition(
     cursorPoint,
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
-  const declarationNode = getDeclarationNode(tree.rootNode, cursorNode.text);
+  const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
 
   if (declarationNode) {
     const nameNode = declarationNode.childForFieldName("name") ||
@@ -165,13 +202,12 @@ connection.onHover((params: HoverParams): Hover | null => {
     row: params.position.line,
     column: params.position.character,
   };
-
   const cursorNode: Node = tree.rootNode.namedDescendantForPosition(
     cursorPoint,
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
-  const declarationNode = getDeclarationNode(tree.rootNode, cursorNode.text);
+  const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
 
   if (declarationNode) {
     let hoverText = "";
@@ -183,7 +219,6 @@ connection.onHover((params: HoverParams): Hover | null => {
       const isParam = declarationNode.type === "parameter";
       const name = declarationNode.childForFieldName("name")?.text || "unknown";
       const type = declarationNode.childForFieldName("type")?.text || "unknown";
-
       const keyword = isParam
         ? "(parameter)"
         : (declarationNode.childForFieldName("keyword")?.text || "let");
@@ -201,17 +236,13 @@ connection.onHover((params: HoverParams): Hover | null => {
     }
 
     if (hoverText) {
-      return {
-        contents: {
-          kind: "markdown",
-          value: hoverText,
-        },
-      };
+      return { contents: { kind: "markdown", value: hoverText } };
     }
   }
 
   return null;
 });
+
 connection.onCompletion(
   (params: TextDocumentPositionParams): CompletionItem[] => {
     const document = documents.get(params.textDocument.uri);
@@ -226,7 +257,6 @@ connection.onCompletion(
 
     const items: CompletionItem[] = [];
 
-    // type
     if (lineText.match(/:\s*[a-zA-Z_]*$/)) {
       return [
         { label: "int", kind: CompletionItemKind.TypeParameter },
@@ -234,38 +264,50 @@ connection.onCompletion(
         { label: "void", kind: CompletionItemKind.TypeParameter },
       ];
     }
+    if (lineText.match(/(let|const|func)\s+[a-z_0-9]*$/i)) return [];
+    if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) return [];
+    if (lineText.includes("--")) return [];
 
-    // var/function name
-    if (lineText.match(/(let|const|func)\s+[a-z_0-9]*$/i)) {
-      return [];
-    }
-
-    // param name
-    if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) {
-      return [];
-    }
-
-    // comment
-    if (lineText.includes("--")) {
-      return [];
-    }
+    const cursorPoint = {
+      row: params.position.line,
+      column: Math.max(0, params.position.character - 1),
+    };
+    const cursorNode = tree.rootNode.descendantForPosition(cursorPoint);
 
     const variables = new Set<string>();
-    const functions = new Set<string>();
+    let inBlock = false;
+    let curr: Node | null = cursorNode;
 
-    function findSymbols(node: Node) {
-      if (node.type === "variable_declaration" || node.type === "parameter") {
-        const nameNode = node.childForFieldName("name");
-        if (nameNode) variables.add(nameNode.text);
-      } else if (node.type === "function_definition") {
+    while (curr) {
+      if (curr.type === "block") {
+        inBlock = true;
+      }
+
+      if (curr.type === "block" || curr.type === "source_file") {
+        for (let i = 0; i < curr.childCount; i++) {
+          const child = curr.child(i)!;
+          if (child.endPosition.row <= params.position.line) {
+            if (child.type === "variable_declaration") {
+              const nameNode = child.childForFieldName("name");
+              if (nameNode) variables.add(nameNode.text);
+            }
+          }
+        }
+      }
+
+      curr = curr.parent;
+    }
+
+    const functions = new Set<string>();
+    function findFunctions(node: Node) {
+      if (node.type === "function_definition") {
         const nameNode = node.childForFieldName("name");
         if (nameNode) functions.add(nameNode.text);
       }
-      for (let i = 0; i < node.childCount; i++) findSymbols(node.child(i)!);
+      for (let i = 0; i < node.childCount; i++) findFunctions(node.child(i)!);
     }
-    findSymbols(tree.rootNode);
+    findFunctions(tree.rootNode);
 
-    // variable
     if (lineText.match(/\$[a-z_0-9]*$/i)) {
       for (const v of variables) {
         items.push({
@@ -277,28 +319,11 @@ connection.onCompletion(
       return items;
     }
 
-    // expression
     if (lineText.match(/return\s+|(?:(?:let|const)\s+)?[a-z_0-9]+\s*=\s*/i)) {
       return [
         { label: "true", kind: CompletionItemKind.Keyword },
         { label: "false", kind: CompletionItemKind.Keyword },
       ];
-    }
-
-    const cursorPoint = {
-      row: params.position.line,
-      column: Math.max(0, params.position.character - 1),
-    };
-    const cursorNode = tree.rootNode.descendantForPosition(cursorPoint);
-
-    let inBlock = false;
-    let curr: Node | null = cursorNode;
-    while (curr) {
-      if (curr.type === "block") {
-        inBlock = true;
-        break;
-      }
-      curr = curr.parent;
     }
 
     const keywords = [
