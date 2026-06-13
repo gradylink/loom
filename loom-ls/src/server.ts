@@ -47,7 +47,7 @@ connection.onInitialize(
         hoverProvider: true,
         completionProvider: {
           resolveProvider: false,
-          triggerCharacters: ["$"],
+          triggerCharacters: ["$", "@"],
         },
       },
     };
@@ -163,6 +163,13 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
   let curr: Node | null = cursorNode;
 
   while (curr) {
+    if (curr.type === "for") {
+      const iteratorNode = curr.childForFieldName("iterator");
+      if (iteratorNode && iteratorNode.text === targetName) {
+        return curr;
+      }
+    }
+
     if (curr.type === "block" || curr.type === "source_file") {
       for (let i = 0; i < curr.childCount; i++) {
         const child = curr.child(i)!;
@@ -241,6 +248,7 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
 
   if (declarationNode) {
     const nameNode = declarationNode.childForFieldName("name") ||
+      declarationNode.childForFieldName("iterator") ||
       declarationNode.namedChild(0);
     const targetNode = nameNode || declarationNode;
 
@@ -292,6 +300,10 @@ connection.onHover((params: HoverParams): Hover | null => {
         : (declarationNode.childForFieldName("keyword")?.text || "let");
 
       hoverText = `\`\`\`loom\n${keyword} ${name}: ${type}\n\`\`\``;
+    } else if (declarationNode.type === "for") {
+      const iteratorName =
+        declarationNode.childForFieldName("iterator")?.text || "iterator";
+      hoverText = `\`\`\`loom\n(loop variable) ${iteratorName}: int\n\`\`\``;
     } else if (declarationNode.type === "function_definition") {
       const name = declarationNode.childForFieldName("name")?.text || "unknown";
       const paramsText =
@@ -325,6 +337,9 @@ connection.onCompletion(
 
     const items: CompletionItem[] = [];
 
+    if (lineText.match(/@[srpean]\[[^\]]*$/i)) return [];
+    if (lineText.includes("--")) return [];
+
     if (lineText.match(/:\s*[a-zA-Z_]*$/)) {
       return [
         { label: "int", kind: CompletionItemKind.TypeParameter },
@@ -332,9 +347,19 @@ connection.onCompletion(
         { label: "void", kind: CompletionItemKind.TypeParameter },
       ];
     }
-    if (lineText.match(/(let|const|func)\s+[a-z_0-9]*$/i)) return [];
+    if (lineText.match(/(let|const|func|for)\s+[a-z_0-9]*$/i)) return [];
     if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) return [];
-    if (lineText.includes("--")) return [];
+
+    if (lineText.match(/@$/)) {
+      return [
+        { label: "a", kind: CompletionItemKind.Enum },
+        { label: "p", kind: CompletionItemKind.Enum },
+        { label: "s", kind: CompletionItemKind.Enum },
+        { label: "r", kind: CompletionItemKind.Enum },
+        { label: "n", kind: CompletionItemKind.Enum },
+        { label: "e", kind: CompletionItemKind.Enum },
+      ];
+    }
 
     const cursorPoint = {
       row: params.position.line,
@@ -349,6 +374,11 @@ connection.onCompletion(
     while (curr) {
       if (curr.type === "block") {
         inBlock = true;
+      }
+
+      if (curr.type === "for") {
+        const iteratorNode = curr.childForFieldName("iterator");
+        if (iteratorNode) variables.add(iteratorNode.text);
       }
 
       if (curr.type === "block" || curr.type === "source_file") {
@@ -387,7 +417,11 @@ connection.onCompletion(
       return items;
     }
 
-    if (lineText.match(/return\s+|(?:(?:let|const)\s+)?[a-z_0-9]+\s*=\s*/i)) {
+    if (
+      lineText.match(
+        /(return|in|while)\s+|((let|const)\s+)?[a-z_0-9]+\s*=\s*/i,
+      )
+    ) {
       return [
         { label: "true", kind: CompletionItemKind.Keyword },
         { label: "false", kind: CompletionItemKind.Keyword },
@@ -400,9 +434,23 @@ connection.onCompletion(
       "func",
       "if",
       "else",
+      "do",
+      "while",
+      "for",
       "return",
       "true",
       "false",
+      "as",
+      "at",
+      "align",
+      "anchored",
+      "facing",
+      "entity",
+      "in",
+      "on",
+      "positioned",
+      "over",
+      "rotated",
     ];
     for (const kw of keywords) {
       items.push({ label: kw, kind: CompletionItemKind.Keyword });

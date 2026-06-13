@@ -7,6 +7,9 @@
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
+/**
+ * @param {RuleOrLiteral} rule
+ */
 function commaSep(rule) {
   return optional(seq(rule, repeat(seq(",", rule))));
 }
@@ -26,9 +29,13 @@ module.exports = grammar({
           $.assignment,
           $.function_definition,
           $.if,
+          $.while,
+          $.do_while,
+          $.for,
           $.command_statement,
           $.return_statement,
           $.function_call,
+          $.context_statement,
         ),
         choice(";", $._newline),
       ),
@@ -73,6 +80,90 @@ module.exports = grammar({
         field("expression", $._expression),
         field("block", $.block),
         optional(seq("else", choice($.if, $.block))),
+      ),
+
+    while: ($) =>
+      seq(
+        "while",
+        field("condition", $._expression),
+        field("block", $.block),
+      ),
+
+    do_while: ($) =>
+      seq(
+        "do",
+        field("block", $.block),
+        "while",
+        field("condition", $._expression),
+      ),
+
+    for: ($) =>
+      seq(
+        "for",
+        field("iterator", $.identifier),
+        "in",
+        field("start", $._expression),
+        "..",
+        field("end", $._expression),
+        field("block", $.block),
+      ),
+
+    contextModifier: ($) =>
+      choice(
+        seq("as", field("selector", $.selector)),
+        seq("at", field("selector", $.selector)),
+        seq("align", field("axes", $.swizzle)),
+        seq("anchored", field("anchor", choice("eyes", "feet"))),
+        seq("facing", field("pos", $.vec3)),
+        seq(
+          "facing",
+          "entity",
+          field("selector", $.selector),
+          field("anchor", choice("eyes", "feet")),
+        ),
+        seq(
+          "in",
+          field("dim", $.namespaced_arg),
+        ),
+        seq(
+          "on",
+          field(
+            "relation",
+            choice(
+              "attacker",
+              "controller",
+              "leasher",
+              "origin",
+              "owner",
+              "passengers",
+              "target",
+              "vehicle",
+            ),
+          ),
+        ),
+        seq("positioned", field("pos", $.vec3)),
+        seq("positioned", "as", field("selector", $.selector)),
+        seq(
+          "positioned",
+          "over",
+          field(
+            "heightmap",
+            choice(
+              "world_surface",
+              "motion_blocking",
+              "motion_blocking_no_leaves",
+              "ocean_floor",
+            ),
+          ),
+        ),
+        seq("rotated", field("rot", $.vec2)),
+        seq("rotated", "as", field("selector", $.selector)),
+      ),
+
+    context_statement: ($) =>
+      seq(
+        repeat1($.contextModifier),
+        field("block", $.block),
       ),
 
     block: ($) => seq("{", repeat(choice($._statement, $._newline)), "}"),
@@ -184,15 +275,96 @@ module.exports = grammar({
 
     variable_ref: ($) => prec(2, seq("$", field("name", $.identifier))),
 
+    selector: ($) =>
+      choice(
+        seq(
+          choice("@s", "@r", "@p", "@e", "@a", "@n"),
+          optional(
+            seq(
+              "[",
+              repeat(choice(
+                $._selector_safe_content,
+                $.selector_nbt,
+              )),
+              "]",
+            ),
+          ),
+        ),
+        /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
+        /[a-zA-Z0-9_]{3,16}/,
+      ),
+    selector_nbt: ($) =>
+      seq(
+        "{",
+        repeat(choice(
+          /[^{}]+/,
+          $.selector_nbt,
+        )),
+        "}",
+      ),
+
+    _selector_safe_content: ($) =>
+      choice(
+        /[^\[\]{}'"]+/,
+        $.string_literal,
+      ),
+
+    swizzle: () => /x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx/,
+
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
     type: () => /[a-z]+/i,
+
+    string_literal: ($) =>
+      choice(
+        $._string_double,
+        $._string_single,
+      ),
+
+    _string_double: ($) =>
+      seq(
+        '"',
+        repeat(choice(
+          /[^"\\]+/,
+          $._escape_sequence,
+        )),
+        '"',
+      ),
+
+    _string_single: ($) =>
+      seq(
+        "'",
+        repeat(choice(
+          /[^'\\]+/,
+          $._escape_sequence,
+        )),
+        "'",
+      ),
+
+    _escape_sequence: () => /\\(["'\\bfnrtv])/,
+
+    vec3: ($) =>
+      seq(
+        $._coordinate_component,
+        $._coordinate_component,
+        $._coordinate_component,
+      ),
+
+    vec2: ($) =>
+      seq(
+        $._coordinate_component,
+        $._coordinate_component,
+      ),
+
+    _coordinate_component: () => /[\^~]?-?([0-9]+(\.[0-9]+)?)?|[\^~]/,
 
     integer: () => /\d+/,
 
     boolean: () => choice("true", "false"),
 
     command_arg: () => token(prec(-1, /[^\s$;{}()]+/)),
+
+    namespaced_arg: ($) => seq(optional(seq($.identifier, ":")), $.identifier),
 
     comment: () => token(seq("--", /.*/)),
   },

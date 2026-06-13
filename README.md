@@ -59,9 +59,10 @@ A programming language that compiles to Minecraft datapacks.
   - [x] `else`
   - [x] `else if`
 - [ ] Loops
-  - [ ] `while`
-  - [ ] `for`
-  - [ ] `foreach`
+  - [x] `while`
+  - [x] `do while`
+  - [x] `for`
+  - [ ] `foreach` (no lists yet)
 - [ ] Inline datapack features
   - [ ] Recipes
   - [ ] Enchantments

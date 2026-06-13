@@ -198,6 +198,18 @@
           "named": true
         },
         {
+          "type": "context_statement",
+          "named": true
+        },
+        {
+          "type": "do_while",
+          "named": true
+        },
+        {
+          "type": "for",
+          "named": true
+        },
+        {
           "type": "function_call",
           "named": true
         },
@@ -215,6 +227,10 @@
         },
         {
           "type": "variable_declaration",
+          "named": true
+        },
+        {
+          "type": "while",
           "named": true
         }
       ]
@@ -250,6 +266,306 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "contextModifier",
+    "named": true,
+    "fields": {
+      "anchor": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "eyes",
+            "named": false
+          },
+          {
+            "type": "feet",
+            "named": false
+          }
+        ]
+      },
+      "axes": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "swizzle",
+            "named": true
+          }
+        ]
+      },
+      "dim": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "namespaced_arg",
+            "named": true
+          }
+        ]
+      },
+      "heightmap": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "motion_blocking",
+            "named": false
+          },
+          {
+            "type": "motion_blocking_no_leaves",
+            "named": false
+          },
+          {
+            "type": "ocean_floor",
+            "named": false
+          },
+          {
+            "type": "world_surface",
+            "named": false
+          }
+        ]
+      },
+      "pos": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "vec3",
+            "named": true
+          }
+        ]
+      },
+      "relation": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "attacker",
+            "named": false
+          },
+          {
+            "type": "controller",
+            "named": false
+          },
+          {
+            "type": "leasher",
+            "named": false
+          },
+          {
+            "type": "origin",
+            "named": false
+          },
+          {
+            "type": "owner",
+            "named": false
+          },
+          {
+            "type": "passengers",
+            "named": false
+          },
+          {
+            "type": "target",
+            "named": false
+          },
+          {
+            "type": "vehicle",
+            "named": false
+          }
+        ]
+      },
+      "rot": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "vec2",
+            "named": true
+          }
+        ]
+      },
+      "selector": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "selector",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "context_statement",
+    "named": true,
+    "fields": {
+      "block": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "contextModifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "do_while",
+    "named": true,
+    "fields": {
+      "block": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable_ref",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "for",
+    "named": true,
+    "fields": {
+      "block": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "end": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable_ref",
+            "named": true
+          }
+        ]
+      },
+      "iterator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "start": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable_ref",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -421,6 +737,21 @@
     }
   },
   {
+    "type": "namespaced_arg",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "parameter",
     "named": true,
     "fields": {
@@ -525,6 +856,40 @@
     }
   },
   {
+    "type": "selector",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "selector_nbt",
+          "named": true
+        },
+        {
+          "type": "string_literal",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "selector_nbt",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "selector_nbt",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "source_file",
     "named": true,
     "root": true,
@@ -539,6 +904,18 @@
         },
         {
           "type": "command_statement",
+          "named": true
+        },
+        {
+          "type": "context_statement",
+          "named": true
+        },
+        {
+          "type": "do_while",
+          "named": true
+        },
+        {
+          "type": "for",
           "named": true
         },
         {
@@ -560,9 +937,18 @@
         {
           "type": "variable_declaration",
           "named": true
+        },
+        {
+          "type": "while",
+          "named": true
         }
       ]
     }
+  },
+  {
+    "type": "string_literal",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "unary_expression",
@@ -709,11 +1095,75 @@
     }
   },
   {
+    "type": "vec2",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "vec3",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "while",
+    "named": true,
+    "fields": {
+      "block": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "condition": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable_ref",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "!",
     "named": false
   },
   {
     "type": "!=",
+    "named": false
+  },
+  {
+    "type": "\"",
     "named": false
   },
   {
@@ -726,6 +1176,10 @@
   },
   {
     "type": "&&",
+    "named": false
+  },
+  {
+    "type": "'",
     "named": false
   },
   {
@@ -750,6 +1204,10 @@
   },
   {
     "type": "-",
+    "named": false
+  },
+  {
+    "type": "..",
     "named": false
   },
   {
@@ -789,6 +1247,58 @@
     "named": false
   },
   {
+    "type": "@a",
+    "named": false
+  },
+  {
+    "type": "@e",
+    "named": false
+  },
+  {
+    "type": "@n",
+    "named": false
+  },
+  {
+    "type": "@p",
+    "named": false
+  },
+  {
+    "type": "@r",
+    "named": false
+  },
+  {
+    "type": "@s",
+    "named": false
+  },
+  {
+    "type": "[",
+    "named": false
+  },
+  {
+    "type": "]",
+    "named": false
+  },
+  {
+    "type": "align",
+    "named": false
+  },
+  {
+    "type": "anchored",
+    "named": false
+  },
+  {
+    "type": "as",
+    "named": false
+  },
+  {
+    "type": "at",
+    "named": false
+  },
+  {
+    "type": "attacker",
+    "named": false
+  },
+  {
     "type": "command_arg",
     "named": true
   },
@@ -806,11 +1316,39 @@
     "named": false
   },
   {
+    "type": "controller",
+    "named": false
+  },
+  {
+    "type": "do",
+    "named": false
+  },
+  {
     "type": "else",
     "named": false
   },
   {
+    "type": "entity",
+    "named": false
+  },
+  {
+    "type": "eyes",
+    "named": false
+  },
+  {
+    "type": "facing",
+    "named": false
+  },
+  {
     "type": "false",
+    "named": false
+  },
+  {
+    "type": "feet",
+    "named": false
+  },
+  {
+    "type": "for",
     "named": false
   },
   {
@@ -826,15 +1364,71 @@
     "named": false
   },
   {
+    "type": "in",
+    "named": false
+  },
+  {
     "type": "integer",
     "named": true
+  },
+  {
+    "type": "leasher",
+    "named": false
   },
   {
     "type": "let",
     "named": false
   },
   {
+    "type": "motion_blocking",
+    "named": false
+  },
+  {
+    "type": "motion_blocking_no_leaves",
+    "named": false
+  },
+  {
+    "type": "ocean_floor",
+    "named": false
+  },
+  {
+    "type": "on",
+    "named": false
+  },
+  {
+    "type": "origin",
+    "named": false
+  },
+  {
+    "type": "over",
+    "named": false
+  },
+  {
+    "type": "owner",
+    "named": false
+  },
+  {
+    "type": "passengers",
+    "named": false
+  },
+  {
+    "type": "positioned",
+    "named": false
+  },
+  {
     "type": "return",
+    "named": false
+  },
+  {
+    "type": "rotated",
+    "named": false
+  },
+  {
+    "type": "swizzle",
+    "named": true
+  },
+  {
+    "type": "target",
     "named": false
   },
   {
@@ -844,6 +1438,18 @@
   {
     "type": "type",
     "named": true
+  },
+  {
+    "type": "vehicle",
+    "named": false
+  },
+  {
+    "type": "while",
+    "named": false
+  },
+  {
+    "type": "world_surface",
+    "named": false
   },
   {
     "type": "{",

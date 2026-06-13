@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <format>
 #include <random>
+#include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <tree_sitter/api.h>
@@ -628,6 +629,115 @@ std::string Compiler::compileIf(TSNode ifRoot) {
   return ret;
 };
 
+std::string Compiler::compileWhile(TSNode whileNode) {
+  std::string ret = "";
+  const std::string &loopName = "while_" + randomFunctionMangleString();
+
+  TSNode condNode = ts_node_child_by_field_name(whileNode, "condition", 9);
+  TSNode blockNode = ts_node_child_by_field_name(whileNode, "block", 5);
+
+  const ExpressionData &condExpr = compileExpression(condNode);
+  if (condExpr.type != Type::Boolean) {
+    throw std::runtime_error(formatError(condNode, "While loop condition must evaluate to a boolean."));
+  }
+
+  if (condExpr.precomputed && condExpr.data == "0") return "";
+
+  std::string loopFuncBody = compileBlock(blockNode);
+  if (!condExpr.precomputed) {
+    loopFuncBody += condExpr.data + "\n";
+    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function loom:{}\n", loopName);
+  } else if (condExpr.data == "1") {
+    loopFuncBody += std::format("function loom:{}\n", loopName);
+  }
+
+  compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
+
+  if (condExpr.precomputed) {
+    ret += std::format("function loom:{}\n", loopName);
+  } else {
+    ret += condExpr.data + "\n";
+    ret += std::format("execute if score expr_output1 temp matches 1 run function loom:{}\n", loopName);
+  }
+
+  return ret;
+}
+
+std::string Compiler::compileDoWhile(TSNode doWhileNode) {
+  std::string ret = "";
+  const std::string &loopName = "dowhile_" + randomFunctionMangleString();
+
+  TSNode blockNode = ts_node_child_by_field_name(doWhileNode, "block", 5);
+  TSNode condNode = ts_node_child_by_field_name(doWhileNode, "condition", 9);
+
+  const ExpressionData &condExpr = compileExpression(condNode);
+  if (condExpr.type != Type::Boolean) {
+    throw std::runtime_error(formatError(condNode, "Do-while loop condition must evaluate to a boolean."));
+  }
+
+  std::string loopFuncBody = compileBlock(blockNode);
+  if (!condExpr.precomputed) {
+    loopFuncBody += condExpr.data + "\n";
+    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function loom:{}\n", loopName);
+  } else if (condExpr.data == "1") {
+    loopFuncBody += std::format("function loom:{}\n", loopName);
+  }
+
+  compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
+
+  ret += std::format("function loom:{}\n", loopName);
+  return ret;
+}
+
+std::string Compiler::compileFor(TSNode forNode) {
+  std::string ret = "";
+  const std::string &loopName = "for_" + randomFunctionMangleString();
+
+  TSNode iterNode = ts_node_child_by_field_name(forNode, "iterator", 8);
+  TSNode startNode = ts_node_child_by_field_name(forNode, "start", 5);
+  TSNode endNode = ts_node_child_by_field_name(forNode, "end", 3);
+  TSNode blockNode = ts_node_child_by_field_name(forNode, "block", 5);
+
+  const std::string &iterName = std::string(getNodeText(iterNode));
+  const std::string &iterMangled = iterName + "_" + randomMangleString();
+  const std::string &endMangled = "limit_" + randomMangleString();
+
+  const ExpressionData &startExpr = compileExpression(startNode, 1, false);
+  const ExpressionData &endExpr = compileExpression(endNode, 2, false);
+
+  if (startExpr.type != Type::Integer && startExpr.type != Type::Boolean) {
+    throw std::runtime_error(formatError(startNode, "For loop start boundary must be an integer."));
+  }
+  if (endExpr.type != Type::Integer && endExpr.type != Type::Boolean) {
+    throw std::runtime_error(formatError(endNode, "For loop end boundary must be an integer."));
+  }
+
+  vars.emplace(iterName, VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::Integer, .scope = blockNode, .constant = false, .value = std::nullopt});
+
+  if (startExpr.precomputed) {
+    ret += std::format("scoreboard players set {} vars {}\n", iterMangled, startExpr.data);
+  } else {
+    ret += startExpr.data + "\n";
+    ret += std::format("scoreboard players operation {} vars = expr_output1 temp\n", iterMangled);
+  }
+
+  if (endExpr.precomputed) {
+    ret += std::format("scoreboard players set {} vars {}\n", endMangled, endExpr.data);
+  } else {
+    ret += endExpr.data + "\n";
+    ret += std::format("scoreboard players operation {} vars = expr_output2 temp\n", endMangled);
+  }
+
+  std::string loopFuncBody = compileBlock(blockNode);
+  loopFuncBody += std::format("scoreboard players add {} vars 1\n", iterMangled);
+  loopFuncBody += std::format("execute if score {} vars < {} vars run function loom:{}\n", iterMangled, endMangled, loopName);
+
+  compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
+
+  ret += std::format("execute if score {} vars < {} vars run function loom:{}\n", iterMangled, endMangled, loopName);
+  return ret;
+}
+
 std::string Compiler::compileBlock(TSNode node) {
   std::string ret = "";
 
@@ -637,6 +747,118 @@ std::string Compiler::compileBlock(TSNode node) {
 
     if (type == "if") {
       ret += compileIf(child);
+      continue;
+    }
+
+    if (type == "while") {
+      ret += compileWhile(child);
+      continue;
+    }
+
+    if (type == "do_while") {
+      ret += compileDoWhile(child);
+      continue;
+    }
+
+    if (type == "for") {
+      ret += compileFor(child);
+      continue;
+    }
+
+    if (type == "context_statement") {
+      std::string contextChain = "execute";
+
+      const uint32_t childCount = ts_node_child_count(child);
+
+      TSNode blockNode;
+
+      for (uint32_t i = 0; i < childCount; i++) {
+        TSNode subNode = ts_node_child(child, i);
+        const std::string &subType = ts_node_type(subNode);
+
+        if (subType == "block") {
+          blockNode = subNode;
+          break;
+        }
+
+        if (subType == "contextModifier") {
+          TSNode keywordNode = ts_node_child(subNode, 0);
+          const std::string keyword = std::string(getNodeText(keywordNode));
+
+          if (keyword == "as" || keyword == "at") {
+            const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
+            contextChain += std::format(" {} {}", keyword, selector);
+          } else if (keyword == "align") {
+            const std::string axes = std::string(getNodeText(ts_node_child_by_field_name(subNode, "axes", 4)));
+            contextChain += std::format(" align {}", axes);
+          } else if (keyword == "anchored") {
+            const std::string anchor = std::string(getNodeText(ts_node_child_by_field_name(subNode, "anchor", 6)));
+            contextChain += std::format(" anchored {}", anchor);
+          } else if (keyword == "facing") {
+            const std::string secondText = std::string(getNodeText(ts_node_child(subNode, 1)));
+            if (secondText == "entity") {
+              const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
+              const std::string anchor = std::string(getNodeText(ts_node_child_by_field_name(subNode, "anchor", 6)));
+              contextChain += std::format(" facing entity {} {}", selector, anchor);
+            } else {
+              const std::string pos = std::string(getNodeText(ts_node_child_by_field_name(subNode, "pos", 3)));
+              contextChain += std::format(" facing {}", pos);
+            }
+          } else if (keyword == "in") {
+            const std::string dim = std::string(getNodeText(ts_node_child_by_field_name(subNode, "dim", 3)));
+            contextChain += std::format(" in {}", dim);
+          } else if (keyword == "on") {
+            const std::string relation = std::string(getNodeText(ts_node_child_by_field_name(subNode, "relation", 8)));
+            contextChain += std::format(" on {}", relation);
+          } else if (keyword == "positioned") {
+            const std::string secondText = std::string(getNodeText(ts_node_child(subNode, 1)));
+            if (secondText == "as") {
+              const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
+              contextChain += std::format(" positioned as {}", selector);
+            } else if (secondText == "over") {
+              const std::string heightmap = std::string(getNodeText(ts_node_child_by_field_name(subNode, "heightmap", 9)));
+              contextChain += std::format(" positioned over {}", heightmap);
+            } else {
+              const std::string pos = std::string(getNodeText(ts_node_child_by_field_name(subNode, "pos", 3)));
+              contextChain += std::format(" positioned {}", pos);
+            }
+          } else if (keyword == "rotated") {
+            const std::string secondText = std::string(getNodeText(ts_node_child(subNode, 1)));
+            if (secondText == "as") {
+              const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
+              contextChain += std::format(" rotated as {}", selector);
+            } else {
+              const std::string rot = std::string(getNodeText(ts_node_child_by_field_name(subNode, "rot", 3)));
+              contextChain += std::format(" rotated {}", rot);
+            }
+          }
+        }
+      }
+
+      if (ts_node_is_null(blockNode)) {
+        continue;
+      }
+
+      const std::string innerBlockData = compileBlock(blockNode);
+      std::vector<std::string> validLines;
+      std::stringstream ss(innerBlockData);
+      std::string currentLine;
+      while (std::getline(ss, currentLine)) {
+        if (!currentLine.empty() && currentLine.back() == '\r') currentLine.pop_back();
+        if (!currentLine.empty()) validLines.push_back(currentLine);
+      }
+
+      if (validLines.size() == 1) {
+        ret += std::format("{} run {}\n", contextChain, validLines[0]);
+      } else if (validLines.size() > 1) {
+        const std::string &macroFuncName = std::format("_generated_function_{}", currentGeneratedFunction++);
+        std::string macroBody = "";
+        for (const auto &line : validLines) {
+          macroBody += line + "\n";
+        }
+        compiledFunctions.push_back({.name = macroFuncName, .data = macroBody});
+        ret += std::format("{} run function loom:{}\n", contextChain, macroFuncName);
+      }
       continue;
     }
 

@@ -66,7 +66,12 @@ private:
   std::string_view getFieldText(TSNode node, const std::string &field);
 
   ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
+
   std::string compileIf(TSNode ifRoot);
+  std::string compileWhile(TSNode whileNode);
+  std::string compileDoWhile(TSNode doWhileNode);
+  std::string compileFor(TSNode forNode);
+
   std::string compileBlock(TSNode node);
   std::optional<std::string> optimizeCommand(const std::string &commandName, const std::vector<TSNode> &args);
 };

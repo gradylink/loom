@@ -1,8 +1,20 @@
 "func" @keyword.function
 "return" @keyword.return
-"if" @keyword.conditional
-"else" @keyword.conditional
 ["let" "const"] @keyword.storage
+["if" "else"] @keyword.conditional
+["while" "do" "for" "in"] @keyword.repeat
+
+["as" "at" "align" "anchored" "facing" "on" "positioned" "rotated"] @keyword.conditional
+("facing" "entity" @keyword.conditional)
+("positioned" [ "as" "over" ] @keyword.conditional)
+("rotated" "as" @keyword.conditional)
+
+["eyes" "feet"] @constant.builtin
+["attacker" "controller" "leasher" "origin" "owner" "passengers" "target" "vehicle"] @constant.builtin
+["world_surface" "motion_blocking" "motion_blocking_no_leaves" "ocean_floor"] @constant.builtin
+
+(selector [ "@s" "@r" "@p" "@e" "@a" "@n" ]) @variable.builtin
+(selector) @variable.parameter
 
 (function_definition name: (identifier) @function)
 (function_call name: (identifier) @function.call)
@@ -10,17 +22,22 @@
 (parameter name: (identifier) @variable.parameter)
 
 (assignment name: (identifier) @variable)
+(for iterator: (identifier) @variable)
 (variable_ref "$" @punctuation.special name: (identifier) @variable.reference)
 
 (command_name) @function.builtin
 (command_arg) @string
+(string_literal) @string
 
 (type) @type
+(swizzle) @type
 (integer) @number
 (boolean) @boolean
+(vec2) @number
+(vec3) @number
 
 (unary_expression operator: _ @operator)
 (binary_expression operator: _ @operator)
-[":" ";" "(" ")" "{" "}" ","] @punctuation.delimiter
+[":" ";" "(" ")" "{" "}" "," "[" "]" "!"] @punctuation.delimiter
 
 (comment) @comment @spell
