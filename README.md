@@ -42,7 +42,7 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Functions
   - [x] Returns
   - [x] Arguments
-  - [ ] Tags (`#init` on previous line would set init function for example)
+  - [x] Tags (`#init` on previous line would set init function for example)
   - [ ] Inline Functions (Macros?)
   - [ ] Extern Functions (rn all functions are extern since you can only have 1
         file but this will be important later.)
