@@ -337,14 +337,18 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 }
 
 std::optional<std::string> Compiler::optimizeCommand(const std::string &commandName, const std::vector<TSNode> &args) {
-  bool hasVars = false;
+  bool hasInterpolation = false;
+
   for (TSNode arg : args) {
-    if (std::string(ts_node_type(arg)) == "variable_ref") {
-      hasVars = true;
+    if (std::string(ts_node_type(arg)) == "interpolation") {
+      hasInterpolation = true;
       break;
     }
   }
-  if (!hasVars) return std::nullopt;
+
+  if (!hasInterpolation) return std::nullopt;
+
+  std::string setup = "";
 
   auto buildJsonTextArray = [&](size_t startIdx) -> std::string {
     if (startIdx >= args.size()) return "[]";
@@ -353,9 +357,15 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
       TSNode arg = args[i];
       std::string argType = ts_node_type(arg);
 
-      if (argType == "variable_ref") {
-        std::string varName = std::string(getFieldText(arg, "name"));
-        out += std::format(R"({{"score":{{"name":"{}","objective":"vars"}},"color":"white"}})", vars[varName].mangledName);
+      if (argType == "interpolation") {
+        TSNode expNode = ts_node_child_by_field_name(arg, "expression", 10);
+        if (std::string(ts_node_type(expNode)) == "variable_ref") {
+          const std::string mangledName = vars[std::string(getFieldText(expNode, "name"))].mangledName;
+          out += std::format(R"({{"score":{{"name":"{}","objective":"vars"}},"color":"white"}})", mangledName);
+        } else {
+          setup += compileExpression(expNode, 1, false).data + "\n";
+          out += R"({{"score":{{"name":"expr_output1","objective":"temp"}},"color":"white"}})";
+        }
       } else {
         std::string val = std::string(getNodeText(arg));
         out += std::format(R"({{"text":"{}","color":"white"}})", val);
@@ -369,26 +379,28 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
 
   if (commandName == "say") {
     return std::format(
-      R"(tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{}])",
+      R"({}tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{}])",
+      setup,
       buildJsonTextArray(0).substr(1)
     );
   }
 
   if (commandName == "tellraw" && args.size() >= 2) {
     std::string target = std::string(getNodeText(args[0]));
-    return std::format("tellraw {} {}", target, buildJsonTextArray(1));
+    return std::format("{}tellraw {} {}", setup, target, buildJsonTextArray(1));
   }
 
   if (commandName == "title" && args.size() >= 3) {
     std::string target = std::string(getNodeText(args[0]));
     std::string position = std::string(getNodeText(args[1]));
-    return std::format("title {} {} {}", target, position, buildJsonTextArray(2));
+    return std::format("{}title {} {} {}", setup, target, position, buildJsonTextArray(2));
   }
 
   if ((commandName == "msg" || commandName == "tell" || commandName == "w") && args.size() >= 2) {
     std::string target = std::string(getNodeText(args[0]));
     return std::format(
-      R"(tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{}])",
+      R"({}tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{}])",
+      setup,
       target,
       target,
       target,
@@ -401,7 +413,7 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
     std::string id = std::string(getNodeText(args[2]));
     std::string property = std::string(getNodeText(args[3]));
     if (action == "set" && property == "name") {
-      return std::format("bossbar set {} name {}", id, buildJsonTextArray(4));
+      return std::format("{}bossbar set {} name {}", setup, id, buildJsonTextArray(4));
     }
   }
 
@@ -597,7 +609,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
 
   if (trueLineCount > 0) {
     if (trueLineCount == 1) {
-      ret += std::format("execute if score {} temp matches 1 run {}\n", condScore, trueData);
+      ret += std::format("execute if score {} temp matches 1 run {}", condScore, trueData);
     } else {
       compiledFunctions.push_back({.name = name + "_true", .data = trueData});
       ret += std::format("execute if score {} temp matches 1 run function loom:{}_true\n", condScore, name);
@@ -618,7 +630,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
 
     if (altLineCount > 0) {
       if (altLineCount == 1) {
-        ret += std::format("execute unless score {} temp matches 1 run {}\n", condScore, altData);
+        ret += std::format("execute unless score {} temp matches 1 run {}", condScore, altData);
       } else {
         compiledFunctions.push_back({.name = name + "_false", .data = altData});
         ret += std::format("execute unless score {} temp matches 1 run function loom:{}_false\n", condScore, name);
@@ -979,14 +991,27 @@ std::string Compiler::compileBlock(TSNode node) {
     if (type == "command_statement") {
       std::string cmdName = std::string(getNodeText(ts_node_named_child(child, 0)));
       std::vector<TSNode> args;
+      std::vector<std::optional<Compiler::ExpressionData>> compiledArgs;
       bool requiresMacro = false;
 
       for (uint32_t j = 1; j < ts_node_named_child_count(child); j++) {
         TSNode argNode = ts_node_named_child(child, j);
         std::string argType = ts_node_type(argNode);
-        if (argType == "command_arg" || argType == "variable_ref" || argType == "integer") {
+
+        if (argType == "command_arg" || argType == "integer") {
           args.push_back(argNode);
-          if (argType == "variable_ref") requiresMacro = true;
+          compiledArgs.push_back(std::nullopt);
+        } else if (argType == "interpolation") {
+          args.push_back(argNode);
+
+          TSNode exprNode = ts_node_child_by_field_name(argNode, "expression", 10);
+
+          Compiler::ExpressionData expr = compileExpression(exprNode);
+          compiledArgs.push_back(expr);
+
+          if (!expr.precomputed) {
+            requiresMacro = true;
+          }
         }
       }
 
@@ -998,25 +1023,41 @@ std::string Compiler::compileBlock(TSNode node) {
 
       if (!requiresMacro) {
         ret += cmdName;
-        for (TSNode arg : args) ret += " " + std::string(getNodeText(arg));
+        for (size_t i = 0; i < args.size(); i++) {
+          if (compiledArgs[i].has_value()) {
+            ret += " " + compiledArgs[i].value().data;
+          } else {
+            ret += " " + std::string(getNodeText(args[i]));
+          }
+        }
         ret += "\n";
         continue;
       }
 
       std::string macroBody = "$" + cmdName;
       std::string macroSetup = "";
+      int macroVarId = 0;
 
-      for (TSNode arg : args) {
-        if (std::string(ts_node_type(arg)) == "variable_ref") {
-          std::string varName = std::string(getFieldText(arg, "name"));
-          macroBody += std::format(" $(var_{})", varName);
-          macroSetup += std::format("execute store result storage loom:function_input var_{} int 1 run scoreboard players get {} vars\n", varName, vars[varName].mangledName);
+      for (size_t i = 0; i < args.size(); i++) {
+        if (compiledArgs[i].has_value()) {
+          Compiler::ExpressionData &expr = compiledArgs[i].value();
+
+          if (expr.precomputed) {
+            macroBody += " " + expr.data;
+          } else {
+            macroBody += std::format(" $(var_{})", macroVarId);
+
+            macroSetup += expr.data + "\n";
+
+            macroSetup += std::format("execute store result storage loom:function_input var_{} int 1 run scoreboard players get expr_output1 temp\n", macroVarId);
+            macroVarId++;
+          }
         } else {
-          macroBody += " " + std::string(getNodeText(arg));
+          macroBody += " " + std::string(getNodeText(args[i]));
         }
       }
 
-      std::string macroFuncName = std::format("_generated_function_{}", currentGeneratedFunction++);
+      const std::string macroFuncName = std::format("_generated_function_{}", currentGeneratedFunction++);
       compiledFunctions.push_back({.name = macroFuncName, .data = macroBody + "\n"});
 
       ret += macroSetup;

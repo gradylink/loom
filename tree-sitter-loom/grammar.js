@@ -54,7 +54,6 @@ module.exports = grammar({
 
     assignment: ($) =>
       seq(
-        optional("$"),
         field("name", $.identifier),
         "=",
         field("value", $._expression),
@@ -179,8 +178,15 @@ module.exports = grammar({
         -1,
         seq(
           alias($.identifier, $.command_name),
-          repeat(choice($.command_arg, $.variable_ref, $.integer)),
+          repeat(choice($.command_arg, $.interpolation, $.integer, "$")),
         ),
+      ),
+
+    interpolation: ($) =>
+      seq(
+        "${",
+        field("expression", $._expression),
+        "}",
       ),
 
     _expression: ($) =>
@@ -273,7 +279,7 @@ module.exports = grammar({
         ")",
       ),
 
-    variable_ref: ($) => prec(2, seq("$", field("name", $.identifier))),
+    variable_ref: ($) => prec(2, field("name", $.identifier)),
 
     selector: ($) =>
       choice(
@@ -362,7 +368,14 @@ module.exports = grammar({
 
     boolean: () => choice("true", "false"),
 
-    command_arg: () => token(prec(-1, /[^\s$;{}()]+/)),
+    command_arg: () =>
+      token(prec(
+        -1,
+        choice(
+          /[^\s;$]+/,
+          seq("$", /[^\s;{]+/),
+        ),
+      )),
 
     namespaced_arg: ($) => seq(optional(seq($.identifier, ":")), $.identifier),
 

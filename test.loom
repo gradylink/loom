@@ -6,12 +6,12 @@ func getValue(): int {
 }
 
 func argsTest(swizzle1: int, swizzle2: int): int {
-  return $swizzle1 + $swizzle2 + 5
+  return swizzle1 + swizzle2 + 5
 }
 
 func sendMessage() { -- Implicit void return type
-  say $myVar;
-  title @a title "Hello: $myVar is the value";
+  say ${myVar};
+  title @a title "Hello: ${myVar} is the value";
 }
 
 func load() {
@@ -23,28 +23,27 @@ func load() {
     tp @s ~ ~ ~
   }
 
-  const argsResult: int = argsTest(7, 12);
-  say $argsResult
+  say ${argsTest(7, 12)}
 
-  $myVar = $myVar + 1; -- Leading "$" here is optional
+  myVar = myVar + 1;
   sendMessage();
-  say $myVar2 is cool!;
+  say ${myVar} is cool!;
  
-  title @a subtitle "$myVar2";
+  title @a subtitle "${myVar2}";
 
   const myValue: int = getValue() + 3;
-  say $myValue;
+  say ${myValue};
 
   let boolTest: bool = true || false;
-  say $boolTest;
+  say ${boolTest};
 
-  if $boolTest {
+  if boolTest {
     say hi!
   } else {
     say loom is awesome
   }
 
-  if $myValue >= 100 {
+  if myValue >= 100 {
     title @a actionbar swizzle magic
   }
 

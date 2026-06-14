@@ -47,7 +47,7 @@ connection.onInitialize(
         hoverProvider: true,
         completionProvider: {
           resolveProvider: false,
-          triggerCharacters: ["$", "@"],
+          triggerCharacters: ["@"],
         },
       },
     };
@@ -406,7 +406,11 @@ connection.onCompletion(
     }
     findFunctions(tree.rootNode);
 
-    if (lineText.match(/\$[a-z_0-9]*$/i)) {
+    if (
+      lineText.match(
+        /(return|in|while)\s+|((let|const)\s+)?[a-z_0-9]+\s*=\s*|\${[^}]$/i,
+      )
+    ) {
       for (const v of variables) {
         items.push({
           label: v,
@@ -414,15 +418,9 @@ connection.onCompletion(
           detail: "variable",
         });
       }
-      return items;
-    }
 
-    if (
-      lineText.match(
-        /(return|in|while)\s+|((let|const)\s+)?[a-z_0-9]+\s*=\s*/i,
-      )
-    ) {
       return [
+        ...items,
         { label: "true", kind: CompletionItemKind.Keyword },
         { label: "false", kind: CompletionItemKind.Keyword },
       ];

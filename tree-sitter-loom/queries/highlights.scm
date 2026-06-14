@@ -23,7 +23,8 @@
 
 (assignment name: (identifier) @variable)
 (for iterator: (identifier) @variable)
-(variable_ref "$" @punctuation.special name: (identifier) @variable.reference)
+
+(variable_ref name: (identifier) @variable.reference)
 
 (command_name) @function.builtin
 (command_arg) @string
@@ -41,3 +42,5 @@
 [":" ";" "(" ")" "{" "}" "," "[" "]" "!"] @punctuation.delimiter
 
 (comment) @comment @spell
+
+(interpolation ["${" "}"] @punctuation.special)
