@@ -16,9 +16,12 @@ public:
   struct CompiledFunction {
     std::string name;
     std::string data;
+    std::optional<std::string> tag;
   };
 
   std::vector<CompiledFunction> compile();
+
+  std::string globalInit = setupScoreboards;
 
 private:
   enum class Type { Integer, Boolean };
@@ -28,6 +31,7 @@ private:
     std::string name;
     ReturnType returnType;
     std::vector<Type> params;
+    std::optional<std::string> tag;
   };
 
   struct VariableData {

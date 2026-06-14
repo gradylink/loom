@@ -64,6 +64,9 @@ module.exports = grammar({
 
     function_definition: ($) =>
       seq(
+        optional(
+          seq("#", field("tag", $.namespaced_arg), optional($._newline)),
+        ),
         "func",
         field("name", $.identifier),
         "(",

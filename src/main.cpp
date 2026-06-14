@@ -29,6 +29,9 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
     std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / "loom" / "function";
     std::filesystem::create_directories(functionalDir);
 
+    std::filesystem::path tagsDir = std::filesystem::path(outputPath) / "data" / "minecraft" / "tags" / "function";
+    std::filesystem::create_directories(tagsDir);
+
     std::filesystem::path metaPath = std::filesystem::path(outputPath) / "pack.mcmeta";
     if (!std::filesystem::exists(metaPath)) {
       std::ofstream metaFile(metaPath);
@@ -44,7 +47,13 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
       metaFile.close();
     }
 
+    std::unordered_map<std::string, std::vector<std::string>> functionTags;
+
     for (const auto &func : compiledFunctions) {
+      if (func.tag.has_value()) {
+        functionTags[func.tag.value()].push_back(func.name);
+      }
+
       std::filesystem::path funcPath = functionalDir / (func.name + ".mcfunction");
       std::ofstream outFile(funcPath);
       if (outFile.is_open()) {
@@ -52,6 +61,35 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
         outFile.close();
       } else {
         std::cerr << "Error: Failed to write output file: " << funcPath.string() << "\n";
+        return false;
+      }
+    }
+
+    std::filesystem::path globalInitPath = functionalDir / "global_init.mcfunction";
+    std::ofstream outFile(globalInitPath);
+    if (outFile.is_open()) {
+      outFile << compiler.globalInit;
+      outFile.close();
+    } else {
+      std::cerr << "Error: Failed to write output file: " << globalInitPath.string() << "\n";
+      return false;
+    }
+    functionTags["load"].emplace(functionTags["load"].begin(), "global_init");
+
+    for (const auto &[tag, funcs] : functionTags) {
+      std::filesystem::path tagPath = tagsDir / (tag + ".json");
+      std::ofstream outFile(tagPath);
+      if (outFile.is_open()) {
+        std::string data = R"({"values":[)";
+        for (const auto &func : funcs) {
+          data += "\"loom:" + func + "\",";
+        }
+        data.pop_back();
+        data += "]}";
+        outFile << data;
+        outFile.close();
+      } else {
+        std::cerr << "Error: Failed to write output file: " << tagPath.string() << "\n";
         return false;
       }
     }

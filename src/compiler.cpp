@@ -422,7 +422,6 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
 
 std::vector<Compiler::CompiledFunction> Compiler::compile() {
   compiledFunctions.clear();
-  std::string globalInit = setupScoreboards;
 
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
     TSNode child = ts_node_named_child(root, i);
@@ -430,6 +429,12 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     if (type == "function_definition") {
       std::string name = std::string(getFieldText(child, "name"));
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+
+      std::optional<std::string> tag = std::nullopt;
+      TSNode tagNode = ts_node_child_by_field_name(child, "tag", 3);
+      if (!ts_node_is_null(tagNode)) {
+        tag = getNodeText(tagNode);
+      }
 
       ReturnType retType = ReturnType::Void;
       TSNode typeNode = ts_node_child_by_field_name(child, "type", 4);
@@ -460,7 +465,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           }
         }
       }
-      funcs[name] = {name, retType, paramTypes};
+      funcs[name] = {name, retType, paramTypes, tag};
     }
   }
 
@@ -551,18 +556,11 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         paramSetup += "data remove storage loom:stack regs[-1]\n";
       }
 
-      compiledFunctions.push_back({.name = name, .data = paramSetup + compileBlock(blockNode)});
+      compiledFunctions.push_back({.name = name, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag});
       continue;
     }
 
     if (type != "comment") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
-  }
-
-  const auto &it = std::find_if(compiledFunctions.begin(), compiledFunctions.end(), [](CompiledFunction func) { return func.name == "load"; });
-  if (it != compiledFunctions.end()) {
-    it->data = globalInit + it->data;
-  } else {
-    compiledFunctions.push_back({.name = "load", .data = globalInit});
   }
 
   return compiledFunctions;

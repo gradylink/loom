@@ -47,7 +47,7 @@ connection.onInitialize(
         hoverProvider: true,
         completionProvider: {
           resolveProvider: false,
-          triggerCharacters: ["@"],
+          triggerCharacters: ["@", "#"],
         },
       },
     };
@@ -352,12 +352,19 @@ connection.onCompletion(
 
     if (lineText.match(/@$/)) {
       return [
-        { label: "a", kind: CompletionItemKind.Enum },
-        { label: "p", kind: CompletionItemKind.Enum },
-        { label: "s", kind: CompletionItemKind.Enum },
-        { label: "r", kind: CompletionItemKind.Enum },
-        { label: "n", kind: CompletionItemKind.Enum },
-        { label: "e", kind: CompletionItemKind.Enum },
+        { label: "a", kind: CompletionItemKind.EnumMember },
+        { label: "p", kind: CompletionItemKind.EnumMember },
+        { label: "s", kind: CompletionItemKind.EnumMember },
+        { label: "r", kind: CompletionItemKind.EnumMember },
+        { label: "n", kind: CompletionItemKind.EnumMember },
+        { label: "e", kind: CompletionItemKind.EnumMember },
+      ];
+    }
+
+    if (lineText.match(/#$/)) {
+      return [
+        { label: "load", kind: CompletionItemKind.EnumMember },
+        { label: "tick", kind: CompletionItemKind.EnumMember },
       ];
     }
 
