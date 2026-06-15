@@ -14,8 +14,7 @@ func sendMessage() { -- Implicit void return type
   title @a title "Hello: ${myVar} is the value";
 }
 
-#load
-func load() {
+#load func load() {
   for i in 5..8 {
     say loops! $i
   }

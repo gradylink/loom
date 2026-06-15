@@ -8,6 +8,7 @@
 #include <lyra/lyra.hpp>
 #include <sstream>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 bool runCompilation(const std::string &inputPath, const std::string &outputPath) {
@@ -29,9 +30,6 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
     std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / "loom" / "function";
     std::filesystem::create_directories(functionalDir);
 
-    std::filesystem::path tagsDir = std::filesystem::path(outputPath) / "data" / "minecraft" / "tags" / "function";
-    std::filesystem::create_directories(tagsDir);
-
     std::filesystem::path metaPath = std::filesystem::path(outputPath) / "pack.mcmeta";
     if (!std::filesystem::exists(metaPath)) {
       std::ofstream metaFile(metaPath);
@@ -47,11 +45,21 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
       metaFile.close();
     }
 
-    std::unordered_map<std::string, std::vector<std::string>> functionTags;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> functionTags;
 
     for (const auto &func : compiledFunctions) {
       if (func.tag.has_value()) {
-        functionTags[func.tag.value()].push_back(func.name);
+        std::string fullTag = func.tag.value();
+        std::string tagNamespace = "minecraft";
+        std::string tagName = fullTag;
+
+        size_t colonPos = fullTag.find(':');
+        if (colonPos != std::string::npos) {
+          tagNamespace = fullTag.substr(0, colonPos);
+          tagName = fullTag.substr(colonPos + 1);
+        }
+
+        functionTags[tagNamespace][tagName].push_back(func.name);
       }
 
       std::filesystem::path funcPath = functionalDir / (func.name + ".mcfunction");
@@ -74,23 +82,30 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
       std::cerr << "Error: Failed to write output file: " << globalInitPath.string() << "\n";
       return false;
     }
-    functionTags["load"].emplace(functionTags["load"].begin(), "global_init");
+    functionTags["minecraft"]["load"].insert(functionTags["minecraft"]["load"].begin(), "global_init");
 
-    for (const auto &[tag, funcs] : functionTags) {
-      std::filesystem::path tagPath = tagsDir / (tag + ".json");
-      std::ofstream outFile(tagPath);
-      if (outFile.is_open()) {
-        std::string data = R"({"values":[)";
-        for (const auto &func : funcs) {
-          data += "\"loom:" + func + "\",";
+    for (const auto &[ns, tags] : functionTags) {
+      std::filesystem::path nsTagsDir = std::filesystem::path(outputPath) / "data" / ns / "tags" / "function";
+      std::filesystem::create_directories(nsTagsDir);
+
+      for (const auto &[tagName, funcs] : tags) {
+        if (funcs.empty()) continue;
+
+        std::filesystem::path tagPath = nsTagsDir / (tagName + ".json");
+        std::ofstream tagOutFile(tagPath);
+        if (tagOutFile.is_open()) {
+          std::string data = R"({"values":[)";
+          for (const auto &func : funcs) {
+            data += "\"loom:" + func + "\",";
+          }
+          data.pop_back();
+          data += "]}";
+          tagOutFile << data;
+          tagOutFile.close();
+        } else {
+          std::cerr << "Error: Failed to write output file: " << tagPath.string() << "\n";
+          return false;
         }
-        data.pop_back();
-        data += "]}";
-        outFile << data;
-        outFile.close();
-      } else {
-        std::cerr << "Error: Failed to write output file: " << tagPath.string() << "\n";
-        return false;
       }
     }
 
