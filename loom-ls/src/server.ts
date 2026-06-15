@@ -344,6 +344,7 @@ connection.onCompletion(
       return [
         { label: "int", kind: CompletionItemKind.TypeParameter },
         { label: "bool", kind: CompletionItemKind.TypeParameter },
+        { label: "string", kind: CompletionItemKind.TypeParameter },
         { label: "void", kind: CompletionItemKind.TypeParameter },
       ];
     }
@@ -469,6 +470,14 @@ connection.onCompletion(
           label: fn,
           kind: CompletionItemKind.Function,
           detail: "function",
+        });
+      }
+
+      for (const variable of variables) {
+        items.push({
+          label: variable,
+          kind: CompletionItemKind.Variable,
+          detail: "variable",
         });
       }
     }

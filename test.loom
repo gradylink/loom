@@ -15,6 +15,10 @@ func sendMessage() { -- Implicit void return type
 }
 
 #load func load() {
+  let myStrVar1: string = "hello";
+  myStrVar1 = myStrVar1 + ", world!"
+  myStrVar1 = myStrVar1[0..3] -- turn into "hell"
+
   if barrier at 1 1 -1 {}
 
   for i in 5..8 {

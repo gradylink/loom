@@ -19,6 +19,10 @@ module.exports = grammar({
 
   extras: ($) => [/[ \t\r]/, $.comment],
 
+  conflicts: ($) => [
+    [$.selector],
+  ],
+
   rules: {
     source_file: ($) => repeat(choice($._statement, $._newline)),
 
@@ -196,11 +200,38 @@ module.exports = grammar({
       choice(
         $.binary_expression,
         $.unary_expression,
+        $.slice_expression,
+        $.element_expression,
         $.function_call,
         $.variable_ref,
         $.integer,
         $.boolean,
+        $.string_literal,
         $.parenthesized_expression,
+      ),
+
+    slice_expression: ($) =>
+      prec(
+        7,
+        seq(
+          field("target", $._expression),
+          "[",
+          field("start", $._expression),
+          "..",
+          field("end", $._expression),
+          "]",
+        ),
+      ),
+
+    element_expression: ($) =>
+      prec(
+        7,
+        seq(
+          field("target", $._expression),
+          "[",
+          field("index", $._expression),
+          "]",
+        ),
       ),
 
     parenthesized_expression: ($) => seq("(", $._expression, ")"),

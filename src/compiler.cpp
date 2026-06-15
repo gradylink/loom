@@ -68,7 +68,7 @@ std::string_view Compiler::getFieldText(TSNode node, const std::string &field) {
 
 Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int id, bool precompute) {
   if (ts_node_is_null(node)) {
-    throw std::runtime_error("Malformed Expression");
+    throw std::runtime_error(formatError(node, "Malformed Expression"));
   }
 
   const std::string type = ts_node_type(node);
@@ -90,6 +90,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       return {.data = numericVal, .precomputed = true, .type = Type::Boolean};
     }
     return {.data = std::format("scoreboard players set expr_output{} temp {}", id, numericVal), .precomputed = false, .type = Type::Boolean};
+  }
+
+  if (type == "string_literal") {
+    const std::string &text = std::string(getNodeText(node));
+    if (precompute) {
+      return {.data = text, .precomputed = true, .type = Type::String};
+    }
+    return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, text), .precomputed = false, .type = Type::String};
   }
 
   if (type == "unary_expression") {
@@ -194,7 +202,11 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         argPushData += std::format("data modify storage loom:stack regs append value {}\n", argExpr.data);
       } else {
         argPushData += argExpr.data + "\n";
-        argPushData += "execute store result storage loom:stack regs append int 1 run scoreboard players get expr_output1 temp\n";
+        if (argExpr.type == Type::String) {
+          argPushData += std::format("data modify storage loom:stack regs append from storage loom:global expr_str{}\n", id);
+        } else {
+          argPushData += "execute store result storage loom:stack regs append int 1 run scoreboard players get expr_output1 temp\n";
+        }
       }
     }
 
@@ -207,6 +219,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     Type funcType = Type::Integer;
     if (funcs[targetFunc].returnType == ReturnType::Boolean) funcType = Type::Boolean;
+    if (funcs[targetFunc].returnType == ReturnType::String) funcType = Type::String;
 
     std::string callCommand;
     if (funcs[targetFunc].returnType == ReturnType::Void) {
@@ -225,6 +238,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       throw std::runtime_error(formatError(node, "Unknown variable used in expression: " + targetVar));
     }
 
+    if (vars[targetVar].type == Type::String) {
+      return {
+        .data = std::format("data modify storage loom:global expr_str{} set from storage loom:global vars.{}", id, vars[targetVar].mangledName),
+        .precomputed = false,
+        .type = Type::String
+      };
+    }
+
     if (vars[targetVar].value.has_value()) {
       if (precompute) {
         return {.data = std::to_string(vars[targetVar].value.value()), .precomputed = true, .type = vars[targetVar].type};
@@ -237,6 +258,102 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       .precomputed = false,
       .type = vars[targetVar].type
     };
+  }
+
+  if (type == "slice_expression") {
+    TSNode targetNode = ts_node_child_by_field_name(node, "target", 6);
+    TSNode startNode = ts_node_child_by_field_name(node, "start", 5);
+    TSNode endNode = ts_node_child_by_field_name(node, "end", 3);
+
+    ExpressionData target = compileExpression(targetNode, id, true);
+    ExpressionData start = compileExpression(startNode, id + 1, true);
+    ExpressionData end = compileExpression(endNode, id + 2, true);
+
+    if (target.type != Type::String) {
+      throw std::runtime_error(formatError(node, "Slice parameters can only be used on strings."));
+    }
+    if (start.type != Type::Integer || end.type != Type::Integer) {
+      throw std::runtime_error(formatError(node, "Slice ranges must evaluate to integer bounds."));
+    }
+
+    if (target.precomputed && start.precomputed && end.precomputed) {
+      std::string rawStr = target.data;
+      if (rawStr.size() >= 2 && (rawStr.front() == '"' || rawStr.front() == '\'')) {
+        rawStr = rawStr.substr(1, rawStr.size() - 2);
+      }
+      int32_t sIdx = std::clamp(std::stoi(start.data), 0, (int32_t)rawStr.size());
+      int32_t eIdx = std::clamp(std::stoi(end.data), sIdx, (int32_t)rawStr.size());
+      const std::string &sliced = "\"" + rawStr.substr(sIdx, eIdx - sIdx) + "\"";
+
+      if (precompute) return {.data = sliced, .precomputed = true, .type = Type::String};
+      return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, sliced), .precomputed = false, .type = Type::String};
+    }
+
+    if (target.precomputed) target.data = std::format("data modify storage loom:global expr_str{} set value {}", id, target.data);
+    if (start.precomputed) start.data = std::format("scoreboard players set expr_output{} temp {}", id + 1, start.data);
+    if (end.precomputed) end.data = std::format("scoreboard players set expr_output{} temp {}", id + 2, end.data);
+
+    std::string runtimeCmds = target.data + "\n" + start.data + "\n" + end.data + "\n";
+    runtimeCmds += std::format(
+      "data modify storage loom:global macro_args set value {{out_id: {}, target_id: {}}}\n"
+      "execute store result storage loom:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
+      "execute store result storage loom:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
+      "function loom:internal_string_slice with storage loom:global macro_args",
+      id,
+      id,
+      id + 1,
+      id + 2
+    );
+    return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
+  }
+
+  if (type == "element_expression") {
+    TSNode targetNode = ts_node_child_by_field_name(node, "target", 6);
+    TSNode indexNode = ts_node_child_by_field_name(node, "index", 5);
+
+    ExpressionData target = compileExpression(targetNode, id, true);
+    ExpressionData index = compileExpression(indexNode, id + 1, true);
+
+    if (index.type != Type::Integer) {
+      throw std::runtime_error(formatError(node, "Index must evaluate to an integer."));
+    }
+
+    if (target.type != Type::String) {
+      throw std::runtime_error(formatError(node, "Only strings can be queried."));
+    }
+
+    if (target.precomputed && index.precomputed) {
+      std::string rawStr = target.data;
+      if (rawStr.size() >= 2 && (rawStr.front() == '"' || rawStr.front() == '\'')) {
+        rawStr = rawStr.substr(1, rawStr.size() - 2);
+      }
+      int32_t idx = std::stoi(index.data);
+      std::string singleChar = (idx >= 0 && idx < (int32_t)rawStr.size()) ? std::string(1, rawStr[idx]) : "";
+
+      if (precompute) return {.data = "\"" + singleChar + "\"", .precomputed = true, .type = Type::String};
+      return {.data = std::format("data modify storage loom:global expr_str{} set value \"{}\"", id, singleChar), .precomputed = false, .type = Type::String};
+    }
+
+    if (target.precomputed) target.data = std::format("data modify storage loom:global expr_str{} set value {}", id, target.data);
+    if (index.precomputed) index.data = std::format("scoreboard players set expr_output{} temp {}", id + 1, index.data);
+
+    std::string runtimeCmds = target.data + "\n" + index.data + "\n";
+    runtimeCmds += std::format(
+      "scoreboard players operation expr_output{} temp = expr_output{} temp\n"
+      "scoreboard players add expr_output{} temp 1\n"
+      "data modify storage loom:global macro_args set value {{out_id: {}, target_id: {}}}\n"
+      "execute store result storage loom:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
+      "execute store result storage loom:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
+      "function loom:internal_string_slice with storage loom:global macro_args",
+      id + 2,
+      id + 1,
+      id + 2,
+      id,
+      id,
+      id + 1,
+      id + 2
+    );
+    return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
   }
 
   if (type == "binary_expression") {
@@ -263,6 +380,38 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     } else {
       left = compileExpression(leftNode, id, true);
       right = compileExpression(rightNode, id + 1, true);
+    }
+
+    if (op == "+" && (left.type == Type::String || right.type == Type::String)) {
+      if (left.type != Type::String || right.type != Type::String) {
+        throw std::runtime_error(formatError(node, "Implicit concatenation coercion between strings and numeric primitives is not allowed."));
+      }
+
+      if (left.precomputed && right.precomputed) {
+        std::string lStr = left.data;
+        std::string rStr = right.data;
+        if (lStr.size() >= 2 && (lStr.front() == '"' || lStr.front() == '\'')) lStr = lStr.substr(1, lStr.size() - 2);
+        if (rStr.size() >= 2 && (rStr.front() == '"' || rStr.front() == '\'')) rStr = rStr.substr(1, rStr.size() - 2);
+        std::string joined = "\"" + lStr + rStr + "\"";
+
+        if (precompute) return {.data = joined, .precomputed = true, .type = Type::String};
+        return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, joined), .precomputed = false, .type = Type::String};
+      }
+
+      if (left.precomputed) left.data = std::format("data modify storage loom:global expr_str{} set value {}", id, left.data);
+      if (right.precomputed) right.data = std::format("data modify storage loom:global expr_str{} set value {}", id + 1, right.data);
+
+      std::string runtimeCmds = left.data + "\n" + right.data + "\n";
+      runtimeCmds += std::format(
+        "data modify storage loom:global macro_args set value {{out_id: {}}}\n"
+        "data modify storage loom:global macro_args.left set from storage loom:global expr_str{}\n"
+        "data modify storage loom:global macro_args.right set from storage loom:global expr_str{}\n"
+        "function loom:internal_string_concat with storage loom:global macro_args",
+        id,
+        id,
+        id + 1
+      );
+      return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
     }
 
     const bool isMath = (op == "+" || op == "-" || op == "*" || op == "/" || op == "%");
@@ -451,6 +600,11 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
 std::vector<Compiler::CompiledFunction> Compiler::compile() {
   compiledFunctions.clear();
 
+  compiledFunctions.push_back({.name = "internal_string_concat", .data = "$data modify storage loom:global expr_str$(out_id) set value \"$(left)$(right)\""});
+  compiledFunctions.push_back(
+    {.name = "internal_string_slice", .data = "$data modify storage loom:global expr_str$(out_id) set string storage loom:global expr_str$(target_id) $(start) $(end)"}
+  );
+
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
     TSNode child = ts_node_named_child(root, i);
     std::string type = ts_node_type(child);
@@ -472,6 +626,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           retType = ReturnType::Integer;
         } else if (typeText == "bool" || typeText == "boolean") {
           retType = ReturnType::Boolean;
+        } else if (typeText == "string") {
+          retType = ReturnType::String;
         } else {
           throw std::runtime_error(formatError(typeNode, "Invalid type in function definition: " + std::string(typeText)));
         }
@@ -488,6 +644,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
             paramTypes.push_back(Type::Integer);
           } else if (typeStr == "bool" || typeStr == "boolean") {
             paramTypes.push_back(Type::Boolean);
+          } else if (typeStr == "string") {
+            paramTypes.push_back(Type::String);
           } else {
             throw std::runtime_error(formatError(paramTypeNode, "Invalid parameter type: " + typeStr));
           }
@@ -514,6 +672,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         varType = Type::Integer;
       } else if (typeText == "bool" || typeText == "boolean") {
         varType = Type::Boolean;
+      } else if (typeText == "string") {
+        varType = Type::String;
       } else {
         throw std::runtime_error(formatError(varTypeNode, "Invalid type in variable declaration: " + std::string(typeText)));
       }
@@ -564,7 +724,9 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         TSNode pNode = *it;
         std::string pName = std::string(getFieldText(pNode, "name"));
         std::string pTypeStr = std::string(getFieldText(pNode, "type"));
-        Type pType = (pTypeStr == "int" || pTypeStr == "integer") ? Type::Integer : Type::Boolean;
+        Type pType = Type::String;
+        if (pTypeStr == "int" || pTypeStr == "integer") pType = Type::Integer;
+        if (pTypeStr == "bool" || pTypeStr == "boolean") pType = Type::Boolean;
 
         std::string mangledName = pName + "_" + randomMangleString();
 
@@ -913,6 +1075,8 @@ std::string Compiler::compileBlock(TSNode node) {
         varType = Type::Integer;
       } else if (typeText == "bool" || typeText == "boolean") {
         varType = Type::Boolean;
+      } else if (typeText == "string") {
+        varType = Type::String;
       } else {
         throw std::runtime_error(formatError(varTypeNode, "Invalid type in variable declaration: " + std::string(typeText)));
       }
@@ -960,10 +1124,14 @@ std::string Compiler::compileBlock(TSNode node) {
         throw std::runtime_error(formatError(expNode, "Cannot assign an 'int' to 'bool' variable: " + name));
       }
 
+      if (vars[name].type == Type::String && expr.type != Type::String) {
+        throw std::runtime_error(formatError(expNode, "Invalid type for 'string' variable: " + name));
+      }
+
       if (expr.precomputed) {
         ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
       } else {
-        if (std::string(ts_node_type(expNode)) == "binary_expression") {
+        if (std::string(ts_node_type(expNode)) == "binary_expression" && vars[name].type != Type::String) {
           const std::string_view op = getFieldText(expNode, "operator");
 
           if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {

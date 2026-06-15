@@ -24,8 +24,8 @@ public:
   std::string globalInit = setupScoreboards;
 
 private:
-  enum class Type { Integer, Boolean };
-  enum class ReturnType { Integer, Boolean, Void };
+  enum class Type { Integer, Boolean, String };
+  enum class ReturnType { Integer, Boolean, String, Void };
 
   struct FunctionData {
     std::string name;
