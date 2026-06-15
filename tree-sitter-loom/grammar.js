@@ -276,9 +276,15 @@ module.exports = grammar({
     unary_expression: ($) =>
       prec(
         6,
-        seq(
-          field("operator", choice("-", "!")),
-          field("argument", $._expression),
+        choice(
+          seq(
+            field("operator", choice("-", "!")),
+            field("argument", $._expression),
+          ),
+          seq(
+            field("operator", "entity"),
+            field("argument", $.selector),
+          ),
         ),
       ),
 

@@ -431,6 +431,7 @@ connection.onCompletion(
         { label: "true", kind: CompletionItemKind.Keyword },
         { label: "false", kind: CompletionItemKind.Keyword },
         { label: "at", kind: CompletionItemKind.Keyword },
+        { label: "entity", kind: CompletionItemKind.Keyword },
       ];
     }
 

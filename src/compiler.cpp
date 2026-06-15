@@ -96,8 +96,17 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     TSNode opNode = ts_node_child_by_field_name(node, "operator", 8);
     TSNode argNode = ts_node_child_by_field_name(node, "argument", 8);
 
-    const ExpressionData subExpr = compileExpression(argNode, id, true);
     const std::string_view op = getNodeText(opNode);
+
+    if (op == "entity") {
+      return {
+        .data = std::format("scoreboard players set expr_output{} temp 0\nexecute if entity {} run scoreboard players set expr_output{} temp 1", id, getNodeText(argNode), id),
+        .precomputed = false,
+        .type = Type::Boolean
+      };
+    }
+
+    const ExpressionData subExpr = compileExpression(argNode, id, true);
 
     Type expType;
     if (op == "-") {

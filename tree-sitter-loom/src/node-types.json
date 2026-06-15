@@ -1041,6 +1041,10 @@
             "named": true
           },
           {
+            "type": "selector",
+            "named": true
+          },
+          {
             "type": "unary_expression",
             "named": true
           },
@@ -1060,6 +1064,10 @@
           },
           {
             "type": "-",
+            "named": false
+          },
+          {
+            "type": "entity",
             "named": false
           }
         ]
