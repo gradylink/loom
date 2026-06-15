@@ -15,7 +15,7 @@
 #endif
 
 #define LANGUAGE_VERSION 15
-#define STATE_COUNT 203
+#define STATE_COUNT 206
 #define LARGE_STATE_COUNT 2
 #define SYMBOL_COUNT 129
 #define ALIAS_COUNT 1
@@ -1308,16 +1308,16 @@ static const TSStateId ts_primary_state_ids[STATE_COUNT] = {
   [81] = 81,
   [82] = 82,
   [83] = 83,
-  [84] = 84,
+  [84] = 83,
   [85] = 85,
-  [86] = 82,
+  [86] = 86,
   [87] = 87,
   [88] = 88,
   [89] = 89,
-  [90] = 90,
+  [90] = 87,
   [91] = 91,
   [92] = 92,
-  [93] = 83,
+  [93] = 93,
   [94] = 94,
   [95] = 95,
   [96] = 96,
@@ -1352,9 +1352,9 @@ static const TSStateId ts_primary_state_ids[STATE_COUNT] = {
   [125] = 125,
   [126] = 126,
   [127] = 127,
-  [128] = 85,
-  [129] = 91,
-  [130] = 130,
+  [128] = 128,
+  [129] = 86,
+  [130] = 91,
   [131] = 131,
   [132] = 132,
   [133] = 133,
@@ -1427,6 +1427,9 @@ static const TSStateId ts_primary_state_ids[STATE_COUNT] = {
   [200] = 200,
   [201] = 201,
   [202] = 202,
+  [203] = 203,
+  [204] = 204,
+  [205] = 205,
 };
 
 static bool ts_lex(TSLexer *lexer, TSStateId state) {
@@ -1434,172 +1437,187 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
   eof = lexer->eof(lexer);
   switch (state) {
     case 0:
-      if (eof) ADVANCE(192);
+      if (eof) ADVANCE(200);
       ADVANCE_MAP(
-        '\n', 194,
-        '!', 274,
-        '"', 378,
-        '#', 202,
-        '$', 257,
-        '%', 261,
-        '&', 400,
-        '\'', 383,
-        '(', 205,
-        ')', 207,
-        '*', 259,
-        '+', 262,
-        ',', 206,
-        '-', 263,
-        '.', 402,
-        '/', 260,
-        ':', 199,
-        ';', 193,
-        '<', 265,
-        '=', 201,
-        '>', 266,
-        '@', 407,
-        '[', 281,
-        '\\', 551,
-        ']', 282,
-        'a', 477,
-        'c', 500,
-        'd', 501,
-        'e', 478,
-        'f', 408,
-        'i', 452,
-        'l', 428,
-        'm', 508,
-        'o', 421,
-        'p', 410,
-        'r', 437,
-        't', 411,
-        'v', 429,
-        'w', 461,
-        'x', 316,
-        'y', 313,
-        'z', 314,
-        '{', 253,
-        '|', 550,
-        '}', 254,
+        '\n', 202,
+        '!', 282,
+        '"', 386,
+        '#', 210,
+        '$', 265,
+        '%', 269,
+        '&', 406,
+        '\'', 391,
+        '(', 213,
+        ')', 215,
+        '*', 267,
+        '+', 270,
+        ',', 214,
+        '-', 271,
+        '.', 408,
+        '/', 268,
+        ':', 207,
+        ';', 201,
+        '<', 273,
+        '=', 209,
+        '>', 274,
+        '@', 413,
+        '[', 289,
+        '\\', 557,
+        ']', 290,
+        'a', 483,
+        'c', 506,
+        'd', 507,
+        'e', 484,
+        'f', 414,
+        'i', 458,
+        'l', 434,
+        'm', 514,
+        'o', 427,
+        'p', 416,
+        'r', 443,
+        't', 417,
+        'v', 435,
+        'w', 467,
+        'x', 324,
+        'y', 321,
+        'z', 322,
+        '{', 261,
+        '|', 556,
+        '}', 262,
       );
       if (lookahead == '\t' ||
           lookahead == '\r' ||
           lookahead == ' ') SKIP(0);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(395);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(401);
       if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(552);
+          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(558);
       END_STATE();
     case 1:
       ADVANCE_MAP(
-        '\n', 194,
-        '!', 273,
-        '(', 205,
-        ')', 207,
-        '-', 264,
-        ';', 193,
-        '=', 200,
-        'f', 320,
-        't', 362,
+        '\n', 202,
+        '!', 20,
+        '%', 269,
+        '&', 7,
+        '(', 213,
+        ')', 215,
+        '*', 267,
+        '+', 270,
+        ',', 214,
+        '-', 272,
+        '.', 19,
+        '/', 268,
+        ':', 207,
+        ';', 201,
+        '<', 273,
+        '=', 21,
+        '>', 274,
+        '[', 289,
+        'a', 97,
+        'e', 98,
+        'f', 28,
+        'i', 71,
+        'm', 120,
+        'o', 42,
+        'p', 121,
+        'r', 122,
+        'w', 80,
+        'x', 324,
+        'y', 321,
+        'z', 322,
+        '{', 261,
+        '|', 168,
+        '}', 262,
       );
       if (lookahead == '\t' ||
           lookahead == '\r' ||
           lookahead == ' ') SKIP(1);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(395);
+      END_STATE();
+    case 2:
+      ADVANCE_MAP(
+        '\n', 202,
+        '!', 281,
+        '(', 213,
+        ')', 215,
+        '-', 272,
+        ';', 201,
+        '=', 208,
+        'f', 328,
+        't', 370,
+      );
+      if (lookahead == '\t' ||
+          lookahead == '\r' ||
+          lookahead == ' ') SKIP(2);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(401);
       if (('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 2:
-      if (lookahead == '\n') ADVANCE(194);
-      if (lookahead == '$') ADVANCE(257);
-      if (lookahead == '(') ADVANCE(205);
-      if (lookahead == '-') ADVANCE(401);
-      if (lookahead == ';') ADVANCE(193);
-      if (lookahead == '=') ADVANCE(200);
-      if (lookahead == '\t' ||
-          lookahead == '\r' ||
-          lookahead == ' ') SKIP(2);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(395);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(552);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 3:
-      if (lookahead == '\n') ADVANCE(194);
-      if (lookahead == '$') ADVANCE(257);
-      if (lookahead == '-') ADVANCE(401);
-      if (lookahead == ';') ADVANCE(193);
+      if (lookahead == '\n') ADVANCE(202);
+      if (lookahead == '$') ADVANCE(265);
+      if (lookahead == '(') ADVANCE(213);
+      if (lookahead == '-') ADVANCE(407);
+      if (lookahead == ';') ADVANCE(201);
+      if (lookahead == '=') ADVANCE(208);
       if (lookahead == '\t' ||
           lookahead == '\r' ||
           lookahead == ' ') SKIP(3);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(395);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(401);
       if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(552);
+          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(558);
       END_STATE();
     case 4:
-      ADVANCE_MAP(
-        '\n', 194,
-        '-', 10,
-        ':', 199,
-        ';', 193,
-        '[', 281,
-        'a', 94,
-        'e', 95,
-        'f', 27,
-        'i', 69,
-        'm', 116,
-        'o', 41,
-        'p', 117,
-        'r', 118,
-        'w', 78,
-        'x', 316,
-        'y', 313,
-        'z', 314,
-        '{', 253,
-      );
+      if (lookahead == '\n') ADVANCE(202);
+      if (lookahead == '$') ADVANCE(265);
+      if (lookahead == '-') ADVANCE(407);
+      if (lookahead == ';') ADVANCE(201);
       if (lookahead == '\t' ||
           lookahead == '\r' ||
           lookahead == ' ') SKIP(4);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(401);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(558);
       END_STATE();
     case 5:
       ADVANCE_MAP(
-        '"', 378,
-        '\'', 383,
-        '-', 310,
-        ']', 282,
-        '{', 253,
-        '\t', 309,
-        '\r', 309,
-        ' ', 309,
+        '"', 386,
+        '\'', 391,
+        '-', 318,
+        ']', 290,
+        '{', 261,
+        '\t', 317,
+        '\r', 317,
+        ' ', 317,
       );
       if (lookahead != 0 &&
           lookahead != '[' &&
-          lookahead != '}') ADVANCE(311);
+          lookahead != '}') ADVANCE(319);
       END_STATE();
     case 6:
-      if (lookahead == '"') ADVANCE(378);
-      if (lookahead == '-') ADVANCE(381);
-      if (lookahead == '\\') ADVANCE(161);
+      if (lookahead == '"') ADVANCE(386);
+      if (lookahead == '-') ADVANCE(389);
+      if (lookahead == '\\') ADVANCE(169);
       if (lookahead == '\t' ||
           lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(380);
-      if (lookahead != 0) ADVANCE(382);
+          lookahead == ' ') ADVANCE(388);
+      if (lookahead != 0) ADVANCE(390);
       END_STATE();
     case 7:
-      if (lookahead == '&') ADVANCE(271);
+      if (lookahead == '&') ADVANCE(279);
       END_STATE();
     case 8:
-      if (lookahead == '\'') ADVANCE(383);
-      if (lookahead == '-') ADVANCE(386);
-      if (lookahead == '\\') ADVANCE(161);
+      if (lookahead == '\'') ADVANCE(391);
+      if (lookahead == '-') ADVANCE(394);
+      if (lookahead == '\\') ADVANCE(169);
       if (lookahead == '\t' ||
           lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(385);
-      if (lookahead != 0) ADVANCE(387);
+          lookahead == ' ') ADVANCE(393);
+      if (lookahead != 0) ADVANCE(395);
       END_STATE();
     case 9:
-      if (lookahead == ')') ADVANCE(207);
+      if (lookahead == ')') ADVANCE(215);
       if (lookahead == '-') ADVANCE(10);
       if (lookahead == '\t' ||
           lookahead == '\r' ||
@@ -1608,38 +1626,27 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 10:
-      if (lookahead == '-') ADVANCE(554);
+      if (lookahead == '-') ADVANCE(560);
       END_STATE();
     case 11:
-      if (lookahead == '-') ADVANCE(10);
-      if (lookahead == '@') ADVANCE(25);
-      if (lookahead == '\t' ||
-          lookahead == '\r' ||
-          lookahead == ' ') SKIP(11);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(166);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(190);
+      if (lookahead == '-') ADVANCE(560);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(398);
       END_STATE();
     case 12:
-      ADVANCE_MAP(
-        '-', 10,
-        'a', 155,
-        'c', 127,
-        'l', 68,
-        'o', 139,
-        'p', 33,
-        't', 31,
-        'v', 53,
-      );
+      if (lookahead == '-') ADVANCE(10);
+      if (lookahead == '@') ADVANCE(26);
       if (lookahead == '\t' ||
           lookahead == '\r' ||
           lookahead == ' ') SKIP(12);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(174);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(198);
       END_STATE();
     case 13:
       if (lookahead == '-') ADVANCE(10);
@@ -1649,591 +1656,593 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       if (('A' <= lookahead && lookahead <= 'Z') ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(377);
+          lookahead == 0x212a) ADVANCE(385);
       END_STATE();
     case 14:
-      if (lookahead == '-') ADVANCE(306);
-      if (lookahead == '{') ADVANCE(253);
-      if (lookahead == '}') ADVANCE(254);
+      ADVANCE_MAP(
+        '-', 11,
+        'a', 145,
+        'c', 131,
+        'e', 119,
+        'l', 70,
+        'o', 144,
+        'p', 34,
+        't', 32,
+        'v', 54,
+        '^', 397,
+        '~', 397,
+      );
       if (lookahead == '\t' ||
           lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(305);
-      if (lookahead != 0) ADVANCE(307);
+          lookahead == ' ') SKIP(14);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(398);
       END_STATE();
     case 15:
-      if (lookahead == '-') ADVANCE(188);
+      if (lookahead == '-') ADVANCE(314);
+      if (lookahead == '{') ADVANCE(261);
+      if (lookahead == '}') ADVANCE(262);
+      if (lookahead == '\t' ||
+          lookahead == '\r' ||
+          lookahead == ' ') ADVANCE(313);
+      if (lookahead != 0) ADVANCE(315);
       END_STATE();
     case 16:
-      if (lookahead == '-') ADVANCE(176);
+      if (lookahead == '-') ADVANCE(196);
       END_STATE();
     case 17:
-      if (lookahead == '-') ADVANCE(181);
+      if (lookahead == '-') ADVANCE(184);
       END_STATE();
     case 18:
-      if (lookahead == '.') ADVANCE(219);
+      if (lookahead == '-') ADVANCE(189);
       END_STATE();
     case 19:
-      if (lookahead == '=') ADVANCE(270);
+      if (lookahead == '.') ADVANCE(227);
       END_STATE();
     case 20:
-      if (lookahead == '=') ADVANCE(269);
+      if (lookahead == '=') ADVANCE(278);
       END_STATE();
     case 21:
-      if (lookahead == '_') ADVANCE(71);
+      if (lookahead == '=') ADVANCE(277);
       END_STATE();
     case 22:
-      if (lookahead == '_') ADVANCE(35);
+      if (lookahead == '_') ADVANCE(73);
       END_STATE();
     case 23:
-      if (lookahead == '_') ADVANCE(143);
+      if (lookahead == '_') ADVANCE(36);
       END_STATE();
     case 24:
-      if (lookahead == '_') ADVANCE(100);
+      if (lookahead == '_') ADVANCE(149);
       END_STATE();
     case 25:
-      if (lookahead == 'a') ADVANCE(279);
-      if (lookahead == 'e') ADVANCE(278);
-      if (lookahead == 'n') ADVANCE(280);
-      if (lookahead == 'p') ADVANCE(277);
-      if (lookahead == 'r') ADVANCE(276);
-      if (lookahead == 's') ADVANCE(275);
+      if (lookahead == '_') ADVANCE(103);
       END_STATE();
     case 26:
-      if (lookahead == 'a') ADVANCE(159);
+      if (lookahead == 'a') ADVANCE(287);
+      if (lookahead == 'e') ADVANCE(286);
+      if (lookahead == 'n') ADVANCE(288);
+      if (lookahead == 'p') ADVANCE(285);
+      if (lookahead == 'r') ADVANCE(284);
+      if (lookahead == 's') ADVANCE(283);
       END_STATE();
     case 27:
-      if (lookahead == 'a') ADVANCE(40);
-      if (lookahead == 'e') ADVANCE(56);
-      if (lookahead == 'u') ADVANCE(108);
+      if (lookahead == 'a') ADVANCE(166);
       END_STATE();
     case 28:
-      if (lookahead == 'a') ADVANCE(106);
+      if (lookahead == 'a') ADVANCE(41);
+      if (lookahead == 'e') ADVANCE(57);
+      if (lookahead == 'u') ADVANCE(111);
       END_STATE();
     case 29:
-      if (lookahead == 'a') ADVANCE(153);
+      if (lookahead == 'a') ADVANCE(109);
       END_STATE();
     case 30:
-      if (lookahead == 'a') ADVANCE(42);
+      if (lookahead == 'a') ADVANCE(161);
       END_STATE();
     case 31:
-      if (lookahead == 'a') ADVANCE(135);
+      if (lookahead == 'a') ADVANCE(43);
       END_STATE();
     case 32:
-      if (lookahead == 'a') ADVANCE(39);
+      if (lookahead == 'a') ADVANCE(140);
       END_STATE();
     case 33:
-      if (lookahead == 'a') ADVANCE(148);
+      if (lookahead == 'a') ADVANCE(40);
       END_STATE();
     case 34:
-      if (lookahead == 'a') ADVANCE(144);
+      if (lookahead == 'a') ADVANCE(154);
       END_STATE();
     case 35:
-      if (lookahead == 'b') ADVANCE(99);
+      if (lookahead == 'a') ADVANCE(150);
       END_STATE();
     case 36:
-      if (lookahead == 'c') ADVANCE(203);
+      if (lookahead == 'b') ADVANCE(102);
       END_STATE();
     case 37:
-      if (lookahead == 'c') ADVANCE(79);
+      if (lookahead == 'c') ADVANCE(211);
       END_STATE();
     case 38:
-      if (lookahead == 'c') ADVANCE(93);
+      if (lookahead == 'c') ADVANCE(81);
       END_STATE();
     case 39:
-      if (lookahead == 'c') ADVANCE(92);
+      if (lookahead == 'c') ADVANCE(96);
       END_STATE();
     case 40:
-      if (lookahead == 'c') ADVANCE(84);
+      if (lookahead == 'c') ADVANCE(95);
       END_STATE();
     case 41:
-      if (lookahead == 'c') ADVANCE(52);
-      if (lookahead == 'n') ADVANCE(233);
+      if (lookahead == 'c') ADVANCE(86);
       END_STATE();
     case 42:
-      if (lookahead == 'c') ADVANCE(51);
+      if (lookahead == 'c') ADVANCE(53);
+      if (lookahead == 'n') ADVANCE(241);
       END_STATE();
     case 43:
-      if (lookahead == 'c') ADVANCE(101);
+      if (lookahead == 'c') ADVANCE(52);
       END_STATE();
     case 44:
-      if (lookahead == 'd') ADVANCE(251);
+      if (lookahead == 'c') ADVANCE(104);
       END_STATE();
     case 45:
-      if (lookahead == 'd') ADVANCE(226);
+      if (lookahead == 'd') ADVANCE(259);
       END_STATE();
     case 46:
-      if (lookahead == 'd') ADVANCE(243);
+      if (lookahead == 'd') ADVANCE(234);
       END_STATE();
     case 47:
-      if (lookahead == 'd') ADVANCE(23);
+      if (lookahead == 'd') ADVANCE(251);
       END_STATE();
     case 48:
-      if (lookahead == 'e') ADVANCE(210);
+      if (lookahead == 'd') ADVANCE(24);
       END_STATE();
     case 49:
-      if (lookahead == 'e') ADVANCE(211);
+      if (lookahead == 'e') ADVANCE(218);
       END_STATE();
     case 50:
-      if (lookahead == 'e') ADVANCE(242);
+      if (lookahead == 'e') ADVANCE(219);
       END_STATE();
     case 51:
-      if (lookahead == 'e') ADVANCE(246);
+      if (lookahead == 'e') ADVANCE(250);
       END_STATE();
     case 52:
-      if (lookahead == 'e') ADVANCE(28);
+      if (lookahead == 'e') ADVANCE(254);
       END_STATE();
     case 53:
-      if (lookahead == 'e') ADVANCE(80);
+      if (lookahead == 'e') ADVANCE(29);
       END_STATE();
     case 54:
-      if (lookahead == 'e') ADVANCE(44);
+      if (lookahead == 'e') ADVANCE(82);
       END_STATE();
     case 55:
-      if (lookahead == 'e') ADVANCE(140);
-      END_STATE();
-    case 56:
-      if (lookahead == 'e') ADVANCE(149);
-      END_STATE();
-    case 57:
       if (lookahead == 'e') ADVANCE(45);
       END_STATE();
-    case 58:
-      if (lookahead == 'e') ADVANCE(26);
+    case 56:
+      if (lookahead == 'e') ADVANCE(146);
       END_STATE();
-    case 59:
+    case 57:
+      if (lookahead == 'e') ADVANCE(155);
+      END_STATE();
+    case 58:
       if (lookahead == 'e') ADVANCE(46);
       END_STATE();
+    case 59:
+      if (lookahead == 'e') ADVANCE(27);
+      END_STATE();
     case 60:
-      if (lookahead == 'e') ADVANCE(142);
+      if (lookahead == 'e') ADVANCE(47);
       END_STATE();
     case 61:
-      if (lookahead == 'e') ADVANCE(150);
+      if (lookahead == 'e') ADVANCE(148);
       END_STATE();
     case 62:
-      if (lookahead == 'e') ADVANCE(128);
-      END_STATE();
-    case 63:
-      if (lookahead == 'e') ADVANCE(129);
-      END_STATE();
-    case 64:
       if (lookahead == 'e') ADVANCE(132);
       END_STATE();
+    case 63:
+      if (lookahead == 'e') ADVANCE(156);
+      END_STATE();
+    case 64:
+      if (lookahead == 'e') ADVANCE(133);
+      END_STATE();
     case 65:
-      if (lookahead == 'e') ADVANCE(137);
+      if (lookahead == 'e') ADVANCE(134);
       END_STATE();
     case 66:
-      if (lookahead == 'e') ADVANCE(112);
+      if (lookahead == 'e') ADVANCE(137);
       END_STATE();
     case 67:
-      if (lookahead == 'e') ADVANCE(130);
+      if (lookahead == 'e') ADVANCE(142);
       END_STATE();
     case 68:
-      if (lookahead == 'e') ADVANCE(34);
+      if (lookahead == 'e') ADVANCE(115);
       END_STATE();
     case 69:
-      if (lookahead == 'f') ADVANCE(208);
-      if (lookahead == 'n') ADVANCE(217);
+      if (lookahead == 'e') ADVANCE(135);
       END_STATE();
     case 70:
-      if (lookahead == 'f') ADVANCE(30);
+      if (lookahead == 'e') ADVANCE(35);
       END_STATE();
     case 71:
-      if (lookahead == 'f') ADVANCE(97);
+      if (lookahead == 'f') ADVANCE(216);
+      if (lookahead == 'n') ADVANCE(225);
       END_STATE();
     case 72:
-      if (lookahead == 'g') ADVANCE(230);
+      if (lookahead == 'f') ADVANCE(31);
       END_STATE();
     case 73:
-      if (lookahead == 'g') ADVANCE(247);
+      if (lookahead == 'f') ADVANCE(100);
       END_STATE();
     case 74:
-      if (lookahead == 'g') ADVANCE(104);
+      if (lookahead == 'g') ADVANCE(238);
       END_STATE();
     case 75:
-      if (lookahead == 'g') ADVANCE(65);
+      if (lookahead == 'g') ADVANCE(255);
       END_STATE();
     case 76:
-      if (lookahead == 'g') ADVANCE(61);
+      if (lookahead == 'g') ADVANCE(107);
       END_STATE();
     case 77:
-      if (lookahead == 'g') ADVANCE(89);
+      if (lookahead == 'g') ADVANCE(67);
       END_STATE();
     case 78:
-      if (lookahead == 'h') ADVANCE(83);
-      if (lookahead == 'o') ADVANCE(133);
+      if (lookahead == 'g') ADVANCE(63);
       END_STATE();
     case 79:
-      if (lookahead == 'h') ADVANCE(119);
+      if (lookahead == 'g') ADVANCE(92);
       END_STATE();
     case 80:
-      if (lookahead == 'h') ADVANCE(87);
+      if (lookahead == 'h') ADVANCE(85);
+      if (lookahead == 'o') ADVANCE(138);
       END_STATE();
     case 81:
-      if (lookahead == 'h') ADVANCE(63);
+      if (lookahead == 'h') ADVANCE(123);
       END_STATE();
     case 82:
-      if (lookahead == 'i') ADVANCE(74);
+      if (lookahead == 'h') ADVANCE(90);
       END_STATE();
     case 83:
-      if (lookahead == 'i') ADVANCE(98);
+      if (lookahead == 'h') ADVANCE(65);
       END_STATE();
     case 84:
-      if (lookahead == 'i') ADVANCE(107);
+      if (lookahead == 'i') ADVANCE(76);
       END_STATE();
     case 85:
-      if (lookahead == 'i') ADVANCE(124);
+      if (lookahead == 'i') ADVANCE(101);
       END_STATE();
     case 86:
-      if (lookahead == 'i') ADVANCE(77);
+      if (lookahead == 'i') ADVANCE(110);
       END_STATE();
     case 87:
-      if (lookahead == 'i') ADVANCE(43);
+      if (lookahead == 'i') ADVANCE(128);
       END_STATE();
     case 88:
-      if (lookahead == 'i') ADVANCE(109);
+      if (lookahead == 'i') ADVANCE(79);
       END_STATE();
     case 89:
-      if (lookahead == 'i') ADVANCE(105);
-      END_STATE();
-    case 90:
-      if (lookahead == 'i') ADVANCE(125);
-      END_STATE();
-    case 91:
       if (lookahead == 'i') ADVANCE(157);
       END_STATE();
+    case 90:
+      if (lookahead == 'i') ADVANCE(44);
+      END_STATE();
+    case 91:
+      if (lookahead == 'i') ADVANCE(112);
+      END_STATE();
     case 92:
-      if (lookahead == 'k') ADVANCE(64);
+      if (lookahead == 'i') ADVANCE(108);
       END_STATE();
     case 93:
-      if (lookahead == 'k') ADVANCE(88);
+      if (lookahead == 'i') ADVANCE(129);
       END_STATE();
     case 94:
-      if (lookahead == 'l') ADVANCE(82);
-      if (lookahead == 'n') ADVANCE(37);
-      if (lookahead == 's') ADVANCE(220);
-      if (lookahead == 't') ADVANCE(222);
+      if (lookahead == 'i') ADVANCE(164);
       END_STATE();
     case 95:
-      if (lookahead == 'l') ADVANCE(145);
-      if (lookahead == 'y') ADVANCE(55);
+      if (lookahead == 'k') ADVANCE(66);
       END_STATE();
     case 96:
-      if (lookahead == 'l') ADVANCE(47);
+      if (lookahead == 'k') ADVANCE(91);
       END_STATE();
     case 97:
-      if (lookahead == 'l') ADVANCE(126);
+      if (lookahead == 'l') ADVANCE(84);
+      if (lookahead == 'n') ADVANCE(38);
+      if (lookahead == 's') ADVANCE(228);
+      if (lookahead == 't') ADVANCE(230);
       END_STATE();
     case 98:
-      if (lookahead == 'l') ADVANCE(49);
+      if (lookahead == 'l') ADVANCE(151);
+      if (lookahead == 'y') ADVANCE(56);
       END_STATE();
     case 99:
-      if (lookahead == 'l') ADVANCE(120);
+      if (lookahead == 'l') ADVANCE(48);
       END_STATE();
     case 100:
-      if (lookahead == 'l') ADVANCE(58);
+      if (lookahead == 'l') ADVANCE(130);
       END_STATE();
     case 101:
       if (lookahead == 'l') ADVANCE(50);
       END_STATE();
     case 102:
-      if (lookahead == 'l') ADVANCE(67);
+      if (lookahead == 'l') ADVANCE(124);
       END_STATE();
     case 103:
-      if (lookahead == 'l') ADVANCE(102);
+      if (lookahead == 'l') ADVANCE(59);
       END_STATE();
     case 104:
-      if (lookahead == 'n') ADVANCE(224);
+      if (lookahead == 'l') ADVANCE(51);
       END_STATE();
     case 105:
-      if (lookahead == 'n') ADVANCE(238);
+      if (lookahead == 'l') ADVANCE(69);
       END_STATE();
     case 106:
-      if (lookahead == 'n') ADVANCE(21);
+      if (lookahead == 'l') ADVANCE(105);
       END_STATE();
     case 107:
-      if (lookahead == 'n') ADVANCE(72);
+      if (lookahead == 'n') ADVANCE(232);
       END_STATE();
     case 108:
-      if (lookahead == 'n') ADVANCE(36);
+      if (lookahead == 'n') ADVANCE(246);
       END_STATE();
     case 109:
-      if (lookahead == 'n') ADVANCE(73);
-      END_STATE();
-    case 110:
       if (lookahead == 'n') ADVANCE(22);
       END_STATE();
+    case 110:
+      if (lookahead == 'n') ADVANCE(74);
+      END_STATE();
     case 111:
-      if (lookahead == 'n') ADVANCE(154);
+      if (lookahead == 'n') ADVANCE(37);
       END_STATE();
     case 112:
       if (lookahead == 'n') ADVANCE(75);
       END_STATE();
     case 113:
-      if (lookahead == 'n') ADVANCE(123);
+      if (lookahead == 'n') ADVANCE(23);
       END_STATE();
     case 114:
-      if (lookahead == 'n') ADVANCE(59);
+      if (lookahead == 'n') ADVANCE(162);
       END_STATE();
     case 115:
-      if (lookahead == 'n') ADVANCE(62);
+      if (lookahead == 'n') ADVANCE(77);
       END_STATE();
     case 116:
-      if (lookahead == 'o') ADVANCE(152);
+      if (lookahead == 'n') ADVANCE(127);
       END_STATE();
     case 117:
-      if (lookahead == 'o') ADVANCE(146);
+      if (lookahead == 'n') ADVANCE(60);
       END_STATE();
     case 118:
-      if (lookahead == 'o') ADVANCE(151);
+      if (lookahead == 'n') ADVANCE(64);
       END_STATE();
     case 119:
-      if (lookahead == 'o') ADVANCE(136);
+      if (lookahead == 'n') ADVANCE(160);
       END_STATE();
     case 120:
-      if (lookahead == 'o') ADVANCE(38);
+      if (lookahead == 'o') ADVANCE(159);
       END_STATE();
     case 121:
-      if (lookahead == 'o') ADVANCE(131);
+      if (lookahead == 'o') ADVANCE(152);
       END_STATE();
     case 122:
-      if (lookahead == 'o') ADVANCE(103);
+      if (lookahead == 'o') ADVANCE(158);
       END_STATE();
     case 123:
-      if (lookahead == 'o') ADVANCE(24);
+      if (lookahead == 'o') ADVANCE(141);
       END_STATE();
     case 124:
-      if (lookahead == 'o') ADVANCE(110);
+      if (lookahead == 'o') ADVANCE(39);
       END_STATE();
     case 125:
-      if (lookahead == 'o') ADVANCE(114);
+      if (lookahead == 'o') ADVANCE(136);
       END_STATE();
     case 126:
-      if (lookahead == 'o') ADVANCE(121);
+      if (lookahead == 'o') ADVANCE(106);
       END_STATE();
     case 127:
-      if (lookahead == 'o') ADVANCE(111);
+      if (lookahead == 'o') ADVANCE(25);
       END_STATE();
     case 128:
-      if (lookahead == 'r') ADVANCE(239);
+      if (lookahead == 'o') ADVANCE(113);
       END_STATE();
     case 129:
-      if (lookahead == 'r') ADVANCE(237);
+      if (lookahead == 'o') ADVANCE(117);
       END_STATE();
     case 130:
-      if (lookahead == 'r') ADVANCE(236);
+      if (lookahead == 'o') ADVANCE(125);
       END_STATE();
     case 131:
-      if (lookahead == 'r') ADVANCE(250);
+      if (lookahead == 'o') ADVANCE(114);
       END_STATE();
     case 132:
-      if (lookahead == 'r') ADVANCE(235);
+      if (lookahead == 'r') ADVANCE(253);
       END_STATE();
     case 133:
-      if (lookahead == 'r') ADVANCE(96);
+      if (lookahead == 'r') ADVANCE(247);
       END_STATE();
     case 134:
-      if (lookahead == 'r') ADVANCE(70);
+      if (lookahead == 'r') ADVANCE(245);
       END_STATE();
     case 135:
-      if (lookahead == 'r') ADVANCE(76);
+      if (lookahead == 'r') ADVANCE(244);
       END_STATE();
     case 136:
-      if (lookahead == 'r') ADVANCE(57);
+      if (lookahead == 'r') ADVANCE(258);
       END_STATE();
     case 137:
-      if (lookahead == 'r') ADVANCE(141);
+      if (lookahead == 'r') ADVANCE(243);
       END_STATE();
     case 138:
-      if (lookahead == 'r') ADVANCE(122);
+      if (lookahead == 'r') ADVANCE(99);
       END_STATE();
     case 139:
-      if (lookahead == 'r') ADVANCE(86);
-      if (lookahead == 'w') ADVANCE(115);
+      if (lookahead == 'r') ADVANCE(72);
       END_STATE();
     case 140:
-      if (lookahead == 's') ADVANCE(228);
+      if (lookahead == 'r') ADVANCE(78);
       END_STATE();
     case 141:
-      if (lookahead == 's') ADVANCE(240);
+      if (lookahead == 'r') ADVANCE(58);
       END_STATE();
     case 142:
-      if (lookahead == 's') ADVANCE(249);
+      if (lookahead == 'r') ADVANCE(147);
       END_STATE();
     case 143:
-      if (lookahead == 's') ADVANCE(158);
+      if (lookahead == 'r') ADVANCE(126);
       END_STATE();
     case 144:
-      if (lookahead == 's') ADVANCE(81);
+      if (lookahead == 'r') ADVANCE(88);
+      if (lookahead == 'v') ADVANCE(62);
+      if (lookahead == 'w') ADVANCE(118);
       END_STATE();
     case 145:
-      if (lookahead == 's') ADVANCE(48);
+      if (lookahead == 's') ADVANCE(228);
+      if (lookahead == 't') ADVANCE(163);
       END_STATE();
     case 146:
-      if (lookahead == 's') ADVANCE(91);
+      if (lookahead == 's') ADVANCE(236);
       END_STATE();
     case 147:
-      if (lookahead == 's') ADVANCE(66);
+      if (lookahead == 's') ADVANCE(248);
       END_STATE();
     case 148:
-      if (lookahead == 's') ADVANCE(147);
+      if (lookahead == 's') ADVANCE(257);
       END_STATE();
     case 149:
-      if (lookahead == 't') ADVANCE(229);
+      if (lookahead == 's') ADVANCE(165);
       END_STATE();
     case 150:
-      if (lookahead == 't') ADVANCE(241);
+      if (lookahead == 's') ADVANCE(83);
       END_STATE();
     case 151:
-      if (lookahead == 't') ADVANCE(29);
+      if (lookahead == 's') ADVANCE(49);
       END_STATE();
     case 152:
-      if (lookahead == 't') ADVANCE(85);
+      if (lookahead == 's') ADVANCE(94);
       END_STATE();
     case 153:
-      if (lookahead == 't') ADVANCE(54);
+      if (lookahead == 's') ADVANCE(68);
       END_STATE();
     case 154:
-      if (lookahead == 't') ADVANCE(138);
+      if (lookahead == 's') ADVANCE(153);
       END_STATE();
     case 155:
-      if (lookahead == 't') ADVANCE(156);
+      if (lookahead == 't') ADVANCE(237);
       END_STATE();
     case 156:
-      if (lookahead == 't') ADVANCE(32);
+      if (lookahead == 't') ADVANCE(249);
       END_STATE();
     case 157:
-      if (lookahead == 't') ADVANCE(90);
+      if (lookahead == 't') ADVANCE(167);
       END_STATE();
     case 158:
-      if (lookahead == 'u') ADVANCE(134);
+      if (lookahead == 't') ADVANCE(30);
       END_STATE();
     case 159:
-      if (lookahead == 'v') ADVANCE(60);
+      if (lookahead == 't') ADVANCE(87);
       END_STATE();
     case 160:
-      if (lookahead == '|') ADVANCE(272);
+      if (lookahead == 't') ADVANCE(89);
       END_STATE();
     case 161:
-      ADVANCE_MAP(
-        '"', 388,
-        '\'', 388,
-        '\\', 388,
-        'b', 388,
-        'f', 388,
-        'n', 388,
-        'r', 388,
-        't', 388,
-        'v', 388,
-      );
+      if (lookahead == 't') ADVANCE(55);
       END_STATE();
     case 162:
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(394);
+      if (lookahead == 't') ADVANCE(143);
       END_STATE();
     case 163:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(290);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(303);
+      if (lookahead == 't') ADVANCE(33);
       END_STATE();
     case 164:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(283);
+      if (lookahead == 't') ADVANCE(93);
       END_STATE();
     case 165:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(17);
+      if (lookahead == 'u') ADVANCE(139);
       END_STATE();
     case 166:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(163);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(189);
+      if (lookahead == 'v') ADVANCE(61);
       END_STATE();
     case 167:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(165);
+      if (lookahead == 'y') ADVANCE(240);
       END_STATE();
     case 168:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(164);
+      if (lookahead == '|') ADVANCE(280);
       END_STATE();
     case 169:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(167);
+      ADVANCE_MAP(
+        '"', 396,
+        '\'', 396,
+        '\\', 396,
+        'b', 396,
+        'f', 396,
+        'n', 396,
+        'r', 396,
+        't', 396,
+        'v', 396,
+      );
       END_STATE();
     case 170:
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(168);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(400);
       END_STATE();
     case 171:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(169);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(298);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(311);
       END_STATE();
     case 172:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(170);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(291);
       END_STATE();
     case 173:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(15);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(18);
       END_STATE();
     case 174:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(173);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(171);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(197);
       END_STATE();
     case 175:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(174);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(173);
       END_STATE();
     case 176:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(175);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(172);
       END_STATE();
     case 177:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(172);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(175);
       END_STATE();
     case 178:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(16);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(176);
       END_STATE();
     case 179:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(178);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(177);
       END_STATE();
     case 180:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(179);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(178);
       END_STATE();
     case 181:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(180);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(16);
       END_STATE();
     case 182:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(177);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(181);
       END_STATE();
     case 183:
       if (('0' <= lookahead && lookahead <= '9') ||
@@ -2248,12 +2257,12 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
     case 185:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(184);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(180);
       END_STATE();
     case 186:
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(185);
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(17);
       END_STATE();
     case 187:
       if (('0' <= lookahead && lookahead <= '9') ||
@@ -2267,565 +2276,548 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
       END_STATE();
     case 189:
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(303);
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(188);
       END_STATE();
     case 190:
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(189);
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(185);
       END_STATE();
     case 191:
-      if (eof) ADVANCE(192);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(190);
+      END_STATE();
+    case 192:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(191);
+      END_STATE();
+    case 193:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(192);
+      END_STATE();
+    case 194:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(193);
+      END_STATE();
+    case 195:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(194);
+      END_STATE();
+    case 196:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(195);
+      END_STATE();
+    case 197:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(311);
+      END_STATE();
+    case 198:
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(197);
+      END_STATE();
+    case 199:
+      if (eof) ADVANCE(200);
       ADVANCE_MAP(
-        '\n', 194,
-        '!', 19,
-        '#', 202,
-        '%', 261,
+        '\n', 202,
+        '!', 20,
+        '#', 210,
+        '%', 269,
         '&', 7,
-        '(', 205,
-        ')', 207,
-        '*', 259,
-        '+', 262,
-        ',', 206,
-        '-', 264,
-        '.', 18,
-        '/', 260,
-        ':', 199,
-        ';', 193,
-        '<', 265,
-        '=', 20,
-        '>', 266,
-        'a', 346,
-        'c', 358,
-        'd', 356,
-        'f', 319,
-        'i', 336,
-        'l', 328,
-        'o', 349,
-        'p', 357,
-        'r', 333,
-        'w', 339,
-        '{', 253,
-        '|', 160,
-        '}', 254,
+        ')', 215,
+        '*', 267,
+        '+', 270,
+        ',', 214,
+        '-', 272,
+        '.', 19,
+        '/', 268,
+        ':', 207,
+        ';', 201,
+        '<', 273,
+        '=', 21,
+        '>', 274,
+        'a', 354,
+        'c', 366,
+        'd', 364,
+        'f', 327,
+        'i', 344,
+        'l', 336,
+        'o', 357,
+        'p', 365,
+        'r', 341,
+        'w', 347,
+        '{', 261,
+        '|', 168,
+        '}', 262,
       );
       if (lookahead == '\t' ||
           lookahead == '\r' ||
-          lookahead == ' ') SKIP(191);
+          lookahead == ' ') SKIP(199);
       if (('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('b' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 192:
-      ACCEPT_TOKEN(ts_builtin_sym_end);
-      END_STATE();
-    case 193:
-      ACCEPT_TOKEN(anon_sym_SEMI);
-      END_STATE();
-    case 194:
-      ACCEPT_TOKEN(sym__newline);
-      END_STATE();
-    case 195:
-      ACCEPT_TOKEN(anon_sym_let);
-      END_STATE();
-    case 196:
-      ACCEPT_TOKEN(anon_sym_let);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 197:
-      ACCEPT_TOKEN(anon_sym_const);
-      END_STATE();
-    case 198:
-      ACCEPT_TOKEN(anon_sym_const);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 199:
-      ACCEPT_TOKEN(anon_sym_COLON);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 200:
-      ACCEPT_TOKEN(anon_sym_EQ);
+      ACCEPT_TOKEN(ts_builtin_sym_end);
       END_STATE();
     case 201:
-      ACCEPT_TOKEN(anon_sym_EQ);
-      if (lookahead == '=') ADVANCE(269);
+      ACCEPT_TOKEN(anon_sym_SEMI);
       END_STATE();
     case 202:
-      ACCEPT_TOKEN(anon_sym_POUND);
+      ACCEPT_TOKEN(sym__newline);
       END_STATE();
     case 203:
-      ACCEPT_TOKEN(anon_sym_func);
+      ACCEPT_TOKEN(anon_sym_let);
       END_STATE();
     case 204:
+      ACCEPT_TOKEN(anon_sym_let);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 205:
+      ACCEPT_TOKEN(anon_sym_const);
+      END_STATE();
+    case 206:
+      ACCEPT_TOKEN(anon_sym_const);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 207:
+      ACCEPT_TOKEN(anon_sym_COLON);
+      END_STATE();
+    case 208:
+      ACCEPT_TOKEN(anon_sym_EQ);
+      END_STATE();
+    case 209:
+      ACCEPT_TOKEN(anon_sym_EQ);
+      if (lookahead == '=') ADVANCE(277);
+      END_STATE();
+    case 210:
+      ACCEPT_TOKEN(anon_sym_POUND);
+      END_STATE();
+    case 211:
+      ACCEPT_TOKEN(anon_sym_func);
+      END_STATE();
+    case 212:
       ACCEPT_TOKEN(anon_sym_func);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 205:
-      ACCEPT_TOKEN(anon_sym_LPAREN);
-      END_STATE();
-    case 206:
-      ACCEPT_TOKEN(anon_sym_COMMA);
-      END_STATE();
-    case 207:
-      ACCEPT_TOKEN(anon_sym_RPAREN);
-      END_STATE();
-    case 208:
-      ACCEPT_TOKEN(anon_sym_if);
-      END_STATE();
-    case 209:
-      ACCEPT_TOKEN(anon_sym_if);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 210:
-      ACCEPT_TOKEN(anon_sym_else);
-      END_STATE();
-    case 211:
-      ACCEPT_TOKEN(anon_sym_while);
-      END_STATE();
-    case 212:
-      ACCEPT_TOKEN(anon_sym_while);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 213:
-      ACCEPT_TOKEN(anon_sym_do);
+      ACCEPT_TOKEN(anon_sym_LPAREN);
       END_STATE();
     case 214:
+      ACCEPT_TOKEN(anon_sym_COMMA);
+      END_STATE();
+    case 215:
+      ACCEPT_TOKEN(anon_sym_RPAREN);
+      END_STATE();
+    case 216:
+      ACCEPT_TOKEN(anon_sym_if);
+      END_STATE();
+    case 217:
+      ACCEPT_TOKEN(anon_sym_if);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 218:
+      ACCEPT_TOKEN(anon_sym_else);
+      END_STATE();
+    case 219:
+      ACCEPT_TOKEN(anon_sym_while);
+      END_STATE();
+    case 220:
+      ACCEPT_TOKEN(anon_sym_while);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 221:
+      ACCEPT_TOKEN(anon_sym_do);
+      END_STATE();
+    case 222:
       ACCEPT_TOKEN(anon_sym_do);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 215:
-      ACCEPT_TOKEN(anon_sym_for);
-      END_STATE();
-    case 216:
-      ACCEPT_TOKEN(anon_sym_for);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 217:
-      ACCEPT_TOKEN(anon_sym_in);
-      END_STATE();
-    case 218:
-      ACCEPT_TOKEN(anon_sym_in);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 219:
-      ACCEPT_TOKEN(anon_sym_DOT_DOT);
-      END_STATE();
-    case 220:
-      ACCEPT_TOKEN(anon_sym_as);
-      END_STATE();
-    case 221:
-      ACCEPT_TOKEN(anon_sym_as);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 222:
-      ACCEPT_TOKEN(anon_sym_at);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 223:
+      ACCEPT_TOKEN(anon_sym_for);
+      END_STATE();
+    case 224:
+      ACCEPT_TOKEN(anon_sym_for);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 225:
+      ACCEPT_TOKEN(anon_sym_in);
+      END_STATE();
+    case 226:
+      ACCEPT_TOKEN(anon_sym_in);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 227:
+      ACCEPT_TOKEN(anon_sym_DOT_DOT);
+      END_STATE();
+    case 228:
+      ACCEPT_TOKEN(anon_sym_as);
+      END_STATE();
+    case 229:
+      ACCEPT_TOKEN(anon_sym_as);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 230:
+      ACCEPT_TOKEN(anon_sym_at);
+      END_STATE();
+    case 231:
       ACCEPT_TOKEN(anon_sym_at);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 224:
-      ACCEPT_TOKEN(anon_sym_align);
-      END_STATE();
-    case 225:
-      ACCEPT_TOKEN(anon_sym_align);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 226:
-      ACCEPT_TOKEN(anon_sym_anchored);
-      END_STATE();
-    case 227:
-      ACCEPT_TOKEN(anon_sym_anchored);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 228:
-      ACCEPT_TOKEN(anon_sym_eyes);
-      END_STATE();
-    case 229:
-      ACCEPT_TOKEN(anon_sym_feet);
-      END_STATE();
-    case 230:
-      ACCEPT_TOKEN(anon_sym_facing);
-      END_STATE();
-    case 231:
-      ACCEPT_TOKEN(anon_sym_facing);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 232:
-      ACCEPT_TOKEN(anon_sym_entity);
+      ACCEPT_TOKEN(anon_sym_align);
       END_STATE();
     case 233:
-      ACCEPT_TOKEN(anon_sym_on);
+      ACCEPT_TOKEN(anon_sym_align);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 234:
+      ACCEPT_TOKEN(anon_sym_anchored);
+      END_STATE();
+    case 235:
+      ACCEPT_TOKEN(anon_sym_anchored);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 236:
+      ACCEPT_TOKEN(anon_sym_eyes);
+      END_STATE();
+    case 237:
+      ACCEPT_TOKEN(anon_sym_feet);
+      END_STATE();
+    case 238:
+      ACCEPT_TOKEN(anon_sym_facing);
+      END_STATE();
+    case 239:
+      ACCEPT_TOKEN(anon_sym_facing);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 240:
+      ACCEPT_TOKEN(anon_sym_entity);
+      END_STATE();
+    case 241:
+      ACCEPT_TOKEN(anon_sym_on);
+      END_STATE();
+    case 242:
       ACCEPT_TOKEN(anon_sym_on);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 235:
-      ACCEPT_TOKEN(anon_sym_attacker);
-      END_STATE();
-    case 236:
-      ACCEPT_TOKEN(anon_sym_controller);
-      END_STATE();
-    case 237:
-      ACCEPT_TOKEN(anon_sym_leasher);
-      END_STATE();
-    case 238:
-      ACCEPT_TOKEN(anon_sym_origin);
-      END_STATE();
-    case 239:
-      ACCEPT_TOKEN(anon_sym_owner);
-      END_STATE();
-    case 240:
-      ACCEPT_TOKEN(anon_sym_passengers);
-      END_STATE();
-    case 241:
-      ACCEPT_TOKEN(anon_sym_target);
-      END_STATE();
-    case 242:
-      ACCEPT_TOKEN(anon_sym_vehicle);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 243:
-      ACCEPT_TOKEN(anon_sym_positioned);
+      ACCEPT_TOKEN(anon_sym_attacker);
       END_STATE();
     case 244:
+      ACCEPT_TOKEN(anon_sym_controller);
+      END_STATE();
+    case 245:
+      ACCEPT_TOKEN(anon_sym_leasher);
+      END_STATE();
+    case 246:
+      ACCEPT_TOKEN(anon_sym_origin);
+      END_STATE();
+    case 247:
+      ACCEPT_TOKEN(anon_sym_owner);
+      END_STATE();
+    case 248:
+      ACCEPT_TOKEN(anon_sym_passengers);
+      END_STATE();
+    case 249:
+      ACCEPT_TOKEN(anon_sym_target);
+      END_STATE();
+    case 250:
+      ACCEPT_TOKEN(anon_sym_vehicle);
+      END_STATE();
+    case 251:
+      ACCEPT_TOKEN(anon_sym_positioned);
+      END_STATE();
+    case 252:
       ACCEPT_TOKEN(anon_sym_positioned);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 245:
-      ACCEPT_TOKEN(anon_sym_over);
-      END_STATE();
-    case 246:
-      ACCEPT_TOKEN(anon_sym_world_surface);
-      END_STATE();
-    case 247:
-      ACCEPT_TOKEN(anon_sym_motion_blocking);
-      if (lookahead == '_') ADVANCE(113);
-      END_STATE();
-    case 248:
-      ACCEPT_TOKEN(anon_sym_motion_blocking);
-      if (lookahead == '_') ADVANCE(496);
-      END_STATE();
-    case 249:
-      ACCEPT_TOKEN(anon_sym_motion_blocking_no_leaves);
-      END_STATE();
-    case 250:
-      ACCEPT_TOKEN(anon_sym_ocean_floor);
-      END_STATE();
-    case 251:
-      ACCEPT_TOKEN(anon_sym_rotated);
-      END_STATE();
-    case 252:
-      ACCEPT_TOKEN(anon_sym_rotated);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 253:
-      ACCEPT_TOKEN(anon_sym_LBRACE);
+      ACCEPT_TOKEN(anon_sym_over);
       END_STATE();
     case 254:
-      ACCEPT_TOKEN(anon_sym_RBRACE);
+      ACCEPT_TOKEN(anon_sym_world_surface);
       END_STATE();
     case 255:
-      ACCEPT_TOKEN(anon_sym_return);
+      ACCEPT_TOKEN(anon_sym_motion_blocking);
+      if (lookahead == '_') ADVANCE(116);
       END_STATE();
     case 256:
+      ACCEPT_TOKEN(anon_sym_motion_blocking);
+      if (lookahead == '_') ADVANCE(502);
+      END_STATE();
+    case 257:
+      ACCEPT_TOKEN(anon_sym_motion_blocking_no_leaves);
+      END_STATE();
+    case 258:
+      ACCEPT_TOKEN(anon_sym_ocean_floor);
+      END_STATE();
+    case 259:
+      ACCEPT_TOKEN(anon_sym_rotated);
+      END_STATE();
+    case 260:
+      ACCEPT_TOKEN(anon_sym_rotated);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 261:
+      ACCEPT_TOKEN(anon_sym_LBRACE);
+      END_STATE();
+    case 262:
+      ACCEPT_TOKEN(anon_sym_RBRACE);
+      END_STATE();
+    case 263:
+      ACCEPT_TOKEN(anon_sym_return);
+      END_STATE();
+    case 264:
       ACCEPT_TOKEN(anon_sym_return);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 257:
-      ACCEPT_TOKEN(anon_sym_DOLLAR);
-      if (lookahead == '{') ADVANCE(258);
-      END_STATE();
-    case 258:
-      ACCEPT_TOKEN(anon_sym_DOLLAR_LBRACE);
-      END_STATE();
-    case 259:
-      ACCEPT_TOKEN(anon_sym_STAR);
-      END_STATE();
-    case 260:
-      ACCEPT_TOKEN(anon_sym_SLASH);
-      END_STATE();
-    case 261:
-      ACCEPT_TOKEN(anon_sym_PERCENT);
-      END_STATE();
-    case 262:
-      ACCEPT_TOKEN(anon_sym_PLUS);
-      END_STATE();
-    case 263:
-      ACCEPT_TOKEN(anon_sym_DASH);
-      if (lookahead == '-') ADVANCE(553);
-      END_STATE();
-    case 264:
-      ACCEPT_TOKEN(anon_sym_DASH);
-      if (lookahead == '-') ADVANCE(554);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 265:
-      ACCEPT_TOKEN(anon_sym_LT);
-      if (lookahead == '=') ADVANCE(267);
+      ACCEPT_TOKEN(anon_sym_DOLLAR);
+      if (lookahead == '{') ADVANCE(266);
       END_STATE();
     case 266:
-      ACCEPT_TOKEN(anon_sym_GT);
-      if (lookahead == '=') ADVANCE(268);
+      ACCEPT_TOKEN(anon_sym_DOLLAR_LBRACE);
       END_STATE();
     case 267:
-      ACCEPT_TOKEN(anon_sym_LT_EQ);
+      ACCEPT_TOKEN(anon_sym_STAR);
       END_STATE();
     case 268:
-      ACCEPT_TOKEN(anon_sym_GT_EQ);
+      ACCEPT_TOKEN(anon_sym_SLASH);
       END_STATE();
     case 269:
-      ACCEPT_TOKEN(anon_sym_EQ_EQ);
+      ACCEPT_TOKEN(anon_sym_PERCENT);
       END_STATE();
     case 270:
-      ACCEPT_TOKEN(anon_sym_BANG_EQ);
+      ACCEPT_TOKEN(anon_sym_PLUS);
       END_STATE();
     case 271:
-      ACCEPT_TOKEN(anon_sym_AMP_AMP);
+      ACCEPT_TOKEN(anon_sym_DASH);
+      if (lookahead == '-') ADVANCE(559);
       END_STATE();
     case 272:
-      ACCEPT_TOKEN(anon_sym_PIPE_PIPE);
+      ACCEPT_TOKEN(anon_sym_DASH);
+      if (lookahead == '-') ADVANCE(560);
       END_STATE();
     case 273:
-      ACCEPT_TOKEN(anon_sym_BANG);
+      ACCEPT_TOKEN(anon_sym_LT);
+      if (lookahead == '=') ADVANCE(275);
       END_STATE();
     case 274:
-      ACCEPT_TOKEN(anon_sym_BANG);
-      if (lookahead == '=') ADVANCE(270);
+      ACCEPT_TOKEN(anon_sym_GT);
+      if (lookahead == '=') ADVANCE(276);
       END_STATE();
     case 275:
-      ACCEPT_TOKEN(anon_sym_ATs);
+      ACCEPT_TOKEN(anon_sym_LT_EQ);
       END_STATE();
     case 276:
-      ACCEPT_TOKEN(anon_sym_ATr);
+      ACCEPT_TOKEN(anon_sym_GT_EQ);
       END_STATE();
     case 277:
-      ACCEPT_TOKEN(anon_sym_ATp);
+      ACCEPT_TOKEN(anon_sym_EQ_EQ);
       END_STATE();
     case 278:
-      ACCEPT_TOKEN(anon_sym_ATe);
+      ACCEPT_TOKEN(anon_sym_BANG_EQ);
       END_STATE();
     case 279:
-      ACCEPT_TOKEN(anon_sym_ATa);
+      ACCEPT_TOKEN(anon_sym_AMP_AMP);
       END_STATE();
     case 280:
-      ACCEPT_TOKEN(anon_sym_ATn);
+      ACCEPT_TOKEN(anon_sym_PIPE_PIPE);
       END_STATE();
     case 281:
-      ACCEPT_TOKEN(anon_sym_LBRACK);
+      ACCEPT_TOKEN(anon_sym_BANG);
       END_STATE();
     case 282:
-      ACCEPT_TOKEN(anon_sym_RBRACK);
+      ACCEPT_TOKEN(anon_sym_BANG);
+      if (lookahead == '=') ADVANCE(278);
       END_STATE();
     case 283:
-      ACCEPT_TOKEN(aux_sym_selector_token1);
+      ACCEPT_TOKEN(anon_sym_ATs);
       END_STATE();
     case 284:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
+      ACCEPT_TOKEN(anon_sym_ATr);
       END_STATE();
     case 285:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (lookahead == '-') ADVANCE(171);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(297);
+      ACCEPT_TOKEN(anon_sym_ATp);
       END_STATE();
     case 286:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(285);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(298);
+      ACCEPT_TOKEN(anon_sym_ATe);
       END_STATE();
     case 287:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(286);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(299);
+      ACCEPT_TOKEN(anon_sym_ATa);
       END_STATE();
     case 288:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(287);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(300);
+      ACCEPT_TOKEN(anon_sym_ATn);
       END_STATE();
     case 289:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(288);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(301);
+      ACCEPT_TOKEN(anon_sym_LBRACK);
       END_STATE();
     case 290:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'F') ||
-          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(289);
-      if (('G' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(302);
+      ACCEPT_TOKEN(anon_sym_RBRACK);
       END_STATE();
     case 291:
-      ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(284);
+      ACCEPT_TOKEN(aux_sym_selector_token1);
       END_STATE();
     case 292:
       ACCEPT_TOKEN(aux_sym_selector_token2);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(291);
       END_STATE();
     case 293:
       ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (lookahead == '-') ADVANCE(179);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(292);
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(305);
       END_STATE();
     case 294:
       ACCEPT_TOKEN(aux_sym_selector_token2);
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(293);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(293);
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(306);
       END_STATE();
     case 295:
       ACCEPT_TOKEN(aux_sym_selector_token2);
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(294);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(294);
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(307);
       END_STATE();
     case 296:
       ACCEPT_TOKEN(aux_sym_selector_token2);
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(295);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(295);
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(308);
       END_STATE();
     case 297:
       ACCEPT_TOKEN(aux_sym_selector_token2);
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(296);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(296);
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(309);
       END_STATE();
     case 298:
       ACCEPT_TOKEN(aux_sym_selector_token2);
       if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
+          ('A' <= lookahead && lookahead <= 'F') ||
+          ('a' <= lookahead && lookahead <= 'f')) ADVANCE(297);
+      if (('G' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(297);
+          ('g' <= lookahead && lookahead <= 'z')) ADVANCE(310);
       END_STATE();
     case 299:
       ACCEPT_TOKEN(aux_sym_selector_token2);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(298);
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(292);
       END_STATE();
     case 300:
       ACCEPT_TOKEN(aux_sym_selector_token2);
@@ -2856,174 +2848,250 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
           ('a' <= lookahead && lookahead <= 'z')) ADVANCE(302);
       END_STATE();
     case 304:
-      ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
-      if (lookahead == '\n') ADVANCE(307);
-      if (lookahead == '{' ||
-          lookahead == '}') ADVANCE(554);
-      if (lookahead != 0) ADVANCE(304);
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(303);
       END_STATE();
     case 305:
-      ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
-      if (lookahead == '-') ADVANCE(306);
-      if (lookahead == '\t' ||
-          lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(305);
-      if (lookahead != 0 &&
-          lookahead != '{' &&
-          lookahead != '}') ADVANCE(307);
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(304);
       END_STATE();
     case 306:
-      ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
-      if (lookahead == '-') ADVANCE(304);
-      if (lookahead != 0 &&
-          lookahead != '{' &&
-          lookahead != '}') ADVANCE(307);
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(305);
       END_STATE();
     case 307:
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(306);
+      END_STATE();
+    case 308:
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(307);
+      END_STATE();
+    case 309:
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(308);
+      END_STATE();
+    case 310:
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(309);
+      END_STATE();
+    case 311:
+      ACCEPT_TOKEN(aux_sym_selector_token2);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z')) ADVANCE(310);
+      END_STATE();
+    case 312:
+      ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
+      if (lookahead == '\n') ADVANCE(315);
+      if (lookahead == '{' ||
+          lookahead == '}') ADVANCE(560);
+      if (lookahead != 0) ADVANCE(312);
+      END_STATE();
+    case 313:
+      ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
+      if (lookahead == '-') ADVANCE(314);
+      if (lookahead == '\t' ||
+          lookahead == '\r' ||
+          lookahead == ' ') ADVANCE(313);
+      if (lookahead != 0 &&
+          lookahead != '{' &&
+          lookahead != '}') ADVANCE(315);
+      END_STATE();
+    case 314:
+      ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
+      if (lookahead == '-') ADVANCE(312);
+      if (lookahead != 0 &&
+          lookahead != '{' &&
+          lookahead != '}') ADVANCE(315);
+      END_STATE();
+    case 315:
       ACCEPT_TOKEN(aux_sym_selector_nbt_token1);
       if (lookahead != 0 &&
           lookahead != '{' &&
-          lookahead != '}') ADVANCE(307);
+          lookahead != '}') ADVANCE(315);
       END_STATE();
-    case 308:
+    case 316:
       ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
-      if (lookahead == '\n') ADVANCE(311);
+      if (lookahead == '\n') ADVANCE(319);
       if (lookahead == '"' ||
           lookahead == '\'' ||
           lookahead == '[' ||
           lookahead == ']' ||
           lookahead == '{' ||
-          lookahead == '}') ADVANCE(554);
-      if (lookahead != 0) ADVANCE(308);
-      END_STATE();
-    case 309:
-      ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
-      if (lookahead == '-') ADVANCE(310);
-      if (lookahead == '\t' ||
-          lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(309);
-      if (lookahead != 0 &&
-          lookahead != '"' &&
-          lookahead != '\'' &&
-          lookahead != '[' &&
-          lookahead != ']' &&
-          lookahead != '{' &&
-          lookahead != '}') ADVANCE(311);
-      END_STATE();
-    case 310:
-      ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
-      if (lookahead == '-') ADVANCE(308);
-      if (lookahead != 0 &&
-          lookahead != '"' &&
-          lookahead != '\'' &&
-          lookahead != '[' &&
-          lookahead != ']' &&
-          lookahead != '{' &&
-          lookahead != '}') ADVANCE(311);
-      END_STATE();
-    case 311:
-      ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
-      if (lookahead != 0 &&
-          lookahead != '"' &&
-          lookahead != '\'' &&
-          lookahead != '[' &&
-          lookahead != ']' &&
-          lookahead != '{' &&
-          lookahead != '}') ADVANCE(311);
-      END_STATE();
-    case 312:
-      ACCEPT_TOKEN(sym_swizzle);
-      END_STATE();
-    case 313:
-      ACCEPT_TOKEN(sym_swizzle);
-      if (lookahead == 'x') ADVANCE(318);
-      if (lookahead == 'z') ADVANCE(315);
-      END_STATE();
-    case 314:
-      ACCEPT_TOKEN(sym_swizzle);
-      if (lookahead == 'x') ADVANCE(317);
-      if (lookahead == 'y') ADVANCE(315);
-      END_STATE();
-    case 315:
-      ACCEPT_TOKEN(sym_swizzle);
-      if (lookahead == 'x') ADVANCE(312);
-      END_STATE();
-    case 316:
-      ACCEPT_TOKEN(sym_swizzle);
-      if (lookahead == 'y') ADVANCE(318);
-      if (lookahead == 'z') ADVANCE(317);
+          lookahead == '}') ADVANCE(560);
+      if (lookahead != 0) ADVANCE(316);
       END_STATE();
     case 317:
-      ACCEPT_TOKEN(sym_swizzle);
-      if (lookahead == 'y') ADVANCE(312);
+      ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
+      if (lookahead == '-') ADVANCE(318);
+      if (lookahead == '\t' ||
+          lookahead == '\r' ||
+          lookahead == ' ') ADVANCE(317);
+      if (lookahead != 0 &&
+          lookahead != '"' &&
+          lookahead != '\'' &&
+          lookahead != '[' &&
+          lookahead != ']' &&
+          lookahead != '{' &&
+          lookahead != '}') ADVANCE(319);
       END_STATE();
     case 318:
-      ACCEPT_TOKEN(sym_swizzle);
-      if (lookahead == 'z') ADVANCE(312);
+      ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
+      if (lookahead == '-') ADVANCE(316);
+      if (lookahead != 0 &&
+          lookahead != '"' &&
+          lookahead != '\'' &&
+          lookahead != '[' &&
+          lookahead != ']' &&
+          lookahead != '{' &&
+          lookahead != '}') ADVANCE(319);
       END_STATE();
     case 319:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'a') ADVANCE(324);
-      if (lookahead == 'o') ADVANCE(361);
-      if (lookahead == 'u') ADVANCE(354);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('b' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+      ACCEPT_TOKEN(aux_sym__selector_safe_content_token1);
+      if (lookahead != 0 &&
+          lookahead != '"' &&
+          lookahead != '\'' &&
+          lookahead != '[' &&
+          lookahead != ']' &&
+          lookahead != '{' &&
+          lookahead != '}') ADVANCE(319);
       END_STATE();
     case 320:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'a') ADVANCE(348);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('b' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+      ACCEPT_TOKEN(sym_swizzle);
       END_STATE();
     case 321:
+      ACCEPT_TOKEN(sym_swizzle);
+      if (lookahead == 'x') ADVANCE(326);
+      if (lookahead == 'z') ADVANCE(323);
+      END_STATE();
+    case 322:
+      ACCEPT_TOKEN(sym_swizzle);
+      if (lookahead == 'x') ADVANCE(325);
+      if (lookahead == 'y') ADVANCE(323);
+      END_STATE();
+    case 323:
+      ACCEPT_TOKEN(sym_swizzle);
+      if (lookahead == 'x') ADVANCE(320);
+      END_STATE();
+    case 324:
+      ACCEPT_TOKEN(sym_swizzle);
+      if (lookahead == 'y') ADVANCE(326);
+      if (lookahead == 'z') ADVANCE(325);
+      END_STATE();
+    case 325:
+      ACCEPT_TOKEN(sym_swizzle);
+      if (lookahead == 'y') ADVANCE(320);
+      END_STATE();
+    case 326:
+      ACCEPT_TOKEN(sym_swizzle);
+      if (lookahead == 'z') ADVANCE(320);
+      END_STATE();
+    case 327:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'a') ADVANCE(372);
+      if (lookahead == 'a') ADVANCE(332);
+      if (lookahead == 'o') ADVANCE(369);
+      if (lookahead == 'u') ADVANCE(362);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('b' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
-    case 322:
+    case 328:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'c') ADVANCE(204);
+      if (lookahead == 'a') ADVANCE(356);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('b' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 329:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'a') ADVANCE(380);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('b' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 330:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'c') ADVANCE(212);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
-    case 323:
+    case 331:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'c') ADVANCE(340);
+      if (lookahead == 'c') ADVANCE(348);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
-    case 324:
+    case 332:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'c') ADVANCE(343);
+      if (lookahead == 'c') ADVANCE(351);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
-    case 325:
+    case 333:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'd') ADVANCE(260);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 334:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'd') ADVANCE(235);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 335:
       ACCEPT_TOKEN(sym_identifier);
       if (lookahead == 'd') ADVANCE(252);
       if (('0' <= lookahead && lookahead <= '9') ||
@@ -3031,344 +3099,334 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 326:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'd') ADVANCE(227);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 327:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'd') ADVANCE(244);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 328:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(368);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 329:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(212);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 330:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(325);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 331:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(397);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 332:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(399);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 333:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(369);
-      if (lookahead == 'o') ADVANCE(370);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 334:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(326);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 335:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'e') ADVANCE(327);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 336:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'f') ADVANCE(209);
-      if (lookahead == 'n') ADVANCE(218);
+      if (lookahead == 'e') ADVANCE(376);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 337:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'g') ADVANCE(231);
+      if (lookahead == 'e') ADVANCE(220);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 338:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'g') ADVANCE(350);
+      if (lookahead == 'e') ADVANCE(333);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 339:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'h') ADVANCE(342);
+      if (lookahead == 'e') ADVANCE(403);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 340:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'h') ADVANCE(359);
+      if (lookahead == 'e') ADVANCE(405);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 341:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'i') ADVANCE(338);
+      if (lookahead == 'e') ADVANCE(377);
+      if (lookahead == 'o') ADVANCE(378);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 342:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'i') ADVANCE(347);
+      if (lookahead == 'e') ADVANCE(334);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 343:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'i') ADVANCE(353);
+      if (lookahead == 'e') ADVANCE(335);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 344:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'i') ADVANCE(373);
+      if (lookahead == 'f') ADVANCE(217);
+      if (lookahead == 'n') ADVANCE(226);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 345:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'i') ADVANCE(360);
+      if (lookahead == 'g') ADVANCE(239);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 346:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'l') ADVANCE(341);
-      if (lookahead == 'n') ADVANCE(323);
-      if (lookahead == 's') ADVANCE(221);
-      if (lookahead == 't') ADVANCE(223);
+      if (lookahead == 'g') ADVANCE(358);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 347:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'l') ADVANCE(329);
+      if (lookahead == 'h') ADVANCE(350);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 348:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'l') ADVANCE(367);
+      if (lookahead == 'h') ADVANCE(367);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 349:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(234);
+      if (lookahead == 'i') ADVANCE(346);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 350:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(225);
+      if (lookahead == 'i') ADVANCE(355);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 351:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(256);
+      if (lookahead == 'i') ADVANCE(361);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 352:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(366);
+      if (lookahead == 'i') ADVANCE(381);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 353:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(337);
+      if (lookahead == 'i') ADVANCE(368);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 354:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(322);
+      if (lookahead == 'l') ADVANCE(349);
+      if (lookahead == 'n') ADVANCE(331);
+      if (lookahead == 's') ADVANCE(229);
+      if (lookahead == 't') ADVANCE(231);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 355:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'n') ADVANCE(335);
+      if (lookahead == 'l') ADVANCE(337);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 356:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'o') ADVANCE(214);
+      if (lookahead == 'l') ADVANCE(375);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 357:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'o') ADVANCE(365);
+      if (lookahead == 'n') ADVANCE(242);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 358:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'o') ADVANCE(352);
+      if (lookahead == 'n') ADVANCE(233);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 359:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'n') ADVANCE(264);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 360:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'n') ADVANCE(374);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 361:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'n') ADVANCE(345);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 362:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'n') ADVANCE(330);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 363:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'n') ADVANCE(343);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 364:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'o') ADVANCE(222);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 365:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'o') ADVANCE(373);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 366:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'o') ADVANCE(360);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 367:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'o') ADVANCE(371);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 368:
       ACCEPT_TOKEN(sym_identifier);
       if (lookahead == 'o') ADVANCE(363);
       if (('0' <= lookahead && lookahead <= '9') ||
@@ -3376,1736 +3434,1714 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 360:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'o') ADVANCE(355);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 361:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'r') ADVANCE(216);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 362:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'r') ADVANCE(375);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 363:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'r') ADVANCE(334);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 364:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'r') ADVANCE(351);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 365:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 's') ADVANCE(344);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 366:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 's') ADVANCE(371);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 367:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 's') ADVANCE(332);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 368:
-      ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 't') ADVANCE(196);
-      if (('0' <= lookahead && lookahead <= '9') ||
-          ('A' <= lookahead && lookahead <= 'Z') ||
-          lookahead == '_' ||
-          ('a' <= lookahead && lookahead <= 'z') ||
-          lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 369:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 't') ADVANCE(374);
+      if (lookahead == 'r') ADVANCE(224);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 370:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 't') ADVANCE(321);
+      if (lookahead == 'r') ADVANCE(383);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 371:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 't') ADVANCE(198);
+      if (lookahead == 'r') ADVANCE(342);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 372:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 't') ADVANCE(330);
+      if (lookahead == 'r') ADVANCE(359);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 373:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 't') ADVANCE(345);
+      if (lookahead == 's') ADVANCE(352);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 374:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'u') ADVANCE(364);
+      if (lookahead == 's') ADVANCE(379);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 375:
       ACCEPT_TOKEN(sym_identifier);
-      if (lookahead == 'u') ADVANCE(331);
+      if (lookahead == 's') ADVANCE(340);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 376:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 't') ADVANCE(204);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 377:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 't') ADVANCE(382);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 378:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 't') ADVANCE(329);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 379:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 't') ADVANCE(206);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 380:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 't') ADVANCE(338);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 381:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 't') ADVANCE(353);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 382:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'u') ADVANCE(372);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 383:
+      ACCEPT_TOKEN(sym_identifier);
+      if (lookahead == 'u') ADVANCE(339);
+      if (('0' <= lookahead && lookahead <= '9') ||
+          ('A' <= lookahead && lookahead <= 'Z') ||
+          lookahead == '_' ||
+          ('a' <= lookahead && lookahead <= 'z') ||
+          lookahead == 0x17f ||
+          lookahead == 0x212a) ADVANCE(384);
+      END_STATE();
+    case 384:
       ACCEPT_TOKEN(sym_identifier);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
-    case 377:
+    case 385:
       ACCEPT_TOKEN(sym_type);
       if (('A' <= lookahead && lookahead <= 'Z') ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(377);
-      END_STATE();
-    case 378:
-      ACCEPT_TOKEN(anon_sym_DQUOTE);
-      END_STATE();
-    case 379:
-      ACCEPT_TOKEN(aux_sym__string_double_token1);
-      if (lookahead == '\n') ADVANCE(382);
-      if (lookahead == '"' ||
-          lookahead == '\\') ADVANCE(554);
-      if (lookahead != 0) ADVANCE(379);
-      END_STATE();
-    case 380:
-      ACCEPT_TOKEN(aux_sym__string_double_token1);
-      if (lookahead == '-') ADVANCE(381);
-      if (lookahead == '\t' ||
-          lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(380);
-      if (lookahead != 0 &&
-          lookahead != '"' &&
-          lookahead != '\\') ADVANCE(382);
-      END_STATE();
-    case 381:
-      ACCEPT_TOKEN(aux_sym__string_double_token1);
-      if (lookahead == '-') ADVANCE(379);
-      if (lookahead != 0 &&
-          lookahead != '"' &&
-          lookahead != '\\') ADVANCE(382);
-      END_STATE();
-    case 382:
-      ACCEPT_TOKEN(aux_sym__string_double_token1);
-      if (lookahead != 0 &&
-          lookahead != '"' &&
-          lookahead != '\\') ADVANCE(382);
-      END_STATE();
-    case 383:
-      ACCEPT_TOKEN(anon_sym_SQUOTE);
-      END_STATE();
-    case 384:
-      ACCEPT_TOKEN(aux_sym__string_single_token1);
-      if (lookahead == '\n') ADVANCE(387);
-      if (lookahead == '\'' ||
-          lookahead == '\\') ADVANCE(554);
-      if (lookahead != 0) ADVANCE(384);
-      END_STATE();
-    case 385:
-      ACCEPT_TOKEN(aux_sym__string_single_token1);
-      if (lookahead == '-') ADVANCE(386);
-      if (lookahead == '\t' ||
-          lookahead == '\r' ||
-          lookahead == ' ') ADVANCE(385);
-      if (lookahead != 0 &&
-          lookahead != '\'' &&
-          lookahead != '\\') ADVANCE(387);
+          lookahead == 0x212a) ADVANCE(385);
       END_STATE();
     case 386:
-      ACCEPT_TOKEN(aux_sym__string_single_token1);
-      if (lookahead == '-') ADVANCE(384);
-      if (lookahead != 0 &&
-          lookahead != '\'' &&
-          lookahead != '\\') ADVANCE(387);
+      ACCEPT_TOKEN(anon_sym_DQUOTE);
       END_STATE();
     case 387:
+      ACCEPT_TOKEN(aux_sym__string_double_token1);
+      if (lookahead == '\n') ADVANCE(390);
+      if (lookahead == '"' ||
+          lookahead == '\\') ADVANCE(560);
+      if (lookahead != 0) ADVANCE(387);
+      END_STATE();
+    case 388:
+      ACCEPT_TOKEN(aux_sym__string_double_token1);
+      if (lookahead == '-') ADVANCE(389);
+      if (lookahead == '\t' ||
+          lookahead == '\r' ||
+          lookahead == ' ') ADVANCE(388);
+      if (lookahead != 0 &&
+          lookahead != '"' &&
+          lookahead != '\\') ADVANCE(390);
+      END_STATE();
+    case 389:
+      ACCEPT_TOKEN(aux_sym__string_double_token1);
+      if (lookahead == '-') ADVANCE(387);
+      if (lookahead != 0 &&
+          lookahead != '"' &&
+          lookahead != '\\') ADVANCE(390);
+      END_STATE();
+    case 390:
+      ACCEPT_TOKEN(aux_sym__string_double_token1);
+      if (lookahead != 0 &&
+          lookahead != '"' &&
+          lookahead != '\\') ADVANCE(390);
+      END_STATE();
+    case 391:
+      ACCEPT_TOKEN(anon_sym_SQUOTE);
+      END_STATE();
+    case 392:
+      ACCEPT_TOKEN(aux_sym__string_single_token1);
+      if (lookahead == '\n') ADVANCE(395);
+      if (lookahead == '\'' ||
+          lookahead == '\\') ADVANCE(560);
+      if (lookahead != 0) ADVANCE(392);
+      END_STATE();
+    case 393:
+      ACCEPT_TOKEN(aux_sym__string_single_token1);
+      if (lookahead == '-') ADVANCE(394);
+      if (lookahead == '\t' ||
+          lookahead == '\r' ||
+          lookahead == ' ') ADVANCE(393);
+      if (lookahead != 0 &&
+          lookahead != '\'' &&
+          lookahead != '\\') ADVANCE(395);
+      END_STATE();
+    case 394:
+      ACCEPT_TOKEN(aux_sym__string_single_token1);
+      if (lookahead == '-') ADVANCE(392);
+      if (lookahead != 0 &&
+          lookahead != '\'' &&
+          lookahead != '\\') ADVANCE(395);
+      END_STATE();
+    case 395:
       ACCEPT_TOKEN(aux_sym__string_single_token1);
       if (lookahead != 0 &&
           lookahead != '\'' &&
-          lookahead != '\\') ADVANCE(387);
-      END_STATE();
-    case 388:
-      ACCEPT_TOKEN(sym__escape_sequence);
-      END_STATE();
-    case 389:
-      ACCEPT_TOKEN(sym__coordinate_component);
-      if (lookahead == '-') ADVANCE(554);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(392);
-      END_STATE();
-    case 390:
-      ACCEPT_TOKEN(sym__coordinate_component);
-      if (lookahead == '-') ADVANCE(389);
-      if (lookahead == '^' ||
-          lookahead == '~') ADVANCE(391);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(392);
-      END_STATE();
-    case 391:
-      ACCEPT_TOKEN(sym__coordinate_component);
-      if (lookahead == '-') ADVANCE(393);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(392);
-      END_STATE();
-    case 392:
-      ACCEPT_TOKEN(sym__coordinate_component);
-      if (lookahead == '.') ADVANCE(162);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(392);
-      END_STATE();
-    case 393:
-      ACCEPT_TOKEN(sym__coordinate_component);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(392);
-      END_STATE();
-    case 394:
-      ACCEPT_TOKEN(sym__coordinate_component);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(394);
-      END_STATE();
-    case 395:
-      ACCEPT_TOKEN(sym_integer);
-      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(395);
+          lookahead != '\\') ADVANCE(395);
       END_STATE();
     case 396:
-      ACCEPT_TOKEN(anon_sym_true);
+      ACCEPT_TOKEN(sym__escape_sequence);
       END_STATE();
     case 397:
+      ACCEPT_TOKEN(sym__coordinate_component);
+      if (lookahead == '-') ADVANCE(399);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(398);
+      END_STATE();
+    case 398:
+      ACCEPT_TOKEN(sym__coordinate_component);
+      if (lookahead == '.') ADVANCE(170);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(398);
+      END_STATE();
+    case 399:
+      ACCEPT_TOKEN(sym__coordinate_component);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(398);
+      END_STATE();
+    case 400:
+      ACCEPT_TOKEN(sym__coordinate_component);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(400);
+      END_STATE();
+    case 401:
+      ACCEPT_TOKEN(sym_integer);
+      if (('0' <= lookahead && lookahead <= '9')) ADVANCE(401);
+      END_STATE();
+    case 402:
+      ACCEPT_TOKEN(anon_sym_true);
+      END_STATE();
+    case 403:
       ACCEPT_TOKEN(anon_sym_true);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
-    case 398:
+    case 404:
       ACCEPT_TOKEN(anon_sym_false);
       END_STATE();
-    case 399:
+    case 405:
       ACCEPT_TOKEN(anon_sym_false);
       if (('0' <= lookahead && lookahead <= '9') ||
           ('A' <= lookahead && lookahead <= 'Z') ||
           lookahead == '_' ||
           ('a' <= lookahead && lookahead <= 'z') ||
           lookahead == 0x17f ||
-          lookahead == 0x212a) ADVANCE(376);
-      END_STATE();
-    case 400:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '&') ADVANCE(271);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 401:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '-') ADVANCE(553);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 402:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '.') ADVANCE(219);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 403:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '_') ADVANCE(454);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 404:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '_') ADVANCE(416);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 405:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '_') ADVANCE(533);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead == 0x212a) ADVANCE(384);
       END_STATE();
     case 406:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '_') ADVANCE(485);
+      if (lookahead == '&') ADVANCE(279);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 407:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(279);
-      if (lookahead == 'e') ADVANCE(278);
-      if (lookahead == 'n') ADVANCE(280);
-      if (lookahead == 'p') ADVANCE(277);
-      if (lookahead == 'r') ADVANCE(276);
-      if (lookahead == 's') ADVANCE(275);
+      if (lookahead == '-') ADVANCE(559);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 408:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(420);
-      if (lookahead == 'e') ADVANCE(441);
-      if (lookahead == 'o') ADVANCE(511);
-      if (lookahead == 'u') ADVANCE(492);
+      if (lookahead == '.') ADVANCE(227);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 409:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(548);
+      if (lookahead == '_') ADVANCE(460);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 410:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(534);
-      if (lookahead == 'o') ADVANCE(529);
+      if (lookahead == '_') ADVANCE(422);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 411:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(519);
-      if (lookahead == 'r') ADVANCE(546);
+      if (lookahead == '_') ADVANCE(539);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 412:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(422);
+      if (lookahead == '_') ADVANCE(491);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 413:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(527);
-      if (lookahead == 't') ADVANCE(195);
+      if (lookahead == 'a') ADVANCE(287);
+      if (lookahead == 'e') ADVANCE(286);
+      if (lookahead == 'n') ADVANCE(288);
+      if (lookahead == 'p') ADVANCE(285);
+      if (lookahead == 'r') ADVANCE(284);
+      if (lookahead == 's') ADVANCE(283);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 414:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(489);
+      if (lookahead == 'a') ADVANCE(426);
+      if (lookahead == 'e') ADVANCE(447);
+      if (lookahead == 'o') ADVANCE(517);
+      if (lookahead == 'u') ADVANCE(498);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 415:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'a') ADVANCE(543);
+      if (lookahead == 'a') ADVANCE(554);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 416:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'b') ADVANCE(481);
+      if (lookahead == 'a') ADVANCE(540);
+      if (lookahead == 'o') ADVANCE(535);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 417:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(203);
+      if (lookahead == 'a') ADVANCE(525);
+      if (lookahead == 'r') ADVANCE(552);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 418:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(476);
+      if (lookahead == 'a') ADVANCE(428);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 419:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(462);
+      if (lookahead == 'a') ADVANCE(533);
+      if (lookahead == 't') ADVANCE(203);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 420:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(469);
-      if (lookahead == 'l') ADVANCE(531);
+      if (lookahead == 'a') ADVANCE(495);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 421:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(430);
-      if (lookahead == 'n') ADVANCE(233);
-      if (lookahead == 'r') ADVANCE(467);
-      if (lookahead == 'v') ADVANCE(442);
-      if (lookahead == 'w') ADVANCE(497);
+      if (lookahead == 'a') ADVANCE(549);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 422:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(436);
+      if (lookahead == 'b') ADVANCE(487);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 423:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'c') ADVANCE(483);
+      if (lookahead == 'c') ADVANCE(211);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 424:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'c') ADVANCE(482);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 425:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'c') ADVANCE(468);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 426:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'c') ADVANCE(475);
+      if (lookahead == 'l') ADVANCE(537);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 427:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'c') ADVANCE(436);
+      if (lookahead == 'n') ADVANCE(241);
+      if (lookahead == 'r') ADVANCE(473);
+      if (lookahead == 'v') ADVANCE(448);
+      if (lookahead == 'w') ADVANCE(503);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 428:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'c') ADVANCE(442);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 429:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'c') ADVANCE(489);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 430:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'd') ADVANCE(259);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 431:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'd') ADVANCE(234);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 432:
       ACCEPT_TOKEN(sym_command_arg);
       if (lookahead == 'd') ADVANCE(251);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 425:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'd') ADVANCE(226);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 426:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'd') ADVANCE(243);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 427:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'd') ADVANCE(405);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 428:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(413);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 429:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(463);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 430:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(414);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 431:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(210);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 432:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(396);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 433:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(398);
+      if (lookahead == 'd') ADVANCE(411);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 434:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(211);
+      if (lookahead == 'e') ADVANCE(419);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 435:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(242);
+      if (lookahead == 'e') ADVANCE(469);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 436:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(246);
+      if (lookahead == 'e') ADVANCE(420);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 437:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(539);
-      if (lookahead == 'o') ADVANCE(540);
+      if (lookahead == 'e') ADVANCE(218);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 438:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(424);
+      if (lookahead == 'e') ADVANCE(402);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 439:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(425);
+      if (lookahead == 'e') ADVANCE(404);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 440:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(524);
+      if (lookahead == 'e') ADVANCE(219);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 441:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(535);
+      if (lookahead == 'e') ADVANCE(250);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 442:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(512);
+      if (lookahead == 'e') ADVANCE(254);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 443:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(409);
+      if (lookahead == 'e') ADVANCE(545);
+      if (lookahead == 'o') ADVANCE(546);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 444:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(426);
+      if (lookahead == 'e') ADVANCE(430);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 445:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(513);
+      if (lookahead == 'e') ADVANCE(431);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 446:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(526);
+      if (lookahead == 'e') ADVANCE(530);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 447:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(538);
+      if (lookahead == 'e') ADVANCE(541);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 448:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(499);
+      if (lookahead == 'e') ADVANCE(518);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 449:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(514);
+      if (lookahead == 'e') ADVANCE(415);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 450:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(432);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 451:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(519);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 452:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(532);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 453:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(544);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 454:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(505);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 455:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(520);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 456:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'e') ADVANCE(527);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 457:
       ACCEPT_TOKEN(sym_command_arg);
       if (lookahead == 'e') ADVANCE(521);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 451:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'e') ADVANCE(515);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 452:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'f') ADVANCE(208);
-      if (lookahead == 'n') ADVANCE(217);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 453:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'f') ADVANCE(412);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 454:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'f') ADVANCE(480);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 455:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'g') ADVANCE(230);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 456:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'g') ADVANCE(248);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 457:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'g') ADVANCE(488);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 458:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'g') ADVANCE(450);
+      if (lookahead == 'f') ADVANCE(216);
+      if (lookahead == 'n') ADVANCE(225);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 459:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'g') ADVANCE(447);
+      if (lookahead == 'f') ADVANCE(418);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 460:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'g') ADVANCE(471);
+      if (lookahead == 'f') ADVANCE(486);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 461:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'h') ADVANCE(466);
-      if (lookahead == 'o') ADVANCE(517);
+      if (lookahead == 'g') ADVANCE(238);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 462:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'h') ADVANCE(506);
+      if (lookahead == 'g') ADVANCE(256);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 463:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'h') ADVANCE(468);
+      if (lookahead == 'g') ADVANCE(494);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 464:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'h') ADVANCE(449);
+      if (lookahead == 'g') ADVANCE(456);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 465:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(457);
+      if (lookahead == 'g') ADVANCE(453);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 466:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(482);
+      if (lookahead == 'g') ADVANCE(477);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 467:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(460);
+      if (lookahead == 'h') ADVANCE(472);
+      if (lookahead == 'o') ADVANCE(523);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 468:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(423);
+      if (lookahead == 'h') ADVANCE(512);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 469:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(494);
+      if (lookahead == 'h') ADVANCE(474);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 470:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(537);
+      if (lookahead == 'h') ADVANCE(455);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 471:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(490);
+      if (lookahead == 'i') ADVANCE(463);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 472:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(495);
+      if (lookahead == 'i') ADVANCE(488);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 473:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(505);
+      if (lookahead == 'i') ADVANCE(466);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 474:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(509);
+      if (lookahead == 'i') ADVANCE(429);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 475:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'i') ADVANCE(544);
+      if (lookahead == 'i') ADVANCE(500);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 476:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'k') ADVANCE(472);
+      if (lookahead == 'i') ADVANCE(543);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 477:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(465);
-      if (lookahead == 'n') ADVANCE(419);
-      if (lookahead == 's') ADVANCE(220);
-      if (lookahead == 't') ADVANCE(222);
+      if (lookahead == 'i') ADVANCE(496);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 478:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(530);
-      if (lookahead == 'n') ADVANCE(541);
-      if (lookahead == 'y') ADVANCE(440);
+      if (lookahead == 'i') ADVANCE(501);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 479:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(427);
+      if (lookahead == 'i') ADVANCE(511);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 480:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(510);
+      if (lookahead == 'i') ADVANCE(515);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 481:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(503);
+      if (lookahead == 'i') ADVANCE(550);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 482:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(434);
+      if (lookahead == 'k') ADVANCE(478);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 483:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(435);
+      if (lookahead == 'l') ADVANCE(471);
+      if (lookahead == 'n') ADVANCE(425);
+      if (lookahead == 's') ADVANCE(228);
+      if (lookahead == 't') ADVANCE(230);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 484:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(451);
+      if (lookahead == 'l') ADVANCE(536);
+      if (lookahead == 'n') ADVANCE(547);
+      if (lookahead == 'y') ADVANCE(446);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 485:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(443);
+      if (lookahead == 'l') ADVANCE(433);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 486:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'l') ADVANCE(484);
+      if (lookahead == 'l') ADVANCE(516);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 487:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(528);
+      if (lookahead == 'l') ADVANCE(509);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 488:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(224);
+      if (lookahead == 'l') ADVANCE(440);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 489:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(403);
+      if (lookahead == 'l') ADVANCE(441);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 490:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(238);
+      if (lookahead == 'l') ADVANCE(457);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 491:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(255);
+      if (lookahead == 'l') ADVANCE(449);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 492:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(417);
+      if (lookahead == 'l') ADVANCE(490);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 493:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(404);
+      if (lookahead == 'n') ADVANCE(534);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 494:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(455);
+      if (lookahead == 'n') ADVANCE(232);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 495:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(456);
+      if (lookahead == 'n') ADVANCE(409);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 496:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(504);
+      if (lookahead == 'n') ADVANCE(246);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 497:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(445);
+      if (lookahead == 'n') ADVANCE(263);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 498:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(444);
+      if (lookahead == 'n') ADVANCE(423);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 499:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'n') ADVANCE(458);
+      if (lookahead == 'n') ADVANCE(410);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 500:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(487);
+      if (lookahead == 'n') ADVANCE(461);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 501:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(213);
+      if (lookahead == 'n') ADVANCE(462);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 502:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(486);
+      if (lookahead == 'n') ADVANCE(510);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 503:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(418);
+      if (lookahead == 'n') ADVANCE(451);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 504:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(406);
+      if (lookahead == 'n') ADVANCE(450);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 505:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'n') ADVANCE(464);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 506:
       ACCEPT_TOKEN(sym_command_arg);
       if (lookahead == 'o') ADVANCE(493);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 506:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(523);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 507:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(516);
+      if (lookahead == 'o') ADVANCE(221);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 508:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(542);
+      if (lookahead == 'o') ADVANCE(492);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 509:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(498);
+      if (lookahead == 'o') ADVANCE(424);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 510:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'o') ADVANCE(507);
+      if (lookahead == 'o') ADVANCE(412);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 511:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(215);
+      if (lookahead == 'o') ADVANCE(499);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 512:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'o') ADVANCE(529);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 513:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'o') ADVANCE(522);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 514:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'o') ADVANCE(548);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 515:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'o') ADVANCE(504);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 516:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'o') ADVANCE(513);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 517:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'r') ADVANCE(223);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 518:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'r') ADVANCE(253);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 519:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'r') ADVANCE(247);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 520:
       ACCEPT_TOKEN(sym_command_arg);
       if (lookahead == 'r') ADVANCE(245);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
-    case 513:
+    case 521:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(239);
+      if (lookahead == 'r') ADVANCE(244);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
-    case 514:
+    case 522:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(237);
+      if (lookahead == 'r') ADVANCE(258);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
-    case 515:
+    case 523:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(236);
+      if (lookahead == 'r') ADVANCE(485);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
-    case 516:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(250);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 517:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(479);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 518:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(453);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 519:
+    case 524:
       ACCEPT_TOKEN(sym_command_arg);
       if (lookahead == 'r') ADVANCE(459);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 520:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(502);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 521:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(525);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 522:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(491);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 523:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'r') ADVANCE(439);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
-      END_STATE();
-    case 524:
-      ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(228);
-      if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead) &&
-          lookahead != ' ' &&
-          lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 525:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(240);
+      if (lookahead == 'r') ADVANCE(465);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 526:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(249);
+      if (lookahead == 'r') ADVANCE(508);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 527:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(464);
+      if (lookahead == 'r') ADVANCE(531);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 528:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(536);
-      if (lookahead == 't') ADVANCE(520);
+      if (lookahead == 'r') ADVANCE(497);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 529:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(475);
+      if (lookahead == 'r') ADVANCE(445);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 530:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(431);
+      if (lookahead == 's') ADVANCE(236);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 531:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(433);
+      if (lookahead == 's') ADVANCE(248);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 532:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(448);
+      if (lookahead == 's') ADVANCE(257);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 533:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(547);
+      if (lookahead == 's') ADVANCE(470);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 534:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 's') ADVANCE(532);
+      if (lookahead == 's') ADVANCE(542);
+      if (lookahead == 't') ADVANCE(526);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 535:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(229);
+      if (lookahead == 's') ADVANCE(481);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 536:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(197);
+      if (lookahead == 's') ADVANCE(437);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 537:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(549);
+      if (lookahead == 's') ADVANCE(439);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 538:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(241);
+      if (lookahead == 's') ADVANCE(454);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 539:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(545);
+      if (lookahead == 's') ADVANCE(553);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 540:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(415);
+      if (lookahead == 's') ADVANCE(538);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 541:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(470);
+      if (lookahead == 't') ADVANCE(237);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 542:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(473);
+      if (lookahead == 't') ADVANCE(205);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 543:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(438);
+      if (lookahead == 't') ADVANCE(555);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 544:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 't') ADVANCE(474);
+      if (lookahead == 't') ADVANCE(249);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 545:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'u') ADVANCE(522);
+      if (lookahead == 't') ADVANCE(551);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 546:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'u') ADVANCE(432);
+      if (lookahead == 't') ADVANCE(421);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 547:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'u') ADVANCE(518);
+      if (lookahead == 't') ADVANCE(476);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 548:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'v') ADVANCE(446);
+      if (lookahead == 't') ADVANCE(479);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 549:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == 'y') ADVANCE(232);
+      if (lookahead == 't') ADVANCE(444);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 550:
       ACCEPT_TOKEN(sym_command_arg);
-      if (lookahead == '|') ADVANCE(272);
+      if (lookahead == 't') ADVANCE(480);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
     case 551:
       ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'u') ADVANCE(528);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 552:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'u') ADVANCE(438);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 553:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'u') ADVANCE(524);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 554:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'v') ADVANCE(452);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 555:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == 'y') ADVANCE(240);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 556:
+      ACCEPT_TOKEN(sym_command_arg);
+      if (lookahead == '|') ADVANCE(280);
+      if (lookahead != 0 &&
+          (lookahead < '\t' || '\r' < lookahead) &&
+          lookahead != ' ' &&
+          lookahead != '$' &&
+          lookahead != ';') ADVANCE(558);
+      END_STATE();
+    case 557:
+      ACCEPT_TOKEN(sym_command_arg);
       ADVANCE_MAP(
-        '"', 388,
-        '\'', 388,
-        '\\', 388,
-        'b', 388,
-        'f', 388,
-        'n', 388,
-        'r', 388,
-        't', 388,
-        'v', 388,
+        '"', 396,
+        '\'', 396,
+        '\\', 396,
+        'b', 396,
+        'f', 396,
+        'n', 396,
+        'r', 396,
+        't', 396,
+        'v', 396,
       );
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
-    case 552:
+    case 558:
       ACCEPT_TOKEN(sym_command_arg);
       if (lookahead != 0 &&
           (lookahead < '\t' || '\r' < lookahead) &&
           lookahead != ' ' &&
           lookahead != '$' &&
-          lookahead != ';') ADVANCE(552);
+          lookahead != ';') ADVANCE(558);
       END_STATE();
-    case 553:
+    case 559:
       ACCEPT_TOKEN(sym_comment);
       if (lookahead == '\t' ||
           (0x0b <= lookahead && lookahead <= '\r') ||
           lookahead == ' ' ||
           lookahead == '$' ||
-          lookahead == ';') ADVANCE(554);
+          lookahead == ';') ADVANCE(560);
       if (lookahead != 0 &&
-          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(553);
+          (lookahead < '\t' || '\r' < lookahead)) ADVANCE(559);
       END_STATE();
-    case 554:
+    case 560:
       ACCEPT_TOKEN(sym_comment);
       if (lookahead != 0 &&
-          lookahead != '\n') ADVANCE(554);
+          lookahead != '\n') ADVANCE(560);
       END_STATE();
     default:
       return false;
@@ -5114,208 +5150,211 @@ static bool ts_lex(TSLexer *lexer, TSStateId state) {
 
 static const TSLexerMode ts_lex_modes[STATE_COUNT] = {
   [0] = {.lex_state = 0},
-  [1] = {.lex_state = 191},
-  [2] = {.lex_state = 191},
-  [3] = {.lex_state = 191},
-  [4] = {.lex_state = 191},
-  [5] = {.lex_state = 191},
-  [6] = {.lex_state = 191},
-  [7] = {.lex_state = 191},
-  [8] = {.lex_state = 191},
-  [9] = {.lex_state = 191},
-  [10] = {.lex_state = 191},
-  [11] = {.lex_state = 191},
-  [12] = {.lex_state = 191},
-  [13] = {.lex_state = 191},
-  [14] = {.lex_state = 191},
-  [15] = {.lex_state = 191},
-  [16] = {.lex_state = 191},
-  [17] = {.lex_state = 191},
-  [18] = {.lex_state = 191},
-  [19] = {.lex_state = 191},
-  [20] = {.lex_state = 1},
-  [21] = {.lex_state = 191},
-  [22] = {.lex_state = 191},
-  [23] = {.lex_state = 1},
-  [24] = {.lex_state = 191},
-  [25] = {.lex_state = 191},
-  [26] = {.lex_state = 191},
-  [27] = {.lex_state = 191},
-  [28] = {.lex_state = 191},
-  [29] = {.lex_state = 191},
-  [30] = {.lex_state = 191},
-  [31] = {.lex_state = 1},
-  [32] = {.lex_state = 1},
-  [33] = {.lex_state = 1},
-  [34] = {.lex_state = 1},
-  [35] = {.lex_state = 1},
-  [36] = {.lex_state = 1},
-  [37] = {.lex_state = 191},
-  [38] = {.lex_state = 191},
-  [39] = {.lex_state = 1},
-  [40] = {.lex_state = 1},
-  [41] = {.lex_state = 1},
-  [42] = {.lex_state = 191},
-  [43] = {.lex_state = 1},
-  [44] = {.lex_state = 1},
-  [45] = {.lex_state = 1},
-  [46] = {.lex_state = 1},
-  [47] = {.lex_state = 1},
-  [48] = {.lex_state = 1},
-  [49] = {.lex_state = 1},
-  [50] = {.lex_state = 1},
-  [51] = {.lex_state = 4},
-  [52] = {.lex_state = 4},
-  [53] = {.lex_state = 4},
-  [54] = {.lex_state = 4},
-  [55] = {.lex_state = 4},
-  [56] = {.lex_state = 4},
-  [57] = {.lex_state = 4},
-  [58] = {.lex_state = 4},
-  [59] = {.lex_state = 5},
-  [60] = {.lex_state = 5},
+  [1] = {.lex_state = 199},
+  [2] = {.lex_state = 199},
+  [3] = {.lex_state = 199},
+  [4] = {.lex_state = 199},
+  [5] = {.lex_state = 199},
+  [6] = {.lex_state = 1},
+  [7] = {.lex_state = 1},
+  [8] = {.lex_state = 199},
+  [9] = {.lex_state = 199},
+  [10] = {.lex_state = 199},
+  [11] = {.lex_state = 199},
+  [12] = {.lex_state = 199},
+  [13] = {.lex_state = 199},
+  [14] = {.lex_state = 199},
+  [15] = {.lex_state = 199},
+  [16] = {.lex_state = 199},
+  [17] = {.lex_state = 199},
+  [18] = {.lex_state = 199},
+  [19] = {.lex_state = 199},
+  [20] = {.lex_state = 199},
+  [21] = {.lex_state = 199},
+  [22] = {.lex_state = 2},
+  [23] = {.lex_state = 2},
+  [24] = {.lex_state = 199},
+  [25] = {.lex_state = 2},
+  [26] = {.lex_state = 199},
+  [27] = {.lex_state = 199},
+  [28] = {.lex_state = 2},
+  [29] = {.lex_state = 2},
+  [30] = {.lex_state = 2},
+  [31] = {.lex_state = 2},
+  [32] = {.lex_state = 2},
+  [33] = {.lex_state = 2},
+  [34] = {.lex_state = 2},
+  [35] = {.lex_state = 2},
+  [36] = {.lex_state = 2},
+  [37] = {.lex_state = 2},
+  [38] = {.lex_state = 2},
+  [39] = {.lex_state = 2},
+  [40] = {.lex_state = 199},
+  [41] = {.lex_state = 2},
+  [42] = {.lex_state = 199},
+  [43] = {.lex_state = 199},
+  [44] = {.lex_state = 199},
+  [45] = {.lex_state = 2},
+  [46] = {.lex_state = 2},
+  [47] = {.lex_state = 199},
+  [48] = {.lex_state = 199},
+  [49] = {.lex_state = 2},
+  [50] = {.lex_state = 199},
+  [51] = {.lex_state = 199},
+  [52] = {.lex_state = 199},
+  [53] = {.lex_state = 1},
+  [54] = {.lex_state = 1},
+  [55] = {.lex_state = 1},
+  [56] = {.lex_state = 1},
+  [57] = {.lex_state = 1},
+  [58] = {.lex_state = 1},
+  [59] = {.lex_state = 1},
+  [60] = {.lex_state = 1},
   [61] = {.lex_state = 5},
-  [62] = {.lex_state = 4},
-  [63] = {.lex_state = 4},
-  [64] = {.lex_state = 4},
-  [65] = {.lex_state = 4},
-  [66] = {.lex_state = 4},
-  [67] = {.lex_state = 4},
-  [68] = {.lex_state = 4},
-  [69] = {.lex_state = 4},
-  [70] = {.lex_state = 4},
-  [71] = {.lex_state = 4},
-  [72] = {.lex_state = 2},
-  [73] = {.lex_state = 4},
-  [74] = {.lex_state = 4},
-  [75] = {.lex_state = 11},
-  [76] = {.lex_state = 11},
-  [77] = {.lex_state = 11},
+  [62] = {.lex_state = 5},
+  [63] = {.lex_state = 5},
+  [64] = {.lex_state = 3},
+  [65] = {.lex_state = 1},
+  [66] = {.lex_state = 1},
+  [67] = {.lex_state = 1},
+  [68] = {.lex_state = 1},
+  [69] = {.lex_state = 1},
+  [70] = {.lex_state = 1},
+  [71] = {.lex_state = 1},
+  [72] = {.lex_state = 1},
+  [73] = {.lex_state = 1},
+  [74] = {.lex_state = 1},
+  [75] = {.lex_state = 1},
+  [76] = {.lex_state = 12},
+  [77] = {.lex_state = 12},
   [78] = {.lex_state = 12},
-  [79] = {.lex_state = 3},
-  [80] = {.lex_state = 3},
-  [81] = {.lex_state = 3},
-  [82] = {.lex_state = 14},
-  [83] = {.lex_state = 14},
-  [84] = {.lex_state = 5},
+  [79] = {.lex_state = 14},
+  [80] = {.lex_state = 4},
+  [81] = {.lex_state = 4},
+  [82] = {.lex_state = 4},
+  [83] = {.lex_state = 15},
+  [84] = {.lex_state = 15},
   [85] = {.lex_state = 5},
-  [86] = {.lex_state = 14},
-  [87] = {.lex_state = 5},
+  [86] = {.lex_state = 5},
+  [87] = {.lex_state = 15},
   [88] = {.lex_state = 5},
   [89] = {.lex_state = 5},
-  [90] = {.lex_state = 5},
+  [90] = {.lex_state = 15},
   [91] = {.lex_state = 5},
-  [92] = {.lex_state = 14},
-  [93] = {.lex_state = 14},
-  [94] = {.lex_state = 4},
-  [95] = {.lex_state = 4},
-  [96] = {.lex_state = 4},
-  [97] = {.lex_state = 6},
-  [98] = {.lex_state = 8},
-  [99] = {.lex_state = 390},
-  [100] = {.lex_state = 4},
-  [101] = {.lex_state = 6},
-  [102] = {.lex_state = 6},
-  [103] = {.lex_state = 8},
+  [92] = {.lex_state = 15},
+  [93] = {.lex_state = 5},
+  [94] = {.lex_state = 5},
+  [95] = {.lex_state = 8},
+  [96] = {.lex_state = 8},
+  [97] = {.lex_state = 1},
+  [98] = {.lex_state = 6},
+  [99] = {.lex_state = 1},
+  [100] = {.lex_state = 1},
+  [101] = {.lex_state = 1},
+  [102] = {.lex_state = 14},
+  [103] = {.lex_state = 6},
   [104] = {.lex_state = 8},
-  [105] = {.lex_state = 191},
-  [106] = {.lex_state = 191},
-  [107] = {.lex_state = 9},
-  [108] = {.lex_state = 191},
-  [109] = {.lex_state = 9},
-  [110] = {.lex_state = 191},
-  [111] = {.lex_state = 191},
-  [112] = {.lex_state = 191},
-  [113] = {.lex_state = 191},
-  [114] = {.lex_state = 191},
-  [115] = {.lex_state = 390},
-  [116] = {.lex_state = 191},
-  [117] = {.lex_state = 390},
-  [118] = {.lex_state = 191},
-  [119] = {.lex_state = 4},
-  [120] = {.lex_state = 191},
-  [121] = {.lex_state = 191},
-  [122] = {.lex_state = 191},
-  [123] = {.lex_state = 191},
-  [124] = {.lex_state = 191},
-  [125] = {.lex_state = 191},
-  [126] = {.lex_state = 191},
-  [127] = {.lex_state = 191},
-  [128] = {.lex_state = 14},
-  [129] = {.lex_state = 14},
-  [130] = {.lex_state = 9},
-  [131] = {.lex_state = 0},
-  [132] = {.lex_state = 4},
-  [133] = {.lex_state = 9},
-  [134] = {.lex_state = 0},
-  [135] = {.lex_state = 191},
-  [136] = {.lex_state = 191},
-  [137] = {.lex_state = 191},
-  [138] = {.lex_state = 0},
-  [139] = {.lex_state = 9},
-  [140] = {.lex_state = 4},
-  [141] = {.lex_state = 0},
+  [105] = {.lex_state = 6},
+  [106] = {.lex_state = 199},
+  [107] = {.lex_state = 199},
+  [108] = {.lex_state = 199},
+  [109] = {.lex_state = 199},
+  [110] = {.lex_state = 9},
+  [111] = {.lex_state = 199},
+  [112] = {.lex_state = 14},
+  [113] = {.lex_state = 199},
+  [114] = {.lex_state = 199},
+  [115] = {.lex_state = 199},
+  [116] = {.lex_state = 9},
+  [117] = {.lex_state = 199},
+  [118] = {.lex_state = 199},
+  [119] = {.lex_state = 14},
+  [120] = {.lex_state = 9},
+  [121] = {.lex_state = 199},
+  [122] = {.lex_state = 199},
+  [123] = {.lex_state = 199},
+  [124] = {.lex_state = 199},
+  [125] = {.lex_state = 199},
+  [126] = {.lex_state = 199},
+  [127] = {.lex_state = 199},
+  [128] = {.lex_state = 199},
+  [129] = {.lex_state = 15},
+  [130] = {.lex_state = 15},
+  [131] = {.lex_state = 1},
+  [132] = {.lex_state = 0},
+  [133] = {.lex_state = 199},
+  [134] = {.lex_state = 1},
+  [135] = {.lex_state = 0},
+  [136] = {.lex_state = 1},
+  [137] = {.lex_state = 199},
+  [138] = {.lex_state = 199},
+  [139] = {.lex_state = 199},
+  [140] = {.lex_state = 0},
+  [141] = {.lex_state = 9},
   [142] = {.lex_state = 0},
-  [143] = {.lex_state = 0},
+  [143] = {.lex_state = 14},
   [144] = {.lex_state = 0},
-  [145] = {.lex_state = 191},
+  [145] = {.lex_state = 0},
   [146] = {.lex_state = 0},
-  [147] = {.lex_state = 0},
-  [148] = {.lex_state = 9},
-  [149] = {.lex_state = 191},
+  [147] = {.lex_state = 199},
+  [148] = {.lex_state = 0},
+  [149] = {.lex_state = 0},
   [150] = {.lex_state = 0},
   [151] = {.lex_state = 0},
-  [152] = {.lex_state = 191},
-  [153] = {.lex_state = 191},
+  [152] = {.lex_state = 9},
+  [153] = {.lex_state = 199},
   [154] = {.lex_state = 0},
-  [155] = {.lex_state = 0},
-  [156] = {.lex_state = 191},
-  [157] = {.lex_state = 0},
-  [158] = {.lex_state = 0},
+  [155] = {.lex_state = 9},
+  [156] = {.lex_state = 0},
+  [157] = {.lex_state = 199},
+  [158] = {.lex_state = 199},
   [159] = {.lex_state = 0},
-  [160] = {.lex_state = 191},
-  [161] = {.lex_state = 0},
+  [160] = {.lex_state = 0},
+  [161] = {.lex_state = 199},
   [162] = {.lex_state = 0},
-  [163] = {.lex_state = 191},
-  [164] = {.lex_state = 0},
-  [165] = {.lex_state = 191},
+  [163] = {.lex_state = 0},
+  [164] = {.lex_state = 199},
+  [165] = {.lex_state = 0},
   [166] = {.lex_state = 0},
-  [167] = {.lex_state = 0},
-  [168] = {.lex_state = 4},
-  [169] = {.lex_state = 191},
+  [167] = {.lex_state = 199},
+  [168] = {.lex_state = 0},
+  [169] = {.lex_state = 199},
   [170] = {.lex_state = 0},
   [171] = {.lex_state = 0},
   [172] = {.lex_state = 0},
-  [173] = {.lex_state = 390},
-  [174] = {.lex_state = 4},
-  [175] = {.lex_state = 13},
-  [176] = {.lex_state = 191},
-  [177] = {.lex_state = 4},
+  [173] = {.lex_state = 1},
+  [174] = {.lex_state = 13},
+  [175] = {.lex_state = 199},
+  [176] = {.lex_state = 9},
+  [177] = {.lex_state = 14},
   [178] = {.lex_state = 13},
-  [179] = {.lex_state = 9},
-  [180] = {.lex_state = 0},
-  [181] = {.lex_state = 13},
-  [182] = {.lex_state = 191},
-  [183] = {.lex_state = 9},
-  [184] = {.lex_state = 390},
+  [179] = {.lex_state = 199},
+  [180] = {.lex_state = 9},
+  [181] = {.lex_state = 14},
+  [182] = {.lex_state = 9},
+  [183] = {.lex_state = 0},
+  [184] = {.lex_state = 13},
   [185] = {.lex_state = 9},
   [186] = {.lex_state = 13},
   [187] = {.lex_state = 0},
-  [188] = {.lex_state = 9},
+  [188] = {.lex_state = 0},
   [189] = {.lex_state = 13},
   [190] = {.lex_state = 13},
-  [191] = {.lex_state = 13},
-  [192] = {.lex_state = 0},
-  [193] = {.lex_state = 9},
+  [191] = {.lex_state = 1},
+  [192] = {.lex_state = 14},
+  [193] = {.lex_state = 1},
   [194] = {.lex_state = 13},
-  [195] = {.lex_state = 9},
-  [196] = {.lex_state = 1},
-  [197] = {.lex_state = 13},
-  [198] = {.lex_state = 4},
-  [199] = {.lex_state = 390},
-  [200] = {.lex_state = 4},
+  [195] = {.lex_state = 13},
+  [196] = {.lex_state = 2},
+  [197] = {.lex_state = 0},
+  [198] = {.lex_state = 13},
+  [199] = {.lex_state = 1},
+  [200] = {.lex_state = 13},
   [201] = {.lex_state = 13},
-  [202] = {.lex_state = 13},
+  [202] = {.lex_state = 9},
+  [203] = {.lex_state = 1},
+  [204] = {.lex_state = 1},
+  [205] = {.lex_state = 9},
 };
 
 static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
@@ -5400,22 +5439,22 @@ static const uint16_t ts_parse_table[LARGE_STATE_COUNT][SYMBOL_COUNT] = {
     [sym_comment] = ACTIONS(3),
   },
   [STATE(1)] = {
-    [sym_source_file] = STATE(180),
-    [sym__statement] = STATE(4),
-    [sym_variable_declaration] = STATE(141),
-    [sym_assignment] = STATE(141),
-    [sym_function_definition] = STATE(141),
-    [sym_if] = STATE(141),
-    [sym_while] = STATE(141),
-    [sym_do_while] = STATE(141),
-    [sym_for] = STATE(141),
-    [sym_contextModifier] = STATE(52),
-    [sym_context_statement] = STATE(141),
-    [sym_return_statement] = STATE(141),
-    [sym_command_statement] = STATE(141),
-    [sym_function_call] = STATE(141),
-    [aux_sym_source_file_repeat1] = STATE(4),
-    [aux_sym_context_statement_repeat1] = STATE(52),
+    [sym_source_file] = STATE(183),
+    [sym__statement] = STATE(3),
+    [sym_variable_declaration] = STATE(135),
+    [sym_assignment] = STATE(135),
+    [sym_function_definition] = STATE(135),
+    [sym_if] = STATE(135),
+    [sym_while] = STATE(135),
+    [sym_do_while] = STATE(135),
+    [sym_for] = STATE(135),
+    [sym_contextModifier] = STATE(54),
+    [sym_context_statement] = STATE(135),
+    [sym_return_statement] = STATE(135),
+    [sym_command_statement] = STATE(135),
+    [sym_function_call] = STATE(135),
+    [aux_sym_source_file_repeat1] = STATE(3),
+    [aux_sym_context_statement_repeat1] = STATE(54),
     [ts_builtin_sym_end] = ACTIONS(5),
     [sym__newline] = ACTIONS(7),
     [anon_sym_let] = ACTIONS(9),
@@ -5489,10 +5528,10 @@ static const uint16_t ts_small_parse_table[] = {
     STATE(2), 2,
       sym__statement,
       aux_sym_source_file_repeat1,
-    STATE(52), 2,
+    STATE(54), 2,
       sym_contextModifier,
       aux_sym_context_statement_repeat1,
-    STATE(141), 11,
+    STATE(135), 11,
       sym_variable_declaration,
       sym_assignment,
       sym_function_definition,
@@ -5538,9 +5577,9 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(41), 1,
       sym_identifier,
     ACTIONS(99), 1,
-      sym__newline,
+      ts_builtin_sym_end,
     ACTIONS(101), 1,
-      anon_sym_RBRACE,
+      sym__newline,
     ACTIONS(9), 2,
       anon_sym_let,
       anon_sym_const,
@@ -5550,10 +5589,10 @@ static const uint16_t ts_small_parse_table[] = {
     STATE(2), 2,
       sym__statement,
       aux_sym_source_file_repeat1,
-    STATE(52), 2,
+    STATE(54), 2,
       sym_contextModifier,
       aux_sym_context_statement_repeat1,
-    STATE(141), 11,
+    STATE(135), 11,
       sym_variable_declaration,
       sym_assignment,
       sym_function_definition,
@@ -5598,23 +5637,23 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_return,
     ACTIONS(41), 1,
       sym_identifier,
-    ACTIONS(99), 1,
-      sym__newline,
     ACTIONS(103), 1,
-      ts_builtin_sym_end,
+      sym__newline,
+    ACTIONS(105), 1,
+      anon_sym_RBRACE,
     ACTIONS(9), 2,
       anon_sym_let,
       anon_sym_const,
     ACTIONS(25), 2,
       anon_sym_as,
       anon_sym_at,
-    STATE(2), 2,
+    STATE(5), 2,
       sym__statement,
       aux_sym_source_file_repeat1,
-    STATE(52), 2,
+    STATE(54), 2,
       sym_contextModifier,
       aux_sym_context_statement_repeat1,
-    STATE(141), 11,
+    STATE(135), 11,
       sym_variable_declaration,
       sym_assignment,
       sym_function_definition,
@@ -5659,7 +5698,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_return,
     ACTIONS(41), 1,
       sym_identifier,
-    ACTIONS(105), 1,
+    ACTIONS(101), 1,
       sym__newline,
     ACTIONS(107), 1,
       anon_sym_RBRACE,
@@ -5669,13 +5708,13 @@ static const uint16_t ts_small_parse_table[] = {
     ACTIONS(25), 2,
       anon_sym_as,
       anon_sym_at,
-    STATE(3), 2,
+    STATE(2), 2,
       sym__statement,
       aux_sym_source_file_repeat1,
-    STATE(52), 2,
+    STATE(54), 2,
       sym_contextModifier,
       aux_sym_context_statement_repeat1,
-    STATE(141), 11,
+    STATE(135), 11,
       sym_variable_declaration,
       sym_assignment,
       sym_function_definition,
@@ -5690,20 +5729,17 @@ static const uint16_t ts_small_parse_table[] = {
   [337] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(109), 4,
-      ts_builtin_sym_end,
+    ACTIONS(111), 3,
+      anon_sym_DASH,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(109), 26,
+      anon_sym_SEMI,
       sym__newline,
-      anon_sym_POUND,
-      anon_sym_RBRACE,
-    ACTIONS(111), 18,
-      anon_sym_let,
-      anon_sym_const,
-      anon_sym_func,
-      anon_sym_if,
-      anon_sym_while,
-      anon_sym_do,
-      anon_sym_for,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
       anon_sym_in,
+      anon_sym_DOT_DOT,
       anon_sym_as,
       anon_sym_at,
       anon_sym_align,
@@ -5712,14 +5748,28 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_on,
       anon_sym_positioned,
       anon_sym_rotated,
-      anon_sym_return,
-      sym_identifier,
-  [367] = 4,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+      anon_sym_PLUS,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+      anon_sym_AMP_AMP,
+      anon_sym_PIPE_PIPE,
+  [374] = 6,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(115), 1,
+      anon_sym_COLON,
+    ACTIONS(117), 1,
       anon_sym_LPAREN,
-    ACTIONS(117), 3,
+    ACTIONS(119), 1,
+      anon_sym_at,
+    ACTIONS(121), 3,
       anon_sym_DASH,
       anon_sym_LT,
       anon_sym_GT,
@@ -5741,57 +5791,34 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [398] = 3,
+  [411] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(121), 3,
-      anon_sym_DASH,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(119), 17,
-      anon_sym_SEMI,
+    ACTIONS(123), 4,
+      ts_builtin_sym_end,
       sym__newline,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-      anon_sym_DOT_DOT,
-      anon_sym_LBRACE,
+      anon_sym_POUND,
       anon_sym_RBRACE,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-      anon_sym_PLUS,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-      anon_sym_AMP_AMP,
-      anon_sym_PIPE_PIPE,
-  [426] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(125), 3,
-      anon_sym_DASH,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(123), 17,
-      anon_sym_SEMI,
-      sym__newline,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-      anon_sym_DOT_DOT,
-      anon_sym_LBRACE,
-      anon_sym_RBRACE,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-      anon_sym_PLUS,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-      anon_sym_AMP_AMP,
-      anon_sym_PIPE_PIPE,
-  [454] = 3,
+    ACTIONS(125), 18,
+      anon_sym_let,
+      anon_sym_const,
+      anon_sym_func,
+      anon_sym_if,
+      anon_sym_while,
+      anon_sym_do,
+      anon_sym_for,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_return,
+      sym_identifier,
+  [441] = 3,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(129), 3,
@@ -5816,7 +5843,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [482] = 3,
+  [469] = 3,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(133), 3,
@@ -5841,7 +5868,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [510] = 3,
+  [497] = 3,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(137), 3,
@@ -5866,7 +5893,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [538] = 3,
+  [525] = 3,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(141), 3,
@@ -5891,18 +5918,18 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [566] = 4,
+  [553] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(141), 3,
-      anon_sym_DASH,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(143), 3,
+    ACTIONS(145), 3,
       anon_sym_STAR,
       anon_sym_SLASH,
       anon_sym_PERCENT,
-    ACTIONS(139), 14,
+    ACTIONS(147), 3,
+      anon_sym_DASH,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(143), 14,
       anon_sym_SEMI,
       sym__newline,
       anon_sym_COMMA,
@@ -5917,21 +5944,21 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [596] = 6,
+  [583] = 6,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(145), 1,
+    ACTIONS(149), 1,
       anon_sym_PLUS,
-    ACTIONS(147), 1,
+    ACTIONS(151), 1,
       anon_sym_DASH,
-    ACTIONS(141), 2,
+    ACTIONS(147), 2,
       anon_sym_LT,
       anon_sym_GT,
-    ACTIONS(143), 3,
+    ACTIONS(145), 3,
       anon_sym_STAR,
       anon_sym_SLASH,
       anon_sym_PERCENT,
-    ACTIONS(139), 13,
+    ACTIONS(143), 13,
       anon_sym_SEMI,
       sym__newline,
       anon_sym_COMMA,
@@ -5945,104 +5972,14 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [630] = 7,
+  [617] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-    ACTIONS(139), 11,
-      anon_sym_SEMI,
-      sym__newline,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-      anon_sym_DOT_DOT,
-      anon_sym_LBRACE,
-      anon_sym_RBRACE,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-      anon_sym_AMP_AMP,
-      anon_sym_PIPE_PIPE,
-  [666] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-    ACTIONS(139), 9,
-      anon_sym_SEMI,
-      sym__newline,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-      anon_sym_DOT_DOT,
-      anon_sym_LBRACE,
-      anon_sym_RBRACE,
-      anon_sym_AMP_AMP,
-      anon_sym_PIPE_PIPE,
-  [704] = 9,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-    ACTIONS(139), 8,
-      anon_sym_SEMI,
-      sym__newline,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-      anon_sym_DOT_DOT,
-      anon_sym_LBRACE,
-      anon_sym_RBRACE,
-      anon_sym_PIPE_PIPE,
-  [744] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(159), 3,
+    ACTIONS(155), 3,
       anon_sym_DASH,
       anon_sym_LT,
       anon_sym_GT,
-    ACTIONS(157), 17,
+    ACTIONS(153), 17,
       anon_sym_SEMI,
       sym__newline,
       anon_sym_COMMA,
@@ -6060,346 +5997,190 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_BANG_EQ,
       anon_sym_AMP_AMP,
       anon_sym_PIPE_PIPE,
-  [772] = 9,
+  [645] = 8,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
       anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(171), 1,
-      sym_integer,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
     ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+    ACTIONS(143), 9,
       anon_sym_SEMI,
       sym__newline,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(22), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [808] = 12,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+      anon_sym_DOT_DOT,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_AMP_AMP,
+      anon_sym_PIPE_PIPE,
+  [683] = 9,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(145), 1,
+    ACTIONS(149), 1,
       anon_sym_PLUS,
-    ACTIONS(147), 1,
+    ACTIONS(151), 1,
       anon_sym_DASH,
-    ACTIONS(155), 1,
+    ACTIONS(163), 1,
       anon_sym_AMP_AMP,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+    ACTIONS(143), 8,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+      anon_sym_DOT_DOT,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_PIPE_PIPE,
+  [723] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(147), 3,
+      anon_sym_DASH,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(143), 17,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+      anon_sym_DOT_DOT,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+      anon_sym_PLUS,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+      anon_sym_AMP_AMP,
+      anon_sym_PIPE_PIPE,
+  [751] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(147), 3,
+      anon_sym_DASH,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(143), 17,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+      anon_sym_DOT_DOT,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+      anon_sym_PLUS,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+      anon_sym_AMP_AMP,
+      anon_sym_PIPE_PIPE,
+  [779] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(167), 3,
+      anon_sym_DASH,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(165), 17,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+      anon_sym_DOT_DOT,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+      anon_sym_PLUS,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+      anon_sym_AMP_AMP,
+      anon_sym_PIPE_PIPE,
+  [807] = 7,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+    ACTIONS(143), 11,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+      anon_sym_DOT_DOT,
+      anon_sym_LBRACE,
+      anon_sym_RBRACE,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+      anon_sym_AMP_AMP,
+      anon_sym_PIPE_PIPE,
+  [843] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
     ACTIONS(175), 1,
-      anon_sym_COMMA,
+      anon_sym_BANG,
     ACTIONS(177), 1,
-      anon_sym_RPAREN,
+      sym_identifier,
     ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    STATE(118), 1,
-      aux_sym_function_call_repeat1,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [850] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(169), 2,
+      anon_sym_SEMI,
+      sym__newline,
     ACTIONS(181), 2,
-      anon_sym_SEMI,
-      sym__newline,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [887] = 9,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(183), 1,
-      anon_sym_RPAREN,
-    ACTIONS(185), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(21), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [922] = 11,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(119), 1,
-      sym_block,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [961] = 11,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(170), 1,
-      sym_block,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1000] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(189), 2,
-      anon_sym_SEMI,
-      sym__newline,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1037] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(191), 2,
-      anon_sym_SEMI,
-      sym__newline,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1074] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(193), 2,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1111] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(195), 2,
-      anon_sym_SEMI,
-      sym__newline,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1148] = 11,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(146), 1,
-      sym_block,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1187] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(197), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(18), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1219] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(199), 1,
-      sym_integer,
-    ACTIONS(173), 2,
       anon_sym_true,
       anon_sym_false,
     STATE(27), 7,
@@ -6410,434 +6191,24 @@ static const uint16_t ts_small_parse_table[] = {
       sym_function_call,
       sym_variable_ref,
       sym_boolean,
-  [1251] = 8,
+  [882] = 10,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(163), 1,
+    ACTIONS(171), 1,
       anon_sym_LPAREN,
-    ACTIONS(165), 1,
+    ACTIONS(173), 1,
       anon_sym_DASH,
-    ACTIONS(167), 1,
+    ACTIONS(175), 1,
       anon_sym_BANG,
-    ACTIONS(169), 1,
+    ACTIONS(177), 1,
       sym_identifier,
-    ACTIONS(201), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(42), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1283] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(203), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(26), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1315] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(205), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(9), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1347] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(207), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(38), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1379] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(209), 1,
-      anon_sym_RBRACE,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1415] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(211), 1,
+    ACTIONS(183), 1,
       anon_sym_RPAREN,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1451] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(213), 1,
+    ACTIONS(185), 1,
       sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(37), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1483] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(215), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(13), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1515] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(217), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(14), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1547] = 10,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(145), 1,
-      anon_sym_PLUS,
-    ACTIONS(147), 1,
-      anon_sym_DASH,
-    ACTIONS(155), 1,
-      anon_sym_AMP_AMP,
-    ACTIONS(179), 1,
-      anon_sym_PIPE_PIPE,
-    ACTIONS(219), 1,
-      anon_sym_DOT_DOT,
-    ACTIONS(149), 2,
-      anon_sym_LT,
-      anon_sym_GT,
-    ACTIONS(151), 2,
-      anon_sym_LT_EQ,
-      anon_sym_GT_EQ,
-    ACTIONS(153), 2,
-      anon_sym_EQ_EQ,
-      anon_sym_BANG_EQ,
-    ACTIONS(143), 3,
-      anon_sym_STAR,
-      anon_sym_SLASH,
-      anon_sym_PERCENT,
-  [1583] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(221), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(29), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1615] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(223), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(25), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1647] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(225), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(28), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1679] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(227), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(15), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1711] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(229), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(30), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1743] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(231), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(17), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1775] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(233), 1,
-      sym_integer,
-    ACTIONS(173), 2,
-      anon_sym_true,
-      anon_sym_false,
-    STATE(16), 7,
-      sym__expression,
-      sym_parenthesized_expression,
-      sym_binary_expression,
-      sym_unary_expression,
-      sym_function_call,
-      sym_variable_ref,
-      sym_boolean,
-  [1807] = 8,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(163), 1,
-      anon_sym_LPAREN,
-    ACTIONS(165), 1,
-      anon_sym_DASH,
-    ACTIONS(167), 1,
-      anon_sym_BANG,
-    ACTIONS(169), 1,
-      sym_identifier,
-    ACTIONS(235), 1,
-      sym_integer,
-    ACTIONS(173), 2,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
       anon_sym_true,
       anon_sym_false,
     STATE(24), 7,
@@ -6848,57 +6219,781 @@ static const uint16_t ts_small_parse_table[] = {
       sym_function_call,
       sym_variable_ref,
       sym_boolean,
-  [1839] = 3,
+  [920] = 12,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(239), 1,
-      anon_sym_COLON,
-    ACTIONS(237), 12,
-      sym__newline,
-      anon_sym_func,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [1860] = 12,
-    ACTIONS(3), 1,
-      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
     ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    ACTIONS(241), 1,
-      anon_sym_in,
-    ACTIONS(245), 1,
-      anon_sym_align,
-    ACTIONS(247), 1,
-      anon_sym_anchored,
-    ACTIONS(249), 1,
-      anon_sym_facing,
-    ACTIONS(251), 1,
-      anon_sym_on,
-    ACTIONS(253), 1,
-      anon_sym_positioned,
-    ACTIONS(255), 1,
-      anon_sym_rotated,
-    STATE(134), 1,
-      sym_block,
-    ACTIONS(243), 2,
-      anon_sym_as,
-      anon_sym_at,
-    STATE(55), 2,
-      sym_contextModifier,
-      aux_sym_context_statement_repeat1,
-  [1899] = 3,
+      anon_sym_COMMA,
+    ACTIONS(189), 1,
+      anon_sym_RPAREN,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    STATE(107), 1,
+      aux_sym_function_call_repeat1,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [962] = 9,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(259), 1,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(193), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(48), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [997] = 11,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(149), 1,
+      sym_block,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1036] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(197), 2,
+      anon_sym_SEMI,
+      sym__newline,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1073] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(199), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(40), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1108] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(201), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(50), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1143] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(203), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(51), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1178] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(205), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(19), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1213] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(207), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(13), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1248] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(209), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(14), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1283] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(211), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(21), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1318] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(213), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(16), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1353] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(215), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(17), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1388] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(217), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(11), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1423] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(219), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(44), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1458] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(221), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(52), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1493] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(223), 2,
+      anon_sym_SEMI,
+      sym__newline,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1530] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(225), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(43), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1565] = 11,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(131), 1,
+      sym_block,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1604] = 11,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(144), 1,
+      sym_block,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1643] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(227), 2,
+      anon_sym_SEMI,
+      sym__newline,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1680] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(229), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(47), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1715] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(231), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(26), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1750] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(233), 2,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1787] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(235), 2,
+      anon_sym_SEMI,
+      sym__newline,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1824] = 9,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(171), 1,
+      anon_sym_LPAREN,
+    ACTIONS(173), 1,
+      anon_sym_DASH,
+    ACTIONS(175), 1,
+      anon_sym_BANG,
+    ACTIONS(177), 1,
+      sym_identifier,
+    ACTIONS(237), 1,
+      sym_integer,
+    STATE(191), 1,
+      sym_namespaced_arg,
+    ACTIONS(181), 2,
+      anon_sym_true,
+      anon_sym_false,
+    STATE(42), 7,
+      sym__expression,
+      sym_parenthesized_expression,
+      sym_binary_expression,
+      sym_unary_expression,
+      sym_function_call,
+      sym_variable_ref,
+      sym_boolean,
+  [1859] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(239), 1,
+      anon_sym_RBRACE,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1895] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(241), 1,
+      anon_sym_RPAREN,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1931] = 10,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(149), 1,
+      anon_sym_PLUS,
+    ACTIONS(151), 1,
+      anon_sym_DASH,
+    ACTIONS(163), 1,
+      anon_sym_AMP_AMP,
+    ACTIONS(191), 1,
+      anon_sym_PIPE_PIPE,
+    ACTIONS(243), 1,
+      anon_sym_DOT_DOT,
+    ACTIONS(157), 2,
+      anon_sym_LT,
+      anon_sym_GT,
+    ACTIONS(159), 2,
+      anon_sym_LT_EQ,
+      anon_sym_GT_EQ,
+    ACTIONS(161), 2,
+      anon_sym_EQ_EQ,
+      anon_sym_BANG_EQ,
+    ACTIONS(145), 3,
+      anon_sym_STAR,
+      anon_sym_SLASH,
+      anon_sym_PERCENT,
+  [1967] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(247), 1,
       anon_sym_LBRACK,
-    ACTIONS(257), 12,
+    ACTIONS(245), 12,
       anon_sym_in,
       anon_sym_as,
       anon_sym_at,
@@ -6911,10 +7006,39 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [1920] = 2,
+  [1988] = 12,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(261), 12,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    ACTIONS(249), 1,
+      anon_sym_in,
+    ACTIONS(253), 1,
+      anon_sym_align,
+    ACTIONS(255), 1,
+      anon_sym_anchored,
+    ACTIONS(257), 1,
+      anon_sym_facing,
+    ACTIONS(259), 1,
+      anon_sym_on,
+    ACTIONS(261), 1,
+      anon_sym_positioned,
+    ACTIONS(263), 1,
+      anon_sym_rotated,
+    STATE(142), 1,
+      sym_block,
+    ACTIONS(251), 2,
+      anon_sym_as,
+      anon_sym_at,
+    STATE(58), 2,
+      sym_contextModifier,
+      aux_sym_context_statement_repeat1,
+  [2027] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(115), 1,
+      anon_sym_COLON,
+    ACTIONS(119), 12,
       sym__newline,
       anon_sym_func,
       anon_sym_in,
@@ -6927,35 +7051,67 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [1938] = 11,
+  [2048] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(263), 1,
+    ACTIONS(265), 12,
+      sym__newline,
+      anon_sym_func,
       anon_sym_in,
-    ACTIONS(269), 1,
-      anon_sym_align,
-    ACTIONS(272), 1,
-      anon_sym_anchored,
-    ACTIONS(275), 1,
-      anon_sym_facing,
-    ACTIONS(278), 1,
-      anon_sym_on,
-    ACTIONS(281), 1,
-      anon_sym_positioned,
-    ACTIONS(284), 1,
-      anon_sym_rotated,
-    ACTIONS(287), 1,
-      anon_sym_LBRACE,
-    ACTIONS(266), 2,
       anon_sym_as,
       anon_sym_at,
-    STATE(55), 2,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2066] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(245), 12,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_eyes,
+      anon_sym_feet,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2084] = 11,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(267), 1,
+      anon_sym_in,
+    ACTIONS(273), 1,
+      anon_sym_align,
+    ACTIONS(276), 1,
+      anon_sym_anchored,
+    ACTIONS(279), 1,
+      anon_sym_facing,
+    ACTIONS(282), 1,
+      anon_sym_on,
+    ACTIONS(285), 1,
+      anon_sym_positioned,
+    ACTIONS(288), 1,
+      anon_sym_rotated,
+    ACTIONS(291), 1,
+      anon_sym_LBRACE,
+    ACTIONS(270), 2,
+      anon_sym_as,
+      anon_sym_at,
+    STATE(58), 2,
       sym_contextModifier,
       aux_sym_context_statement_repeat1,
-  [1974] = 2,
+  [2120] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(289), 12,
+    ACTIONS(293), 12,
       anon_sym_in,
       anon_sym_as,
       anon_sym_at,
@@ -6968,10 +7124,10 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [1992] = 2,
+  [2138] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(291), 12,
+    ACTIONS(295), 12,
       anon_sym_in,
       anon_sym_as,
       anon_sym_at,
@@ -6984,184 +7140,90 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [2010] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(257), 12,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_eyes,
-      anon_sym_feet,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2028] = 8,
-    ACTIONS(293), 1,
-      anon_sym_LBRACE,
-    ACTIONS(295), 1,
-      anon_sym_RBRACK,
+  [2156] = 8,
     ACTIONS(297), 1,
-      aux_sym__selector_safe_content_token1,
+      anon_sym_LBRACE,
     ACTIONS(299), 1,
-      anon_sym_DQUOTE,
+      anon_sym_RBRACK,
     ACTIONS(301), 1,
-      anon_sym_SQUOTE,
+      aux_sym__selector_safe_content_token1,
     ACTIONS(303), 1,
-      sym_comment,
-    STATE(84), 2,
-      sym__string_double,
-      sym__string_single,
-    STATE(60), 4,
-      sym_selector_nbt,
-      sym__selector_safe_content,
-      sym_string_literal,
-      aux_sym_selector_repeat1,
-  [2057] = 8,
-    ACTIONS(303), 1,
-      sym_comment,
+      anon_sym_DQUOTE,
     ACTIONS(305), 1,
-      anon_sym_LBRACE,
-    ACTIONS(308), 1,
-      anon_sym_RBRACK,
-    ACTIONS(310), 1,
-      aux_sym__selector_safe_content_token1,
-    ACTIONS(313), 1,
-      anon_sym_DQUOTE,
-    ACTIONS(316), 1,
       anon_sym_SQUOTE,
-    STATE(84), 2,
+    ACTIONS(307), 1,
+      sym_comment,
+    STATE(85), 2,
       sym__string_double,
       sym__string_single,
-    STATE(60), 4,
+    STATE(62), 4,
       sym_selector_nbt,
       sym__selector_safe_content,
       sym_string_literal,
       aux_sym_selector_repeat1,
-  [2086] = 8,
-    ACTIONS(293), 1,
+  [2185] = 8,
+    ACTIONS(297), 1,
       anon_sym_LBRACE,
-    ACTIONS(299), 1,
-      anon_sym_DQUOTE,
-    ACTIONS(301), 1,
-      anon_sym_SQUOTE,
     ACTIONS(303), 1,
+      anon_sym_DQUOTE,
+    ACTIONS(305), 1,
+      anon_sym_SQUOTE,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(319), 1,
+    ACTIONS(309), 1,
       anon_sym_RBRACK,
-    ACTIONS(321), 1,
+    ACTIONS(311), 1,
       aux_sym__selector_safe_content_token1,
-    STATE(84), 2,
+    STATE(85), 2,
       sym__string_double,
       sym__string_single,
-    STATE(59), 4,
+    STATE(63), 4,
       sym_selector_nbt,
       sym__selector_safe_content,
       sym_string_literal,
       aux_sym_selector_repeat1,
-  [2115] = 2,
+  [2214] = 8,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(313), 1,
+      anon_sym_LBRACE,
+    ACTIONS(316), 1,
+      anon_sym_RBRACK,
+    ACTIONS(318), 1,
+      aux_sym__selector_safe_content_token1,
+    ACTIONS(321), 1,
+      anon_sym_DQUOTE,
+    ACTIONS(324), 1,
+      anon_sym_SQUOTE,
+    STATE(85), 2,
+      sym__string_double,
+      sym__string_single,
+    STATE(63), 4,
+      sym_selector_nbt,
+      sym__selector_safe_content,
+      sym_string_literal,
+      aux_sym_selector_repeat1,
+  [2243] = 8,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(323), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2131] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(325), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2147] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(327), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2163] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(329), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2179] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(331), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2195] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(333), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2211] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(335), 10,
-      anon_sym_in,
-      anon_sym_as,
-      anon_sym_at,
-      anon_sym_align,
-      anon_sym_anchored,
-      anon_sym_facing,
-      anon_sym_on,
-      anon_sym_positioned,
-      anon_sym_rotated,
-      anon_sym_LBRACE,
-  [2227] = 2,
+    ACTIONS(117), 1,
+      anon_sym_LPAREN,
+    ACTIONS(329), 1,
+      anon_sym_EQ,
+    ACTIONS(333), 1,
+      anon_sym_DOLLAR_LBRACE,
+    ACTIONS(335), 1,
+      sym_integer,
+    ACTIONS(327), 2,
+      anon_sym_SEMI,
+      sym__newline,
+    ACTIONS(331), 2,
+      anon_sym_DOLLAR,
+      sym_command_arg,
+    STATE(80), 2,
+      sym_interpolation,
+      aux_sym_command_statement_repeat1,
+  [2271] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(337), 10,
@@ -7175,7 +7237,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [2243] = 2,
+  [2287] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(339), 10,
@@ -7189,7 +7251,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [2259] = 2,
+  [2303] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(341), 10,
@@ -7203,27 +7265,77 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [2275] = 8,
+  [2319] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(115), 1,
-      anon_sym_LPAREN,
-    ACTIONS(345), 1,
-      anon_sym_EQ,
-    ACTIONS(349), 1,
-      anon_sym_DOLLAR_LBRACE,
-    ACTIONS(351), 1,
-      sym_integer,
-    ACTIONS(343), 2,
-      anon_sym_SEMI,
-      sym__newline,
-    ACTIONS(347), 2,
-      anon_sym_DOLLAR,
-      sym_command_arg,
-    STATE(80), 2,
-      sym_interpolation,
-      aux_sym_command_statement_repeat1,
-  [2303] = 2,
+    ACTIONS(343), 10,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2335] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(345), 10,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2351] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(347), 10,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2367] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(349), 10,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2383] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(351), 10,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2399] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(353), 10,
@@ -7237,7 +7349,7 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [2319] = 2,
+  [2415] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(355), 10,
@@ -7251,58 +7363,72 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_positioned,
       anon_sym_rotated,
       anon_sym_LBRACE,
-  [2335] = 5,
+  [2431] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(359), 1,
-      aux_sym_selector_token1,
+    ACTIONS(357), 10,
+      anon_sym_in,
+      anon_sym_as,
+      anon_sym_at,
+      anon_sym_align,
+      anon_sym_anchored,
+      anon_sym_facing,
+      anon_sym_on,
+      anon_sym_positioned,
+      anon_sym_rotated,
+      anon_sym_LBRACE,
+  [2447] = 5,
+    ACTIONS(3), 1,
+      sym_comment,
     ACTIONS(361), 1,
+      aux_sym_selector_token1,
+    ACTIONS(363), 1,
       aux_sym_selector_token2,
-    STATE(66), 1,
+    STATE(67), 1,
       sym_selector,
-    ACTIONS(357), 6,
+    ACTIONS(359), 6,
       anon_sym_ATs,
       anon_sym_ATr,
       anon_sym_ATp,
       anon_sym_ATe,
       anon_sym_ATa,
       anon_sym_ATn,
-  [2356] = 5,
+  [2468] = 5,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(359), 1,
-      aux_sym_selector_token1,
     ACTIONS(361), 1,
+      aux_sym_selector_token1,
+    ACTIONS(363), 1,
       aux_sym_selector_token2,
-    STATE(140), 1,
+    STATE(136), 1,
       sym_selector,
-    ACTIONS(357), 6,
+    ACTIONS(359), 6,
       anon_sym_ATs,
       anon_sym_ATr,
       anon_sym_ATp,
       anon_sym_ATe,
       anon_sym_ATa,
       anon_sym_ATn,
-  [2377] = 5,
+  [2489] = 5,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(359), 1,
-      aux_sym_selector_token1,
     ACTIONS(361), 1,
+      aux_sym_selector_token1,
+    ACTIONS(363), 1,
       aux_sym_selector_token2,
-    STATE(64), 1,
+    STATE(72), 1,
       sym_selector,
-    ACTIONS(357), 6,
+    ACTIONS(359), 6,
       anon_sym_ATs,
       anon_sym_ATr,
       anon_sym_ATp,
       anon_sym_ATe,
       anon_sym_ATa,
       anon_sym_ATn,
-  [2398] = 2,
+  [2510] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(363), 8,
+    ACTIONS(365), 8,
       anon_sym_attacker,
       anon_sym_controller,
       anon_sym_leasher,
@@ -7311,84 +7437,75 @@ static const uint16_t ts_small_parse_table[] = {
       anon_sym_passengers,
       anon_sym_target,
       anon_sym_vehicle,
-  [2412] = 6,
+  [2524] = 6,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(370), 1,
+    ACTIONS(333), 1,
       anon_sym_DOLLAR_LBRACE,
-    ACTIONS(373), 1,
+    ACTIONS(371), 1,
       sym_integer,
-    ACTIONS(365), 2,
-      anon_sym_SEMI,
-      sym__newline,
     ACTIONS(367), 2,
-      anon_sym_DOLLAR,
-      sym_command_arg,
-    STATE(79), 2,
-      sym_interpolation,
-      aux_sym_command_statement_repeat1,
-  [2434] = 6,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(349), 1,
-      anon_sym_DOLLAR_LBRACE,
-    ACTIONS(380), 1,
-      sym_integer,
-    ACTIONS(376), 2,
       anon_sym_SEMI,
       sym__newline,
-    ACTIONS(378), 2,
+    ACTIONS(369), 2,
       anon_sym_DOLLAR,
       sym_command_arg,
-    STATE(79), 2,
+    STATE(81), 2,
       sym_interpolation,
       aux_sym_command_statement_repeat1,
-  [2456] = 3,
+  [2546] = 6,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(384), 2,
+    ACTIONS(378), 1,
+      anon_sym_DOLLAR_LBRACE,
+    ACTIONS(381), 1,
+      sym_integer,
+    ACTIONS(373), 2,
+      anon_sym_SEMI,
+      sym__newline,
+    ACTIONS(375), 2,
       anon_sym_DOLLAR,
       sym_command_arg,
-    ACTIONS(382), 4,
+    STATE(81), 2,
+      sym_interpolation,
+      aux_sym_command_statement_repeat1,
+  [2568] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(386), 2,
+      anon_sym_DOLLAR,
+      sym_command_arg,
+    ACTIONS(384), 4,
       anon_sym_SEMI,
       sym__newline,
       anon_sym_DOLLAR_LBRACE,
       sym_integer,
-  [2470] = 5,
-    ACTIONS(303), 1,
+  [2582] = 5,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(386), 1,
-      anon_sym_LBRACE,
     ACTIONS(388), 1,
-      anon_sym_RBRACE,
+      anon_sym_LBRACE,
     ACTIONS(390), 1,
-      aux_sym_selector_nbt_token1,
-    STATE(92), 2,
-      sym_selector_nbt,
-      aux_sym_selector_nbt_repeat1,
-  [2487] = 5,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(386), 1,
-      anon_sym_LBRACE,
-    ACTIONS(392), 1,
       anon_sym_RBRACE,
-    ACTIONS(394), 1,
+    ACTIONS(392), 1,
       aux_sym_selector_nbt_token1,
-    STATE(86), 2,
+    STATE(90), 2,
       sym_selector_nbt,
       aux_sym_selector_nbt_repeat1,
-  [2504] = 2,
-    ACTIONS(303), 1,
+  [2599] = 5,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(396), 5,
+    ACTIONS(388), 1,
       anon_sym_LBRACE,
-      anon_sym_RBRACK,
-      aux_sym__selector_safe_content_token1,
-      anon_sym_DQUOTE,
-      anon_sym_SQUOTE,
-  [2515] = 2,
-    ACTIONS(303), 1,
+    ACTIONS(394), 1,
+      anon_sym_RBRACE,
+    ACTIONS(396), 1,
+      aux_sym_selector_nbt_token1,
+    STATE(87), 2,
+      sym_selector_nbt,
+      aux_sym_selector_nbt_repeat1,
+  [2616] = 2,
+    ACTIONS(307), 1,
       sym_comment,
     ACTIONS(398), 5,
       anon_sym_LBRACE,
@@ -7396,38 +7513,29 @@ static const uint16_t ts_small_parse_table[] = {
       aux_sym__selector_safe_content_token1,
       anon_sym_DQUOTE,
       anon_sym_SQUOTE,
-  [2526] = 5,
-    ACTIONS(303), 1,
+  [2627] = 2,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(386), 1,
+    ACTIONS(400), 5,
       anon_sym_LBRACE,
-    ACTIONS(390), 1,
-      aux_sym_selector_nbt_token1,
-    ACTIONS(400), 1,
+      anon_sym_RBRACK,
+      aux_sym__selector_safe_content_token1,
+      anon_sym_DQUOTE,
+      anon_sym_SQUOTE,
+  [2638] = 5,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(388), 1,
+      anon_sym_LBRACE,
+    ACTIONS(402), 1,
       anon_sym_RBRACE,
+    ACTIONS(404), 1,
+      aux_sym_selector_nbt_token1,
     STATE(92), 2,
       sym_selector_nbt,
       aux_sym_selector_nbt_repeat1,
-  [2543] = 2,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(402), 5,
-      anon_sym_LBRACE,
-      anon_sym_RBRACK,
-      aux_sym__selector_safe_content_token1,
-      anon_sym_DQUOTE,
-      anon_sym_SQUOTE,
-  [2554] = 2,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(404), 5,
-      anon_sym_LBRACE,
-      anon_sym_RBRACK,
-      aux_sym__selector_safe_content_token1,
-      anon_sym_DQUOTE,
-      anon_sym_SQUOTE,
-  [2565] = 2,
-    ACTIONS(303), 1,
+  [2655] = 2,
+    ACTIONS(307), 1,
       sym_comment,
     ACTIONS(406), 5,
       anon_sym_LBRACE,
@@ -7435,8 +7543,8 @@ static const uint16_t ts_small_parse_table[] = {
       aux_sym__selector_safe_content_token1,
       anon_sym_DQUOTE,
       anon_sym_SQUOTE,
-  [2576] = 2,
-    ACTIONS(303), 1,
+  [2666] = 2,
+    ACTIONS(307), 1,
       sym_comment,
     ACTIONS(408), 5,
       anon_sym_LBRACE,
@@ -7444,789 +7552,819 @@ static const uint16_t ts_small_parse_table[] = {
       aux_sym__selector_safe_content_token1,
       anon_sym_DQUOTE,
       anon_sym_SQUOTE,
-  [2587] = 2,
-    ACTIONS(303), 1,
+  [2677] = 5,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(410), 5,
+    ACTIONS(388), 1,
+      anon_sym_LBRACE,
+    ACTIONS(404), 1,
+      aux_sym_selector_nbt_token1,
+    ACTIONS(410), 1,
+      anon_sym_RBRACE,
+    STATE(92), 2,
+      sym_selector_nbt,
+      aux_sym_selector_nbt_repeat1,
+  [2694] = 2,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(412), 5,
       anon_sym_LBRACE,
       anon_sym_RBRACK,
       aux_sym__selector_safe_content_token1,
       anon_sym_DQUOTE,
       anon_sym_SQUOTE,
-  [2598] = 5,
-    ACTIONS(303), 1,
+  [2705] = 5,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(412), 1,
+    ACTIONS(414), 1,
       anon_sym_LBRACE,
-    ACTIONS(415), 1,
-      anon_sym_RBRACE,
     ACTIONS(417), 1,
+      anon_sym_RBRACE,
+    ACTIONS(419), 1,
       aux_sym_selector_nbt_token1,
     STATE(92), 2,
       sym_selector_nbt,
       aux_sym_selector_nbt_repeat1,
-  [2615] = 5,
-    ACTIONS(303), 1,
+  [2722] = 2,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(386), 1,
+    ACTIONS(422), 5,
       anon_sym_LBRACE,
-    ACTIONS(420), 1,
-      anon_sym_RBRACE,
-    ACTIONS(422), 1,
-      aux_sym_selector_nbt_token1,
-    STATE(82), 2,
-      sym_selector_nbt,
-      aux_sym_selector_nbt_repeat1,
-  [2632] = 3,
-    ACTIONS(3), 1,
+      anon_sym_RBRACK,
+      aux_sym__selector_safe_content_token1,
+      anon_sym_DQUOTE,
+      anon_sym_SQUOTE,
+  [2733] = 2,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(424), 5,
+      anon_sym_LBRACE,
+      anon_sym_RBRACK,
+      aux_sym__selector_safe_content_token1,
+      anon_sym_DQUOTE,
+      anon_sym_SQUOTE,
+  [2744] = 4,
+    ACTIONS(307), 1,
       sym_comment,
     ACTIONS(426), 1,
+      anon_sym_SQUOTE,
+    STATE(96), 1,
+      aux_sym__string_single_repeat1,
+    ACTIONS(428), 2,
+      aux_sym__string_single_token1,
+      sym__escape_sequence,
+  [2758] = 4,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(430), 1,
+      anon_sym_SQUOTE,
+    STATE(96), 1,
+      aux_sym__string_single_repeat1,
+    ACTIONS(432), 2,
+      aux_sym__string_single_token1,
+      sym__escape_sequence,
+  [2772] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(435), 4,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_else,
+      anon_sym_while,
+  [2782] = 4,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(437), 1,
+      anon_sym_DQUOTE,
+    STATE(105), 1,
+      aux_sym__string_double_repeat1,
+    ACTIONS(439), 2,
+      aux_sym__string_double_token1,
+      sym__escape_sequence,
+  [2796] = 4,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    ACTIONS(441), 1,
+      anon_sym_if,
+    STATE(172), 2,
+      sym_if,
+      sym_block,
+  [2810] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(443), 4,
+      anon_sym_SEMI,
+      sym__newline,
+      anon_sym_else,
+      anon_sym_while,
+  [2820] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(447), 1,
       anon_sym_motion_blocking,
-    ACTIONS(424), 3,
+    ACTIONS(445), 3,
       anon_sym_world_surface,
       anon_sym_motion_blocking_no_leaves,
       anon_sym_ocean_floor,
-  [2644] = 4,
+  [2832] = 5,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    ACTIONS(428), 1,
-      anon_sym_if,
-    STATE(131), 2,
-      sym_if,
-      sym_block,
-  [2658] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(430), 4,
-      anon_sym_SEMI,
-      sym__newline,
-      anon_sym_else,
-      anon_sym_while,
-  [2668] = 4,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(432), 1,
-      anon_sym_DQUOTE,
-    STATE(101), 1,
-      aux_sym__string_double_repeat1,
-    ACTIONS(434), 2,
-      aux_sym__string_double_token1,
-      sym__escape_sequence,
-  [2682] = 4,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(436), 1,
-      anon_sym_SQUOTE,
-    STATE(103), 1,
-      aux_sym__string_single_repeat1,
-    ACTIONS(438), 2,
-      aux_sym__string_single_token1,
-      sym__escape_sequence,
-  [2696] = 5,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(440), 1,
+    ACTIONS(449), 1,
       anon_sym_as,
-    ACTIONS(442), 1,
+    ACTIONS(451), 1,
       anon_sym_over,
-    ACTIONS(444), 1,
+    ACTIONS(453), 1,
       sym__coordinate_component,
-    STATE(70), 1,
+    STATE(71), 1,
       sym_vec3,
-  [2712] = 2,
-    ACTIONS(3), 1,
+  [2848] = 4,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(446), 4,
-      anon_sym_SEMI,
-      sym__newline,
-      anon_sym_else,
-      anon_sym_while,
-  [2722] = 4,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(448), 1,
+    ACTIONS(455), 1,
       anon_sym_DQUOTE,
-    STATE(102), 1,
+    STATE(98), 1,
       aux_sym__string_double_repeat1,
-    ACTIONS(450), 2,
+    ACTIONS(457), 2,
       aux_sym__string_double_token1,
       sym__escape_sequence,
-  [2736] = 4,
-    ACTIONS(303), 1,
+  [2862] = 4,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(452), 1,
+    ACTIONS(459), 1,
+      anon_sym_SQUOTE,
+    STATE(95), 1,
+      aux_sym__string_single_repeat1,
+    ACTIONS(461), 2,
+      aux_sym__string_single_token1,
+      sym__escape_sequence,
+  [2876] = 4,
+    ACTIONS(307), 1,
+      sym_comment,
+    ACTIONS(463), 1,
       anon_sym_DQUOTE,
-    STATE(102), 1,
+    STATE(105), 1,
       aux_sym__string_double_repeat1,
-    ACTIONS(454), 2,
+    ACTIONS(465), 2,
       aux_sym__string_double_token1,
       sym__escape_sequence,
-  [2750] = 4,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(457), 1,
-      anon_sym_SQUOTE,
-    STATE(104), 1,
-      aux_sym__string_single_repeat1,
-    ACTIONS(459), 2,
-      aux_sym__string_single_token1,
-      sym__escape_sequence,
-  [2764] = 4,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(461), 1,
-      anon_sym_SQUOTE,
-    STATE(104), 1,
-      aux_sym__string_single_repeat1,
-    ACTIONS(463), 2,
-      aux_sym__string_single_token1,
-      sym__escape_sequence,
-  [2778] = 4,
+  [2890] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    ACTIONS(466), 1,
-      anon_sym_COLON,
-    STATE(143), 1,
-      sym_block,
-  [2791] = 4,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
     ACTIONS(468), 1,
-      anon_sym_COLON,
-    STATE(138), 1,
-      sym_block,
-  [2804] = 4,
-    ACTIONS(3), 1,
-      sym_comment,
+      anon_sym_COMMA,
     ACTIONS(470), 1,
       anon_sym_RPAREN,
-    ACTIONS(472), 1,
-      sym_identifier,
-    STATE(116), 1,
-      sym_parameter,
-  [2817] = 4,
+    STATE(124), 1,
+      aux_sym_function_definition_repeat1,
+  [2903] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(193), 1,
-      anon_sym_RPAREN,
-    ACTIONS(474), 1,
+    ACTIONS(187), 1,
       anon_sym_COMMA,
-    STATE(108), 1,
+    ACTIONS(472), 1,
+      anon_sym_RPAREN,
+    STATE(109), 1,
       aux_sym_function_call_repeat1,
-  [2830] = 4,
+  [2916] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(472), 1,
-      sym_identifier,
-    ACTIONS(477), 1,
-      anon_sym_RPAREN,
-    STATE(121), 1,
-      sym_parameter,
-  [2843] = 4,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
+    ACTIONS(474), 1,
+      anon_sym_COLON,
+    STATE(151), 1,
+      sym_block,
+  [2929] = 4,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(233), 1,
+      anon_sym_RPAREN,
+    ACTIONS(476), 1,
+      anon_sym_COMMA,
+    STATE(109), 1,
+      aux_sym_function_call_repeat1,
+  [2942] = 4,
+    ACTIONS(3), 1,
+      sym_comment,
     ACTIONS(479), 1,
-      anon_sym_COLON,
-    STATE(142), 1,
-      sym_block,
-  [2856] = 4,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(481), 1,
-      anon_sym_COMMA,
-    ACTIONS(483), 1,
       anon_sym_RPAREN,
-    STATE(123), 1,
-      aux_sym_function_definition_repeat1,
-  [2869] = 4,
+    ACTIONS(481), 1,
+      sym_identifier,
+    STATE(122), 1,
+      sym_parameter,
+  [2955] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
-    ACTIONS(485), 1,
+    ACTIONS(483), 1,
       anon_sym_COLON,
-    STATE(171), 1,
+    STATE(145), 1,
       sym_block,
-  [2882] = 4,
+  [2968] = 4,
     ACTIONS(3), 1,
       sym_comment,
+    ACTIONS(453), 1,
+      sym__coordinate_component,
+    ACTIONS(485), 1,
+      anon_sym_entity,
+    STATE(71), 1,
+      sym_vec3,
+  [2981] = 4,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
     ACTIONS(487), 1,
-      anon_sym_COMMA,
-    ACTIONS(490), 1,
-      anon_sym_RPAREN,
-    STATE(113), 1,
-      aux_sym_function_definition_repeat1,
-  [2895] = 4,
+      anon_sym_COLON,
+    STATE(148), 1,
+      sym_block,
+  [2994] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(481), 1,
+    ACTIONS(489), 1,
       anon_sym_COMMA,
     ACTIONS(492), 1,
       anon_sym_RPAREN,
-    STATE(113), 1,
+    STATE(114), 1,
       aux_sym_function_definition_repeat1,
-  [2908] = 4,
-    ACTIONS(303), 1,
+  [3007] = 4,
+    ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(444), 1,
-      sym__coordinate_component,
+    ACTIONS(468), 1,
+      anon_sym_COMMA,
     ACTIONS(494), 1,
-      anon_sym_entity,
-    STATE(70), 1,
-      sym_vec3,
-  [2921] = 4,
+      anon_sym_RPAREN,
+    STATE(118), 1,
+      aux_sym_function_definition_repeat1,
+  [3020] = 4,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(481), 1,
-      anon_sym_COMMA,
+      sym_identifier,
     ACTIONS(496), 1,
       anon_sym_RPAREN,
-    STATE(114), 1,
-      aux_sym_function_definition_repeat1,
-  [2934] = 4,
-    ACTIONS(303), 1,
-      sym_comment,
-    ACTIONS(440), 1,
-      anon_sym_as,
-    ACTIONS(498), 1,
-      sym__coordinate_component,
-    STATE(73), 1,
-      sym_vec2,
-  [2947] = 4,
+    STATE(115), 1,
+      sym_parameter,
+  [3033] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(175), 1,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    ACTIONS(498), 1,
+      anon_sym_COLON,
+    STATE(140), 1,
+      sym_block,
+  [3046] = 4,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(468), 1,
       anon_sym_COMMA,
     ACTIONS(500), 1,
       anon_sym_RPAREN,
-    STATE(108), 1,
-      aux_sym_function_call_repeat1,
-  [2960] = 3,
+    STATE(114), 1,
+      aux_sym_function_definition_repeat1,
+  [3059] = 4,
     ACTIONS(3), 1,
       sym_comment,
+    ACTIONS(449), 1,
+      anon_sym_as,
+    ACTIONS(502), 1,
+      sym__coordinate_component,
+    STATE(66), 1,
+      sym_vec2,
+  [3072] = 4,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(481), 1,
+      sym_identifier,
     ACTIONS(504), 1,
-      anon_sym_else,
-    ACTIONS(502), 2,
-      anon_sym_SEMI,
-      sym__newline,
-  [2971] = 4,
+      anon_sym_RPAREN,
+    STATE(106), 1,
+      sym_parameter,
+  [3085] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
     ACTIONS(506), 1,
       anon_sym_COLON,
-    STATE(147), 1,
+    STATE(150), 1,
       sym_block,
-  [2984] = 4,
+  [3098] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(481), 1,
+    ACTIONS(468), 1,
       anon_sym_COMMA,
     ACTIONS(508), 1,
       anon_sym_RPAREN,
-    STATE(125), 1,
+    STATE(126), 1,
       aux_sym_function_definition_repeat1,
-  [2997] = 4,
+  [3111] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
     ACTIONS(510), 1,
       anon_sym_COLON,
-    STATE(150), 1,
+    STATE(154), 1,
       sym_block,
-  [3010] = 4,
+  [3124] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(481), 1,
+    ACTIONS(468), 1,
       anon_sym_COMMA,
     ACTIONS(512), 1,
       anon_sym_RPAREN,
-    STATE(113), 1,
+    STATE(114), 1,
       aux_sym_function_definition_repeat1,
-  [3023] = 4,
+  [3137] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
     ACTIONS(514), 1,
       anon_sym_COLON,
-    STATE(154), 1,
+    STATE(159), 1,
       sym_block,
-  [3036] = 4,
+  [3150] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(481), 1,
+    ACTIONS(468), 1,
       anon_sym_COMMA,
     ACTIONS(516), 1,
       anon_sym_RPAREN,
-    STATE(113), 1,
+    STATE(114), 1,
       aux_sym_function_definition_repeat1,
-  [3049] = 4,
+  [3163] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
     ACTIONS(518), 1,
       anon_sym_COLON,
-    STATE(157), 1,
+    STATE(162), 1,
       sym_block,
-  [3062] = 4,
+  [3176] = 4,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
     ACTIONS(520), 1,
       anon_sym_COLON,
-    STATE(161), 1,
+    STATE(165), 1,
       sym_block,
-  [3075] = 2,
-    ACTIONS(303), 1,
+  [3189] = 2,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(398), 3,
+    ACTIONS(400), 3,
       anon_sym_LBRACE,
       anon_sym_RBRACE,
       aux_sym_selector_nbt_token1,
-  [3084] = 2,
-    ACTIONS(303), 1,
+  [3198] = 2,
+    ACTIONS(307), 1,
       sym_comment,
-    ACTIONS(410), 3,
+    ACTIONS(412), 3,
       anon_sym_LBRACE,
       anon_sym_RBRACE,
       aux_sym_selector_nbt_token1,
-  [3093] = 4,
+  [3207] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(472), 1,
-      sym_identifier,
-    ACTIONS(522), 1,
-      anon_sym_RPAREN,
-    STATE(111), 1,
-      sym_parameter,
-  [3106] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(524), 2,
-      anon_sym_SEMI,
-      sym__newline,
-  [3114] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(526), 1,
-      sym__newline,
-    ACTIONS(528), 1,
-      anon_sym_func,
-  [3124] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(530), 1,
-      sym_identifier,
-    STATE(132), 1,
-      sym_namespaced_arg,
-  [3134] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(532), 2,
-      anon_sym_SEMI,
-      sym__newline,
-  [3142] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(144), 1,
-      sym_block,
-  [3152] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(534), 2,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-  [3160] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(490), 2,
-      anon_sym_COMMA,
-      anon_sym_RPAREN,
-  [3168] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(536), 2,
-      anon_sym_SEMI,
-      sym__newline,
-  [3176] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(530), 1,
-      sym_identifier,
-    STATE(63), 1,
-      sym_namespaced_arg,
-  [3186] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(538), 2,
-      anon_sym_eyes,
-      anon_sym_feet,
-  [3194] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(540), 2,
-      anon_sym_SEMI,
-      sym__newline,
-  [3202] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(542), 2,
-      anon_sym_SEMI,
-      sym__newline,
-  [3210] = 2,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(544), 2,
+    ACTIONS(524), 1,
+      anon_sym_else,
+    ACTIONS(522), 2,
       anon_sym_SEMI,
       sym__newline,
   [3218] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(546), 2,
+    ACTIONS(526), 2,
       anon_sym_SEMI,
       sym__newline,
   [3226] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
-    STATE(151), 1,
+    STATE(203), 1,
       sym_block,
-  [3236] = 2,
+  [3236] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(528), 1,
+      sym__newline,
+    ACTIONS(530), 1,
+      anon_sym_func,
+  [3246] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(532), 2,
+      anon_sym_SEMI,
+      sym__newline,
+  [3254] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(534), 2,
+      anon_sym_eyes,
+      anon_sym_feet,
+  [3262] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(146), 1,
+      sym_block,
+  [3272] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(536), 2,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+  [3280] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(492), 2,
+      anon_sym_COMMA,
+      anon_sym_RPAREN,
+  [3288] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(538), 2,
+      anon_sym_SEMI,
+      sym__newline,
+  [3296] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(540), 1,
+      sym_identifier,
+    STATE(65), 1,
+      sym_namespaced_arg,
+  [3306] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(542), 2,
+      anon_sym_SEMI,
+      sym__newline,
+  [3314] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(453), 1,
+      sym__coordinate_component,
+    STATE(18), 1,
+      sym_vec3,
+  [3324] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(544), 2,
+      anon_sym_SEMI,
+      sym__newline,
+  [3332] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(546), 2,
+      anon_sym_SEMI,
+      sym__newline,
+  [3340] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(548), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3244] = 2,
+  [3348] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(156), 1,
+      sym_block,
+  [3358] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(550), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3252] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(472), 1,
-      sym_identifier,
-    STATE(137), 1,
-      sym_parameter,
-  [3262] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(155), 1,
-      sym_block,
-  [3272] = 2,
+  [3366] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(552), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3280] = 2,
+  [3374] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(554), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3288] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(158), 1,
-      sym_block,
-  [3298] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(159), 1,
-      sym_block,
-  [3308] = 2,
+  [3382] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(556), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3316] = 2,
+  [3390] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(540), 1,
+      sym_identifier,
+    STATE(134), 1,
+      sym_namespaced_arg,
+  [3400] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(160), 1,
+      sym_block,
+  [3410] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(558), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3324] = 3,
+  [3418] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(162), 1,
-      sym_block,
-  [3334] = 2,
+    ACTIONS(481), 1,
+      sym_identifier,
+    STATE(139), 1,
+      sym_parameter,
+  [3428] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(560), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3342] = 2,
+  [3436] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(163), 1,
+      sym_block,
+  [3446] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(132), 1,
+      sym_block,
+  [3456] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(562), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3350] = 2,
+  [3464] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(564), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3358] = 3,
+  [3472] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
-    STATE(164), 1,
+    STATE(166), 1,
       sym_block,
-  [3368] = 2,
+  [3482] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(566), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3376] = 2,
+  [3490] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(568), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3384] = 3,
+  [3498] = 3,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(187), 1,
+    ACTIONS(195), 1,
       anon_sym_LBRACE,
-    STATE(166), 1,
+    STATE(168), 1,
       sym_block,
-  [3394] = 2,
+  [3508] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(570), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3402] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(167), 1,
-      sym_block,
-  [3412] = 2,
+  [3516] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(572), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3420] = 2,
+  [3524] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(170), 1,
+      sym_block,
+  [3534] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(574), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3428] = 2,
+  [3542] = 3,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(195), 1,
+      anon_sym_LBRACE,
+    STATE(171), 1,
+      sym_block,
+  [3552] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(576), 2,
-      anon_sym_eyes,
-      anon_sym_feet,
-  [3436] = 3,
-    ACTIONS(3), 1,
-      sym_comment,
-    ACTIONS(187), 1,
-      anon_sym_LBRACE,
-    STATE(174), 1,
-      sym_block,
-  [3446] = 2,
+      anon_sym_SEMI,
+      sym__newline,
+  [3560] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(578), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3454] = 2,
+  [3568] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(580), 2,
       anon_sym_SEMI,
       sym__newline,
-  [3462] = 2,
+  [3576] = 2,
     ACTIONS(3), 1,
       sym_comment,
-    ACTIONS(582), 1,
-      anon_sym_LPAREN,
-  [3469] = 2,
-    ACTIONS(303), 1,
+    ACTIONS(582), 2,
+      anon_sym_eyes,
+      anon_sym_feet,
+  [3584] = 2,
+    ACTIONS(3), 1,
       sym_comment,
     ACTIONS(584), 1,
-      sym__coordinate_component,
-  [3476] = 2,
+      sym_type,
+  [3591] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(586), 1,
-      anon_sym_while,
-  [3483] = 2,
+      anon_sym_COLON,
+  [3598] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(588), 1,
-      sym_type,
-  [3490] = 2,
+      sym_identifier,
+  [3605] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(590), 1,
-      anon_sym_COLON,
-  [3497] = 2,
+      sym__coordinate_component,
+  [3612] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(592), 1,
-      sym_swizzle,
-  [3504] = 2,
+      sym_type,
+  [3619] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(594), 1,
-      sym_type,
-  [3511] = 2,
+      anon_sym_COLON,
+  [3626] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(596), 1,
       sym_identifier,
-  [3518] = 2,
+  [3633] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(598), 1,
-      ts_builtin_sym_end,
-  [3525] = 2,
+      sym__coordinate_component,
+  [3640] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(600), 1,
-      sym_type,
-  [3532] = 2,
+      sym_identifier,
+  [3647] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(602), 1,
-      anon_sym_COLON,
-  [3539] = 2,
+      ts_builtin_sym_end,
+  [3654] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(604), 1,
-      sym_identifier,
-  [3546] = 2,
-    ACTIONS(303), 1,
+      sym_type,
+  [3661] = 2,
+    ACTIONS(3), 1,
       sym_comment,
     ACTIONS(606), 1,
-      sym__coordinate_component,
-  [3553] = 2,
+      sym_identifier,
+  [3668] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(608), 1,
-      sym_identifier,
-  [3560] = 2,
+      sym_type,
+  [3675] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(610), 1,
-      sym_type,
-  [3567] = 2,
+      anon_sym_LPAREN,
+  [3682] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(612), 1,
       anon_sym_LPAREN,
-  [3574] = 2,
+  [3689] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(614), 1,
-      sym_identifier,
-  [3581] = 2,
+      sym_type,
+  [3696] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(616), 1,
       sym_type,
-  [3588] = 2,
+  [3703] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(618), 1,
-      sym_type,
-  [3595] = 2,
+      anon_sym_at,
+  [3710] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(620), 1,
-      sym_type,
-  [3602] = 2,
+      sym__coordinate_component,
+  [3717] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(622), 1,
-      anon_sym_LPAREN,
-  [3609] = 2,
+      anon_sym_in,
+  [3724] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(624), 1,
-      sym_identifier,
-  [3616] = 2,
+      sym_type,
+  [3731] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(626), 1,
       sym_type,
-  [3623] = 2,
+  [3738] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(628), 1,
-      sym_identifier,
-  [3630] = 2,
+      anon_sym_EQ,
+  [3745] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(630), 1,
-      anon_sym_EQ,
-  [3637] = 2,
+      anon_sym_LPAREN,
+  [3752] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(632), 1,
       sym_type,
-  [3644] = 2,
+  [3759] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(634), 1,
-      anon_sym_func,
-  [3651] = 2,
-    ACTIONS(303), 1,
+      sym_swizzle,
+  [3766] = 2,
+    ACTIONS(3), 1,
       sym_comment,
     ACTIONS(636), 1,
-      sym__coordinate_component,
-  [3658] = 2,
+      sym_type,
+  [3773] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(638), 1,
-      anon_sym_in,
-  [3665] = 2,
+      sym_type,
+  [3780] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(640), 1,
-      sym_type,
-  [3672] = 2,
+      sym_identifier,
+  [3787] = 2,
     ACTIONS(3), 1,
       sym_comment,
     ACTIONS(642), 1,
-      sym_type,
+      anon_sym_while,
+  [3794] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(644), 1,
+      anon_sym_func,
+  [3801] = 2,
+    ACTIONS(3), 1,
+      sym_comment,
+    ACTIONS(646), 1,
+      sym_identifier,
 };
 
 static const uint32_t ts_small_parse_table_map[] = {
@@ -8235,202 +8373,205 @@ static const uint32_t ts_small_parse_table_map[] = {
   [SMALL_STATE(4)] = 169,
   [SMALL_STATE(5)] = 253,
   [SMALL_STATE(6)] = 337,
-  [SMALL_STATE(7)] = 367,
-  [SMALL_STATE(8)] = 398,
-  [SMALL_STATE(9)] = 426,
-  [SMALL_STATE(10)] = 454,
-  [SMALL_STATE(11)] = 482,
-  [SMALL_STATE(12)] = 510,
-  [SMALL_STATE(13)] = 538,
-  [SMALL_STATE(14)] = 566,
-  [SMALL_STATE(15)] = 596,
-  [SMALL_STATE(16)] = 630,
-  [SMALL_STATE(17)] = 666,
-  [SMALL_STATE(18)] = 704,
-  [SMALL_STATE(19)] = 744,
-  [SMALL_STATE(20)] = 772,
-  [SMALL_STATE(21)] = 808,
-  [SMALL_STATE(22)] = 850,
-  [SMALL_STATE(23)] = 887,
-  [SMALL_STATE(24)] = 922,
-  [SMALL_STATE(25)] = 961,
-  [SMALL_STATE(26)] = 1000,
-  [SMALL_STATE(27)] = 1037,
-  [SMALL_STATE(28)] = 1074,
-  [SMALL_STATE(29)] = 1111,
-  [SMALL_STATE(30)] = 1148,
-  [SMALL_STATE(31)] = 1187,
-  [SMALL_STATE(32)] = 1219,
-  [SMALL_STATE(33)] = 1251,
+  [SMALL_STATE(7)] = 374,
+  [SMALL_STATE(8)] = 411,
+  [SMALL_STATE(9)] = 441,
+  [SMALL_STATE(10)] = 469,
+  [SMALL_STATE(11)] = 497,
+  [SMALL_STATE(12)] = 525,
+  [SMALL_STATE(13)] = 553,
+  [SMALL_STATE(14)] = 583,
+  [SMALL_STATE(15)] = 617,
+  [SMALL_STATE(16)] = 645,
+  [SMALL_STATE(17)] = 683,
+  [SMALL_STATE(18)] = 723,
+  [SMALL_STATE(19)] = 751,
+  [SMALL_STATE(20)] = 779,
+  [SMALL_STATE(21)] = 807,
+  [SMALL_STATE(22)] = 843,
+  [SMALL_STATE(23)] = 882,
+  [SMALL_STATE(24)] = 920,
+  [SMALL_STATE(25)] = 962,
+  [SMALL_STATE(26)] = 997,
+  [SMALL_STATE(27)] = 1036,
+  [SMALL_STATE(28)] = 1073,
+  [SMALL_STATE(29)] = 1108,
+  [SMALL_STATE(30)] = 1143,
+  [SMALL_STATE(31)] = 1178,
+  [SMALL_STATE(32)] = 1213,
+  [SMALL_STATE(33)] = 1248,
   [SMALL_STATE(34)] = 1283,
-  [SMALL_STATE(35)] = 1315,
-  [SMALL_STATE(36)] = 1347,
-  [SMALL_STATE(37)] = 1379,
-  [SMALL_STATE(38)] = 1415,
-  [SMALL_STATE(39)] = 1451,
-  [SMALL_STATE(40)] = 1483,
-  [SMALL_STATE(41)] = 1515,
-  [SMALL_STATE(42)] = 1547,
-  [SMALL_STATE(43)] = 1583,
-  [SMALL_STATE(44)] = 1615,
-  [SMALL_STATE(45)] = 1647,
-  [SMALL_STATE(46)] = 1679,
-  [SMALL_STATE(47)] = 1711,
-  [SMALL_STATE(48)] = 1743,
-  [SMALL_STATE(49)] = 1775,
-  [SMALL_STATE(50)] = 1807,
-  [SMALL_STATE(51)] = 1839,
-  [SMALL_STATE(52)] = 1860,
-  [SMALL_STATE(53)] = 1899,
-  [SMALL_STATE(54)] = 1920,
-  [SMALL_STATE(55)] = 1938,
-  [SMALL_STATE(56)] = 1974,
-  [SMALL_STATE(57)] = 1992,
-  [SMALL_STATE(58)] = 2010,
-  [SMALL_STATE(59)] = 2028,
-  [SMALL_STATE(60)] = 2057,
-  [SMALL_STATE(61)] = 2086,
-  [SMALL_STATE(62)] = 2115,
-  [SMALL_STATE(63)] = 2131,
-  [SMALL_STATE(64)] = 2147,
-  [SMALL_STATE(65)] = 2163,
-  [SMALL_STATE(66)] = 2179,
-  [SMALL_STATE(67)] = 2195,
-  [SMALL_STATE(68)] = 2211,
-  [SMALL_STATE(69)] = 2227,
-  [SMALL_STATE(70)] = 2243,
-  [SMALL_STATE(71)] = 2259,
-  [SMALL_STATE(72)] = 2275,
-  [SMALL_STATE(73)] = 2303,
-  [SMALL_STATE(74)] = 2319,
-  [SMALL_STATE(75)] = 2335,
-  [SMALL_STATE(76)] = 2356,
-  [SMALL_STATE(77)] = 2377,
-  [SMALL_STATE(78)] = 2398,
-  [SMALL_STATE(79)] = 2412,
-  [SMALL_STATE(80)] = 2434,
-  [SMALL_STATE(81)] = 2456,
-  [SMALL_STATE(82)] = 2470,
-  [SMALL_STATE(83)] = 2487,
-  [SMALL_STATE(84)] = 2504,
-  [SMALL_STATE(85)] = 2515,
-  [SMALL_STATE(86)] = 2526,
-  [SMALL_STATE(87)] = 2543,
-  [SMALL_STATE(88)] = 2554,
-  [SMALL_STATE(89)] = 2565,
-  [SMALL_STATE(90)] = 2576,
-  [SMALL_STATE(91)] = 2587,
-  [SMALL_STATE(92)] = 2598,
-  [SMALL_STATE(93)] = 2615,
-  [SMALL_STATE(94)] = 2632,
-  [SMALL_STATE(95)] = 2644,
-  [SMALL_STATE(96)] = 2658,
-  [SMALL_STATE(97)] = 2668,
-  [SMALL_STATE(98)] = 2682,
-  [SMALL_STATE(99)] = 2696,
-  [SMALL_STATE(100)] = 2712,
-  [SMALL_STATE(101)] = 2722,
-  [SMALL_STATE(102)] = 2736,
-  [SMALL_STATE(103)] = 2750,
-  [SMALL_STATE(104)] = 2764,
-  [SMALL_STATE(105)] = 2778,
-  [SMALL_STATE(106)] = 2791,
-  [SMALL_STATE(107)] = 2804,
-  [SMALL_STATE(108)] = 2817,
-  [SMALL_STATE(109)] = 2830,
-  [SMALL_STATE(110)] = 2843,
-  [SMALL_STATE(111)] = 2856,
-  [SMALL_STATE(112)] = 2869,
-  [SMALL_STATE(113)] = 2882,
-  [SMALL_STATE(114)] = 2895,
-  [SMALL_STATE(115)] = 2908,
-  [SMALL_STATE(116)] = 2921,
-  [SMALL_STATE(117)] = 2934,
-  [SMALL_STATE(118)] = 2947,
-  [SMALL_STATE(119)] = 2960,
-  [SMALL_STATE(120)] = 2971,
-  [SMALL_STATE(121)] = 2984,
-  [SMALL_STATE(122)] = 2997,
-  [SMALL_STATE(123)] = 3010,
-  [SMALL_STATE(124)] = 3023,
-  [SMALL_STATE(125)] = 3036,
-  [SMALL_STATE(126)] = 3049,
-  [SMALL_STATE(127)] = 3062,
-  [SMALL_STATE(128)] = 3075,
-  [SMALL_STATE(129)] = 3084,
-  [SMALL_STATE(130)] = 3093,
-  [SMALL_STATE(131)] = 3106,
-  [SMALL_STATE(132)] = 3114,
-  [SMALL_STATE(133)] = 3124,
-  [SMALL_STATE(134)] = 3134,
-  [SMALL_STATE(135)] = 3142,
-  [SMALL_STATE(136)] = 3152,
-  [SMALL_STATE(137)] = 3160,
-  [SMALL_STATE(138)] = 3168,
-  [SMALL_STATE(139)] = 3176,
-  [SMALL_STATE(140)] = 3186,
-  [SMALL_STATE(141)] = 3194,
-  [SMALL_STATE(142)] = 3202,
-  [SMALL_STATE(143)] = 3210,
-  [SMALL_STATE(144)] = 3218,
-  [SMALL_STATE(145)] = 3226,
-  [SMALL_STATE(146)] = 3236,
-  [SMALL_STATE(147)] = 3244,
-  [SMALL_STATE(148)] = 3252,
-  [SMALL_STATE(149)] = 3262,
-  [SMALL_STATE(150)] = 3272,
-  [SMALL_STATE(151)] = 3280,
-  [SMALL_STATE(152)] = 3288,
-  [SMALL_STATE(153)] = 3298,
-  [SMALL_STATE(154)] = 3308,
-  [SMALL_STATE(155)] = 3316,
-  [SMALL_STATE(156)] = 3324,
-  [SMALL_STATE(157)] = 3334,
-  [SMALL_STATE(158)] = 3342,
-  [SMALL_STATE(159)] = 3350,
-  [SMALL_STATE(160)] = 3358,
-  [SMALL_STATE(161)] = 3368,
-  [SMALL_STATE(162)] = 3376,
-  [SMALL_STATE(163)] = 3384,
-  [SMALL_STATE(164)] = 3394,
-  [SMALL_STATE(165)] = 3402,
-  [SMALL_STATE(166)] = 3412,
-  [SMALL_STATE(167)] = 3420,
-  [SMALL_STATE(168)] = 3428,
-  [SMALL_STATE(169)] = 3436,
-  [SMALL_STATE(170)] = 3446,
-  [SMALL_STATE(171)] = 3454,
-  [SMALL_STATE(172)] = 3462,
-  [SMALL_STATE(173)] = 3469,
-  [SMALL_STATE(174)] = 3476,
-  [SMALL_STATE(175)] = 3483,
-  [SMALL_STATE(176)] = 3490,
-  [SMALL_STATE(177)] = 3497,
-  [SMALL_STATE(178)] = 3504,
-  [SMALL_STATE(179)] = 3511,
-  [SMALL_STATE(180)] = 3518,
-  [SMALL_STATE(181)] = 3525,
-  [SMALL_STATE(182)] = 3532,
-  [SMALL_STATE(183)] = 3539,
-  [SMALL_STATE(184)] = 3546,
-  [SMALL_STATE(185)] = 3553,
-  [SMALL_STATE(186)] = 3560,
-  [SMALL_STATE(187)] = 3567,
-  [SMALL_STATE(188)] = 3574,
-  [SMALL_STATE(189)] = 3581,
-  [SMALL_STATE(190)] = 3588,
-  [SMALL_STATE(191)] = 3595,
-  [SMALL_STATE(192)] = 3602,
-  [SMALL_STATE(193)] = 3609,
-  [SMALL_STATE(194)] = 3616,
-  [SMALL_STATE(195)] = 3623,
-  [SMALL_STATE(196)] = 3630,
-  [SMALL_STATE(197)] = 3637,
-  [SMALL_STATE(198)] = 3644,
-  [SMALL_STATE(199)] = 3651,
-  [SMALL_STATE(200)] = 3658,
-  [SMALL_STATE(201)] = 3665,
-  [SMALL_STATE(202)] = 3672,
+  [SMALL_STATE(35)] = 1318,
+  [SMALL_STATE(36)] = 1353,
+  [SMALL_STATE(37)] = 1388,
+  [SMALL_STATE(38)] = 1423,
+  [SMALL_STATE(39)] = 1458,
+  [SMALL_STATE(40)] = 1493,
+  [SMALL_STATE(41)] = 1530,
+  [SMALL_STATE(42)] = 1565,
+  [SMALL_STATE(43)] = 1604,
+  [SMALL_STATE(44)] = 1643,
+  [SMALL_STATE(45)] = 1680,
+  [SMALL_STATE(46)] = 1715,
+  [SMALL_STATE(47)] = 1750,
+  [SMALL_STATE(48)] = 1787,
+  [SMALL_STATE(49)] = 1824,
+  [SMALL_STATE(50)] = 1859,
+  [SMALL_STATE(51)] = 1895,
+  [SMALL_STATE(52)] = 1931,
+  [SMALL_STATE(53)] = 1967,
+  [SMALL_STATE(54)] = 1988,
+  [SMALL_STATE(55)] = 2027,
+  [SMALL_STATE(56)] = 2048,
+  [SMALL_STATE(57)] = 2066,
+  [SMALL_STATE(58)] = 2084,
+  [SMALL_STATE(59)] = 2120,
+  [SMALL_STATE(60)] = 2138,
+  [SMALL_STATE(61)] = 2156,
+  [SMALL_STATE(62)] = 2185,
+  [SMALL_STATE(63)] = 2214,
+  [SMALL_STATE(64)] = 2243,
+  [SMALL_STATE(65)] = 2271,
+  [SMALL_STATE(66)] = 2287,
+  [SMALL_STATE(67)] = 2303,
+  [SMALL_STATE(68)] = 2319,
+  [SMALL_STATE(69)] = 2335,
+  [SMALL_STATE(70)] = 2351,
+  [SMALL_STATE(71)] = 2367,
+  [SMALL_STATE(72)] = 2383,
+  [SMALL_STATE(73)] = 2399,
+  [SMALL_STATE(74)] = 2415,
+  [SMALL_STATE(75)] = 2431,
+  [SMALL_STATE(76)] = 2447,
+  [SMALL_STATE(77)] = 2468,
+  [SMALL_STATE(78)] = 2489,
+  [SMALL_STATE(79)] = 2510,
+  [SMALL_STATE(80)] = 2524,
+  [SMALL_STATE(81)] = 2546,
+  [SMALL_STATE(82)] = 2568,
+  [SMALL_STATE(83)] = 2582,
+  [SMALL_STATE(84)] = 2599,
+  [SMALL_STATE(85)] = 2616,
+  [SMALL_STATE(86)] = 2627,
+  [SMALL_STATE(87)] = 2638,
+  [SMALL_STATE(88)] = 2655,
+  [SMALL_STATE(89)] = 2666,
+  [SMALL_STATE(90)] = 2677,
+  [SMALL_STATE(91)] = 2694,
+  [SMALL_STATE(92)] = 2705,
+  [SMALL_STATE(93)] = 2722,
+  [SMALL_STATE(94)] = 2733,
+  [SMALL_STATE(95)] = 2744,
+  [SMALL_STATE(96)] = 2758,
+  [SMALL_STATE(97)] = 2772,
+  [SMALL_STATE(98)] = 2782,
+  [SMALL_STATE(99)] = 2796,
+  [SMALL_STATE(100)] = 2810,
+  [SMALL_STATE(101)] = 2820,
+  [SMALL_STATE(102)] = 2832,
+  [SMALL_STATE(103)] = 2848,
+  [SMALL_STATE(104)] = 2862,
+  [SMALL_STATE(105)] = 2876,
+  [SMALL_STATE(106)] = 2890,
+  [SMALL_STATE(107)] = 2903,
+  [SMALL_STATE(108)] = 2916,
+  [SMALL_STATE(109)] = 2929,
+  [SMALL_STATE(110)] = 2942,
+  [SMALL_STATE(111)] = 2955,
+  [SMALL_STATE(112)] = 2968,
+  [SMALL_STATE(113)] = 2981,
+  [SMALL_STATE(114)] = 2994,
+  [SMALL_STATE(115)] = 3007,
+  [SMALL_STATE(116)] = 3020,
+  [SMALL_STATE(117)] = 3033,
+  [SMALL_STATE(118)] = 3046,
+  [SMALL_STATE(119)] = 3059,
+  [SMALL_STATE(120)] = 3072,
+  [SMALL_STATE(121)] = 3085,
+  [SMALL_STATE(122)] = 3098,
+  [SMALL_STATE(123)] = 3111,
+  [SMALL_STATE(124)] = 3124,
+  [SMALL_STATE(125)] = 3137,
+  [SMALL_STATE(126)] = 3150,
+  [SMALL_STATE(127)] = 3163,
+  [SMALL_STATE(128)] = 3176,
+  [SMALL_STATE(129)] = 3189,
+  [SMALL_STATE(130)] = 3198,
+  [SMALL_STATE(131)] = 3207,
+  [SMALL_STATE(132)] = 3218,
+  [SMALL_STATE(133)] = 3226,
+  [SMALL_STATE(134)] = 3236,
+  [SMALL_STATE(135)] = 3246,
+  [SMALL_STATE(136)] = 3254,
+  [SMALL_STATE(137)] = 3262,
+  [SMALL_STATE(138)] = 3272,
+  [SMALL_STATE(139)] = 3280,
+  [SMALL_STATE(140)] = 3288,
+  [SMALL_STATE(141)] = 3296,
+  [SMALL_STATE(142)] = 3306,
+  [SMALL_STATE(143)] = 3314,
+  [SMALL_STATE(144)] = 3324,
+  [SMALL_STATE(145)] = 3332,
+  [SMALL_STATE(146)] = 3340,
+  [SMALL_STATE(147)] = 3348,
+  [SMALL_STATE(148)] = 3358,
+  [SMALL_STATE(149)] = 3366,
+  [SMALL_STATE(150)] = 3374,
+  [SMALL_STATE(151)] = 3382,
+  [SMALL_STATE(152)] = 3390,
+  [SMALL_STATE(153)] = 3400,
+  [SMALL_STATE(154)] = 3410,
+  [SMALL_STATE(155)] = 3418,
+  [SMALL_STATE(156)] = 3428,
+  [SMALL_STATE(157)] = 3436,
+  [SMALL_STATE(158)] = 3446,
+  [SMALL_STATE(159)] = 3456,
+  [SMALL_STATE(160)] = 3464,
+  [SMALL_STATE(161)] = 3472,
+  [SMALL_STATE(162)] = 3482,
+  [SMALL_STATE(163)] = 3490,
+  [SMALL_STATE(164)] = 3498,
+  [SMALL_STATE(165)] = 3508,
+  [SMALL_STATE(166)] = 3516,
+  [SMALL_STATE(167)] = 3524,
+  [SMALL_STATE(168)] = 3534,
+  [SMALL_STATE(169)] = 3542,
+  [SMALL_STATE(170)] = 3552,
+  [SMALL_STATE(171)] = 3560,
+  [SMALL_STATE(172)] = 3568,
+  [SMALL_STATE(173)] = 3576,
+  [SMALL_STATE(174)] = 3584,
+  [SMALL_STATE(175)] = 3591,
+  [SMALL_STATE(176)] = 3598,
+  [SMALL_STATE(177)] = 3605,
+  [SMALL_STATE(178)] = 3612,
+  [SMALL_STATE(179)] = 3619,
+  [SMALL_STATE(180)] = 3626,
+  [SMALL_STATE(181)] = 3633,
+  [SMALL_STATE(182)] = 3640,
+  [SMALL_STATE(183)] = 3647,
+  [SMALL_STATE(184)] = 3654,
+  [SMALL_STATE(185)] = 3661,
+  [SMALL_STATE(186)] = 3668,
+  [SMALL_STATE(187)] = 3675,
+  [SMALL_STATE(188)] = 3682,
+  [SMALL_STATE(189)] = 3689,
+  [SMALL_STATE(190)] = 3696,
+  [SMALL_STATE(191)] = 3703,
+  [SMALL_STATE(192)] = 3710,
+  [SMALL_STATE(193)] = 3717,
+  [SMALL_STATE(194)] = 3724,
+  [SMALL_STATE(195)] = 3731,
+  [SMALL_STATE(196)] = 3738,
+  [SMALL_STATE(197)] = 3745,
+  [SMALL_STATE(198)] = 3752,
+  [SMALL_STATE(199)] = 3759,
+  [SMALL_STATE(200)] = 3766,
+  [SMALL_STATE(201)] = 3773,
+  [SMALL_STATE(202)] = 3780,
+  [SMALL_STATE(203)] = 3787,
+  [SMALL_STATE(204)] = 3794,
+  [SMALL_STATE(205)] = 3801,
 };
 
 static const TSParseActionEntry ts_parse_actions[] = {
@@ -8438,305 +8579,307 @@ static const TSParseActionEntry ts_parse_actions[] = {
   [1] = {.entry = {.count = 1, .reusable = false}}, RECOVER(),
   [3] = {.entry = {.count = 1, .reusable = true}}, SHIFT_EXTRA(),
   [5] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_source_file, 0, 0, 0),
-  [7] = {.entry = {.count = 1, .reusable = true}}, SHIFT(4),
-  [9] = {.entry = {.count = 1, .reusable = false}}, SHIFT(195),
-  [11] = {.entry = {.count = 1, .reusable = true}}, SHIFT(133),
-  [13] = {.entry = {.count = 1, .reusable = false}}, SHIFT(193),
-  [15] = {.entry = {.count = 1, .reusable = false}}, SHIFT(50),
-  [17] = {.entry = {.count = 1, .reusable = false}}, SHIFT(44),
-  [19] = {.entry = {.count = 1, .reusable = false}}, SHIFT(169),
-  [21] = {.entry = {.count = 1, .reusable = false}}, SHIFT(179),
-  [23] = {.entry = {.count = 1, .reusable = false}}, SHIFT(139),
-  [25] = {.entry = {.count = 1, .reusable = false}}, SHIFT(75),
-  [27] = {.entry = {.count = 1, .reusable = false}}, SHIFT(177),
-  [29] = {.entry = {.count = 1, .reusable = false}}, SHIFT(168),
-  [31] = {.entry = {.count = 1, .reusable = false}}, SHIFT(115),
-  [33] = {.entry = {.count = 1, .reusable = false}}, SHIFT(78),
-  [35] = {.entry = {.count = 1, .reusable = false}}, SHIFT(99),
-  [37] = {.entry = {.count = 1, .reusable = false}}, SHIFT(117),
-  [39] = {.entry = {.count = 1, .reusable = false}}, SHIFT(20),
-  [41] = {.entry = {.count = 1, .reusable = false}}, SHIFT(72),
+  [7] = {.entry = {.count = 1, .reusable = true}}, SHIFT(3),
+  [9] = {.entry = {.count = 1, .reusable = false}}, SHIFT(182),
+  [11] = {.entry = {.count = 1, .reusable = true}}, SHIFT(152),
+  [13] = {.entry = {.count = 1, .reusable = false}}, SHIFT(180),
+  [15] = {.entry = {.count = 1, .reusable = false}}, SHIFT(49),
+  [17] = {.entry = {.count = 1, .reusable = false}}, SHIFT(41),
+  [19] = {.entry = {.count = 1, .reusable = false}}, SHIFT(133),
+  [21] = {.entry = {.count = 1, .reusable = false}}, SHIFT(185),
+  [23] = {.entry = {.count = 1, .reusable = false}}, SHIFT(141),
+  [25] = {.entry = {.count = 1, .reusable = false}}, SHIFT(76),
+  [27] = {.entry = {.count = 1, .reusable = false}}, SHIFT(199),
+  [29] = {.entry = {.count = 1, .reusable = false}}, SHIFT(173),
+  [31] = {.entry = {.count = 1, .reusable = false}}, SHIFT(112),
+  [33] = {.entry = {.count = 1, .reusable = false}}, SHIFT(79),
+  [35] = {.entry = {.count = 1, .reusable = false}}, SHIFT(102),
+  [37] = {.entry = {.count = 1, .reusable = false}}, SHIFT(119),
+  [39] = {.entry = {.count = 1, .reusable = false}}, SHIFT(22),
+  [41] = {.entry = {.count = 1, .reusable = false}}, SHIFT(64),
   [43] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0),
   [45] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(2),
-  [48] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(195),
-  [51] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(133),
-  [54] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(193),
-  [57] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(50),
-  [60] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(44),
-  [63] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(169),
-  [66] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(179),
-  [69] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(139),
-  [72] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(75),
-  [75] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(177),
-  [78] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(168),
-  [81] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(115),
-  [84] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(78),
-  [87] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(99),
-  [90] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(117),
-  [93] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(20),
-  [96] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(72),
-  [99] = {.entry = {.count = 1, .reusable = true}}, SHIFT(2),
-  [101] = {.entry = {.count = 1, .reusable = true}}, SHIFT(96),
-  [103] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_source_file, 1, 0, 0),
-  [105] = {.entry = {.count = 1, .reusable = true}}, SHIFT(3),
+  [48] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(182),
+  [51] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(152),
+  [54] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(180),
+  [57] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(49),
+  [60] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(41),
+  [63] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(133),
+  [66] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(185),
+  [69] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(141),
+  [72] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(76),
+  [75] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(199),
+  [78] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(173),
+  [81] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(112),
+  [84] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(79),
+  [87] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(102),
+  [90] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(119),
+  [93] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(22),
+  [96] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_source_file_repeat1, 2, 0, 0), SHIFT_REPEAT(64),
+  [99] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_source_file, 1, 0, 0),
+  [101] = {.entry = {.count = 1, .reusable = true}}, SHIFT(2),
+  [103] = {.entry = {.count = 1, .reusable = true}}, SHIFT(5),
+  [105] = {.entry = {.count = 1, .reusable = true}}, SHIFT(97),
   [107] = {.entry = {.count = 1, .reusable = true}}, SHIFT(100),
-  [109] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym__statement, 2, 0, 0),
-  [111] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__statement, 2, 0, 0),
+  [109] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_vec3, 3, 0, 0),
+  [111] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_vec3, 3, 0, 0),
   [113] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_variable_ref, 1, 0, 2),
-  [115] = {.entry = {.count = 1, .reusable = true}}, SHIFT(23),
-  [117] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_variable_ref, 1, 0, 2),
-  [119] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_boolean, 1, 0, 0),
-  [121] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_boolean, 1, 0, 0),
-  [123] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_unary_expression, 2, 0, 11),
-  [125] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_unary_expression, 2, 0, 11),
-  [127] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_call, 3, 0, 2),
-  [129] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_function_call, 3, 0, 2),
-  [131] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_call, 4, 0, 20),
-  [133] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_function_call, 4, 0, 20),
-  [135] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_parenthesized_expression, 3, 0, 0),
-  [137] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_parenthesized_expression, 3, 0, 0),
-  [139] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_binary_expression, 3, 0, 17),
-  [141] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_binary_expression, 3, 0, 17),
-  [143] = {.entry = {.count = 1, .reusable = true}}, SHIFT(40),
-  [145] = {.entry = {.count = 1, .reusable = true}}, SHIFT(41),
-  [147] = {.entry = {.count = 1, .reusable = false}}, SHIFT(41),
-  [149] = {.entry = {.count = 1, .reusable = false}}, SHIFT(46),
-  [151] = {.entry = {.count = 1, .reusable = true}}, SHIFT(46),
-  [153] = {.entry = {.count = 1, .reusable = true}}, SHIFT(49),
-  [155] = {.entry = {.count = 1, .reusable = true}}, SHIFT(48),
-  [157] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_call, 5, 0, 23),
-  [159] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_function_call, 5, 0, 23),
-  [161] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_return_statement, 1, 0, 0),
-  [163] = {.entry = {.count = 1, .reusable = true}}, SHIFT(36),
-  [165] = {.entry = {.count = 1, .reusable = false}}, SHIFT(35),
-  [167] = {.entry = {.count = 1, .reusable = true}}, SHIFT(35),
-  [169] = {.entry = {.count = 1, .reusable = false}}, SHIFT(7),
-  [171] = {.entry = {.count = 1, .reusable = true}}, SHIFT(22),
-  [173] = {.entry = {.count = 1, .reusable = false}}, SHIFT(8),
-  [175] = {.entry = {.count = 1, .reusable = true}}, SHIFT(45),
-  [177] = {.entry = {.count = 1, .reusable = true}}, SHIFT(11),
-  [179] = {.entry = {.count = 1, .reusable = true}}, SHIFT(31),
-  [181] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_return_statement, 2, 0, 0),
-  [183] = {.entry = {.count = 1, .reusable = true}}, SHIFT(10),
-  [185] = {.entry = {.count = 1, .reusable = true}}, SHIFT(21),
-  [187] = {.entry = {.count = 1, .reusable = true}}, SHIFT(5),
-  [189] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_assignment, 3, 0, 16),
-  [191] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_do_while, 4, 0, 18),
-  [193] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_function_call_repeat1, 2, 0, 0),
-  [195] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_variable_declaration, 6, 0, 24),
-  [197] = {.entry = {.count = 1, .reusable = true}}, SHIFT(18),
-  [199] = {.entry = {.count = 1, .reusable = true}}, SHIFT(27),
-  [201] = {.entry = {.count = 1, .reusable = true}}, SHIFT(42),
-  [203] = {.entry = {.count = 1, .reusable = true}}, SHIFT(26),
-  [205] = {.entry = {.count = 1, .reusable = true}}, SHIFT(9),
-  [207] = {.entry = {.count = 1, .reusable = true}}, SHIFT(38),
-  [209] = {.entry = {.count = 1, .reusable = true}}, SHIFT(81),
-  [211] = {.entry = {.count = 1, .reusable = true}}, SHIFT(12),
-  [213] = {.entry = {.count = 1, .reusable = true}}, SHIFT(37),
-  [215] = {.entry = {.count = 1, .reusable = true}}, SHIFT(13),
-  [217] = {.entry = {.count = 1, .reusable = true}}, SHIFT(14),
-  [219] = {.entry = {.count = 1, .reusable = true}}, SHIFT(47),
-  [221] = {.entry = {.count = 1, .reusable = true}}, SHIFT(29),
-  [223] = {.entry = {.count = 1, .reusable = true}}, SHIFT(25),
-  [225] = {.entry = {.count = 1, .reusable = true}}, SHIFT(28),
-  [227] = {.entry = {.count = 1, .reusable = true}}, SHIFT(15),
-  [229] = {.entry = {.count = 1, .reusable = true}}, SHIFT(30),
-  [231] = {.entry = {.count = 1, .reusable = true}}, SHIFT(17),
-  [233] = {.entry = {.count = 1, .reusable = true}}, SHIFT(16),
-  [235] = {.entry = {.count = 1, .reusable = true}}, SHIFT(24),
-  [237] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_namespaced_arg, 1, 0, 0),
-  [239] = {.entry = {.count = 1, .reusable = true}}, SHIFT(183),
-  [241] = {.entry = {.count = 1, .reusable = true}}, SHIFT(139),
-  [243] = {.entry = {.count = 1, .reusable = true}}, SHIFT(75),
-  [245] = {.entry = {.count = 1, .reusable = true}}, SHIFT(177),
-  [247] = {.entry = {.count = 1, .reusable = true}}, SHIFT(168),
-  [249] = {.entry = {.count = 1, .reusable = true}}, SHIFT(115),
-  [251] = {.entry = {.count = 1, .reusable = true}}, SHIFT(78),
-  [253] = {.entry = {.count = 1, .reusable = true}}, SHIFT(99),
-  [255] = {.entry = {.count = 1, .reusable = true}}, SHIFT(117),
-  [257] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_selector, 1, 0, 0),
-  [259] = {.entry = {.count = 1, .reusable = true}}, SHIFT(61),
-  [261] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_namespaced_arg, 3, 0, 0),
-  [263] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(139),
-  [266] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(75),
-  [269] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(177),
-  [272] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(168),
-  [275] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(115),
-  [278] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(78),
-  [281] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(99),
-  [284] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(117),
-  [287] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0),
-  [289] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_selector, 3, 0, 0),
-  [291] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_selector, 4, 0, 0),
-  [293] = {.entry = {.count = 1, .reusable = false}}, SHIFT(83),
-  [295] = {.entry = {.count = 1, .reusable = false}}, SHIFT(57),
-  [297] = {.entry = {.count = 1, .reusable = false}}, SHIFT(60),
-  [299] = {.entry = {.count = 1, .reusable = false}}, SHIFT(97),
-  [301] = {.entry = {.count = 1, .reusable = false}}, SHIFT(98),
-  [303] = {.entry = {.count = 1, .reusable = false}}, SHIFT_EXTRA(),
-  [305] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(83),
-  [308] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0),
-  [310] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(60),
-  [313] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(97),
-  [316] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(98),
-  [319] = {.entry = {.count = 1, .reusable = false}}, SHIFT(56),
-  [321] = {.entry = {.count = 1, .reusable = false}}, SHIFT(59),
-  [323] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 3, 0, 15),
-  [325] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 3),
-  [327] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 3, 0, 14),
-  [329] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_vec2, 2, 0, 0),
-  [331] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 4),
-  [333] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 5),
-  [335] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 6),
-  [337] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_vec3, 3, 0, 0),
-  [339] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 7),
-  [341] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 8),
-  [343] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_command_statement, 1, 0, 1),
-  [345] = {.entry = {.count = 1, .reusable = true}}, SHIFT(34),
-  [347] = {.entry = {.count = 1, .reusable = false}}, SHIFT(80),
-  [349] = {.entry = {.count = 1, .reusable = true}}, SHIFT(39),
-  [351] = {.entry = {.count = 1, .reusable = true}}, SHIFT(80),
-  [353] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 9),
-  [355] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 4, 0, 19),
-  [357] = {.entry = {.count = 1, .reusable = true}}, SHIFT(53),
-  [359] = {.entry = {.count = 1, .reusable = true}}, SHIFT(58),
-  [361] = {.entry = {.count = 1, .reusable = false}}, SHIFT(58),
-  [363] = {.entry = {.count = 1, .reusable = true}}, SHIFT(71),
-  [365] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0),
-  [367] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(79),
-  [370] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(39),
-  [373] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(79),
-  [376] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_command_statement, 2, 0, 1),
-  [378] = {.entry = {.count = 1, .reusable = false}}, SHIFT(79),
-  [380] = {.entry = {.count = 1, .reusable = true}}, SHIFT(79),
-  [382] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_interpolation, 3, 0, 21),
-  [384] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_interpolation, 3, 0, 21),
-  [386] = {.entry = {.count = 1, .reusable = false}}, SHIFT(93),
-  [388] = {.entry = {.count = 1, .reusable = false}}, SHIFT(129),
-  [390] = {.entry = {.count = 1, .reusable = false}}, SHIFT(92),
-  [392] = {.entry = {.count = 1, .reusable = false}}, SHIFT(85),
+  [115] = {.entry = {.count = 1, .reusable = true}}, SHIFT(202),
+  [117] = {.entry = {.count = 1, .reusable = true}}, SHIFT(23),
+  [119] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_namespaced_arg, 1, 0, 0),
+  [121] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_variable_ref, 1, 0, 2),
+  [123] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym__statement, 2, 0, 0),
+  [125] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__statement, 2, 0, 0),
+  [127] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_call, 5, 0, 23),
+  [129] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_function_call, 5, 0, 23),
+  [131] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_boolean, 1, 0, 0),
+  [133] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_boolean, 1, 0, 0),
+  [135] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_unary_expression, 2, 0, 11),
+  [137] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_unary_expression, 2, 0, 11),
+  [139] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_call, 3, 0, 2),
+  [141] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_function_call, 3, 0, 2),
+  [143] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_binary_expression, 3, 0, 17),
+  [145] = {.entry = {.count = 1, .reusable = true}}, SHIFT(31),
+  [147] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_binary_expression, 3, 0, 17),
+  [149] = {.entry = {.count = 1, .reusable = true}}, SHIFT(32),
+  [151] = {.entry = {.count = 1, .reusable = false}}, SHIFT(32),
+  [153] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_parenthesized_expression, 3, 0, 0),
+  [155] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_parenthesized_expression, 3, 0, 0),
+  [157] = {.entry = {.count = 1, .reusable = false}}, SHIFT(33),
+  [159] = {.entry = {.count = 1, .reusable = true}}, SHIFT(33),
+  [161] = {.entry = {.count = 1, .reusable = true}}, SHIFT(34),
+  [163] = {.entry = {.count = 1, .reusable = true}}, SHIFT(35),
+  [165] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_call, 4, 0, 20),
+  [167] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_function_call, 4, 0, 20),
+  [169] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_return_statement, 1, 0, 0),
+  [171] = {.entry = {.count = 1, .reusable = true}}, SHIFT(30),
+  [173] = {.entry = {.count = 1, .reusable = false}}, SHIFT(37),
+  [175] = {.entry = {.count = 1, .reusable = true}}, SHIFT(37),
+  [177] = {.entry = {.count = 1, .reusable = false}}, SHIFT(7),
+  [179] = {.entry = {.count = 1, .reusable = true}}, SHIFT(27),
+  [181] = {.entry = {.count = 1, .reusable = false}}, SHIFT(10),
+  [183] = {.entry = {.count = 1, .reusable = true}}, SHIFT(12),
+  [185] = {.entry = {.count = 1, .reusable = true}}, SHIFT(24),
+  [187] = {.entry = {.count = 1, .reusable = true}}, SHIFT(45),
+  [189] = {.entry = {.count = 1, .reusable = true}}, SHIFT(20),
+  [191] = {.entry = {.count = 1, .reusable = true}}, SHIFT(36),
+  [193] = {.entry = {.count = 1, .reusable = true}}, SHIFT(48),
+  [195] = {.entry = {.count = 1, .reusable = true}}, SHIFT(4),
+  [197] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_return_statement, 2, 0, 0),
+  [199] = {.entry = {.count = 1, .reusable = true}}, SHIFT(40),
+  [201] = {.entry = {.count = 1, .reusable = true}}, SHIFT(50),
+  [203] = {.entry = {.count = 1, .reusable = true}}, SHIFT(51),
+  [205] = {.entry = {.count = 1, .reusable = true}}, SHIFT(19),
+  [207] = {.entry = {.count = 1, .reusable = true}}, SHIFT(13),
+  [209] = {.entry = {.count = 1, .reusable = true}}, SHIFT(14),
+  [211] = {.entry = {.count = 1, .reusable = true}}, SHIFT(21),
+  [213] = {.entry = {.count = 1, .reusable = true}}, SHIFT(16),
+  [215] = {.entry = {.count = 1, .reusable = true}}, SHIFT(17),
+  [217] = {.entry = {.count = 1, .reusable = true}}, SHIFT(11),
+  [219] = {.entry = {.count = 1, .reusable = true}}, SHIFT(44),
+  [221] = {.entry = {.count = 1, .reusable = true}}, SHIFT(52),
+  [223] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_assignment, 3, 0, 16),
+  [225] = {.entry = {.count = 1, .reusable = true}}, SHIFT(43),
+  [227] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_do_while, 4, 0, 18),
+  [229] = {.entry = {.count = 1, .reusable = true}}, SHIFT(47),
+  [231] = {.entry = {.count = 1, .reusable = true}}, SHIFT(26),
+  [233] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_function_call_repeat1, 2, 0, 0),
+  [235] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_variable_declaration, 6, 0, 24),
+  [237] = {.entry = {.count = 1, .reusable = true}}, SHIFT(42),
+  [239] = {.entry = {.count = 1, .reusable = true}}, SHIFT(82),
+  [241] = {.entry = {.count = 1, .reusable = true}}, SHIFT(15),
+  [243] = {.entry = {.count = 1, .reusable = true}}, SHIFT(46),
+  [245] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_selector, 1, 0, 0),
+  [247] = {.entry = {.count = 1, .reusable = true}}, SHIFT(61),
+  [249] = {.entry = {.count = 1, .reusable = true}}, SHIFT(141),
+  [251] = {.entry = {.count = 1, .reusable = true}}, SHIFT(76),
+  [253] = {.entry = {.count = 1, .reusable = true}}, SHIFT(199),
+  [255] = {.entry = {.count = 1, .reusable = true}}, SHIFT(173),
+  [257] = {.entry = {.count = 1, .reusable = true}}, SHIFT(112),
+  [259] = {.entry = {.count = 1, .reusable = true}}, SHIFT(79),
+  [261] = {.entry = {.count = 1, .reusable = true}}, SHIFT(102),
+  [263] = {.entry = {.count = 1, .reusable = true}}, SHIFT(119),
+  [265] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_namespaced_arg, 3, 0, 0),
+  [267] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(141),
+  [270] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(76),
+  [273] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(199),
+  [276] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(173),
+  [279] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(112),
+  [282] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(79),
+  [285] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(102),
+  [288] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(119),
+  [291] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_context_statement_repeat1, 2, 0, 0),
+  [293] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_selector, 3, 0, 0),
+  [295] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_selector, 4, 0, 0),
+  [297] = {.entry = {.count = 1, .reusable = false}}, SHIFT(84),
+  [299] = {.entry = {.count = 1, .reusable = false}}, SHIFT(59),
+  [301] = {.entry = {.count = 1, .reusable = false}}, SHIFT(62),
+  [303] = {.entry = {.count = 1, .reusable = false}}, SHIFT(103),
+  [305] = {.entry = {.count = 1, .reusable = false}}, SHIFT(104),
+  [307] = {.entry = {.count = 1, .reusable = false}}, SHIFT_EXTRA(),
+  [309] = {.entry = {.count = 1, .reusable = false}}, SHIFT(60),
+  [311] = {.entry = {.count = 1, .reusable = false}}, SHIFT(63),
+  [313] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(84),
+  [316] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0),
+  [318] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(63),
+  [321] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(103),
+  [324] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_repeat1, 2, 0, 0), SHIFT_REPEAT(104),
+  [327] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_command_statement, 1, 0, 1),
+  [329] = {.entry = {.count = 1, .reusable = true}}, SHIFT(28),
+  [331] = {.entry = {.count = 1, .reusable = false}}, SHIFT(80),
+  [333] = {.entry = {.count = 1, .reusable = true}}, SHIFT(29),
+  [335] = {.entry = {.count = 1, .reusable = true}}, SHIFT(80),
+  [337] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 3),
+  [339] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 9),
+  [341] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 4),
+  [343] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 5),
+  [345] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 8),
+  [347] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 4, 0, 19),
+  [349] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 7),
+  [351] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 3, 0, 14),
+  [353] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 2, 0, 6),
+  [355] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_contextModifier, 3, 0, 15),
+  [357] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_vec2, 2, 0, 0),
+  [359] = {.entry = {.count = 1, .reusable = true}}, SHIFT(53),
+  [361] = {.entry = {.count = 1, .reusable = true}}, SHIFT(57),
+  [363] = {.entry = {.count = 1, .reusable = false}}, SHIFT(57),
+  [365] = {.entry = {.count = 1, .reusable = true}}, SHIFT(69),
+  [367] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_command_statement, 2, 0, 1),
+  [369] = {.entry = {.count = 1, .reusable = false}}, SHIFT(81),
+  [371] = {.entry = {.count = 1, .reusable = true}}, SHIFT(81),
+  [373] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0),
+  [375] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(81),
+  [378] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(29),
+  [381] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_command_statement_repeat1, 2, 0, 0), SHIFT_REPEAT(81),
+  [384] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_interpolation, 3, 0, 21),
+  [386] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_interpolation, 3, 0, 21),
+  [388] = {.entry = {.count = 1, .reusable = false}}, SHIFT(83),
+  [390] = {.entry = {.count = 1, .reusable = false}}, SHIFT(129),
+  [392] = {.entry = {.count = 1, .reusable = false}}, SHIFT(90),
   [394] = {.entry = {.count = 1, .reusable = false}}, SHIFT(86),
-  [396] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_string_literal, 1, 0, 0),
-  [398] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_selector_nbt, 2, 0, 0),
-  [400] = {.entry = {.count = 1, .reusable = false}}, SHIFT(91),
-  [402] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_double, 2, 0, 0),
-  [404] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_single, 3, 0, 0),
-  [406] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_single, 2, 0, 0),
-  [408] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_double, 3, 0, 0),
-  [410] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_selector_nbt, 3, 0, 0),
-  [412] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_nbt_repeat1, 2, 0, 0), SHIFT_REPEAT(93),
-  [415] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym_selector_nbt_repeat1, 2, 0, 0),
-  [417] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_nbt_repeat1, 2, 0, 0), SHIFT_REPEAT(92),
-  [420] = {.entry = {.count = 1, .reusable = false}}, SHIFT(128),
-  [422] = {.entry = {.count = 1, .reusable = false}}, SHIFT(82),
-  [424] = {.entry = {.count = 1, .reusable = true}}, SHIFT(62),
-  [426] = {.entry = {.count = 1, .reusable = false}}, SHIFT(62),
-  [428] = {.entry = {.count = 1, .reusable = true}}, SHIFT(50),
-  [430] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_block, 3, 0, 0),
-  [432] = {.entry = {.count = 1, .reusable = false}}, SHIFT(87),
-  [434] = {.entry = {.count = 1, .reusable = false}}, SHIFT(101),
-  [436] = {.entry = {.count = 1, .reusable = false}}, SHIFT(89),
-  [438] = {.entry = {.count = 1, .reusable = false}}, SHIFT(103),
-  [440] = {.entry = {.count = 1, .reusable = false}}, SHIFT(77),
-  [442] = {.entry = {.count = 1, .reusable = false}}, SHIFT(94),
-  [444] = {.entry = {.count = 1, .reusable = false}}, SHIFT(173),
-  [446] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_block, 2, 0, 0),
-  [448] = {.entry = {.count = 1, .reusable = false}}, SHIFT(90),
-  [450] = {.entry = {.count = 1, .reusable = false}}, SHIFT(102),
-  [452] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym__string_double_repeat1, 2, 0, 0),
-  [454] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym__string_double_repeat1, 2, 0, 0), SHIFT_REPEAT(102),
-  [457] = {.entry = {.count = 1, .reusable = false}}, SHIFT(88),
-  [459] = {.entry = {.count = 1, .reusable = false}}, SHIFT(104),
-  [461] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym__string_single_repeat1, 2, 0, 0),
-  [463] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym__string_single_repeat1, 2, 0, 0), SHIFT_REPEAT(104),
-  [466] = {.entry = {.count = 1, .reusable = true}}, SHIFT(189),
-  [468] = {.entry = {.count = 1, .reusable = true}}, SHIFT(202),
-  [470] = {.entry = {.count = 1, .reusable = true}}, SHIFT(105),
-  [472] = {.entry = {.count = 1, .reusable = true}}, SHIFT(176),
-  [474] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_function_call_repeat1, 2, 0, 0), SHIFT_REPEAT(45),
-  [477] = {.entry = {.count = 1, .reusable = true}}, SHIFT(120),
-  [479] = {.entry = {.count = 1, .reusable = true}}, SHIFT(190),
-  [481] = {.entry = {.count = 1, .reusable = true}}, SHIFT(148),
-  [483] = {.entry = {.count = 1, .reusable = true}}, SHIFT(122),
-  [485] = {.entry = {.count = 1, .reusable = true}}, SHIFT(197),
-  [487] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_function_definition_repeat1, 2, 0, 0), SHIFT_REPEAT(148),
-  [490] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_function_definition_repeat1, 2, 0, 0),
-  [492] = {.entry = {.count = 1, .reusable = true}}, SHIFT(112),
-  [494] = {.entry = {.count = 1, .reusable = false}}, SHIFT(76),
-  [496] = {.entry = {.count = 1, .reusable = true}}, SHIFT(106),
-  [498] = {.entry = {.count = 1, .reusable = false}}, SHIFT(199),
-  [500] = {.entry = {.count = 1, .reusable = true}}, SHIFT(19),
-  [502] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_if, 3, 0, 12),
-  [504] = {.entry = {.count = 1, .reusable = true}}, SHIFT(95),
+  [396] = {.entry = {.count = 1, .reusable = false}}, SHIFT(87),
+  [398] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_string_literal, 1, 0, 0),
+  [400] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_selector_nbt, 2, 0, 0),
+  [402] = {.entry = {.count = 1, .reusable = false}}, SHIFT(91),
+  [404] = {.entry = {.count = 1, .reusable = false}}, SHIFT(92),
+  [406] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_double, 2, 0, 0),
+  [408] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_single, 2, 0, 0),
+  [410] = {.entry = {.count = 1, .reusable = false}}, SHIFT(130),
+  [412] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym_selector_nbt, 3, 0, 0),
+  [414] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_nbt_repeat1, 2, 0, 0), SHIFT_REPEAT(83),
+  [417] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym_selector_nbt_repeat1, 2, 0, 0),
+  [419] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym_selector_nbt_repeat1, 2, 0, 0), SHIFT_REPEAT(92),
+  [422] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_double, 3, 0, 0),
+  [424] = {.entry = {.count = 1, .reusable = false}}, REDUCE(sym__string_single, 3, 0, 0),
+  [426] = {.entry = {.count = 1, .reusable = false}}, SHIFT(94),
+  [428] = {.entry = {.count = 1, .reusable = false}}, SHIFT(96),
+  [430] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym__string_single_repeat1, 2, 0, 0),
+  [432] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym__string_single_repeat1, 2, 0, 0), SHIFT_REPEAT(96),
+  [435] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_block, 2, 0, 0),
+  [437] = {.entry = {.count = 1, .reusable = false}}, SHIFT(93),
+  [439] = {.entry = {.count = 1, .reusable = false}}, SHIFT(105),
+  [441] = {.entry = {.count = 1, .reusable = true}}, SHIFT(49),
+  [443] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_block, 3, 0, 0),
+  [445] = {.entry = {.count = 1, .reusable = true}}, SHIFT(74),
+  [447] = {.entry = {.count = 1, .reusable = false}}, SHIFT(74),
+  [449] = {.entry = {.count = 1, .reusable = true}}, SHIFT(78),
+  [451] = {.entry = {.count = 1, .reusable = true}}, SHIFT(101),
+  [453] = {.entry = {.count = 1, .reusable = true}}, SHIFT(181),
+  [455] = {.entry = {.count = 1, .reusable = false}}, SHIFT(88),
+  [457] = {.entry = {.count = 1, .reusable = false}}, SHIFT(98),
+  [459] = {.entry = {.count = 1, .reusable = false}}, SHIFT(89),
+  [461] = {.entry = {.count = 1, .reusable = false}}, SHIFT(95),
+  [463] = {.entry = {.count = 1, .reusable = false}}, REDUCE(aux_sym__string_double_repeat1, 2, 0, 0),
+  [465] = {.entry = {.count = 2, .reusable = false}}, REDUCE(aux_sym__string_double_repeat1, 2, 0, 0), SHIFT_REPEAT(105),
+  [468] = {.entry = {.count = 1, .reusable = true}}, SHIFT(155),
+  [470] = {.entry = {.count = 1, .reusable = true}}, SHIFT(123),
+  [472] = {.entry = {.count = 1, .reusable = true}}, SHIFT(9),
+  [474] = {.entry = {.count = 1, .reusable = true}}, SHIFT(195),
+  [476] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_function_call_repeat1, 2, 0, 0), SHIFT_REPEAT(45),
+  [479] = {.entry = {.count = 1, .reusable = true}}, SHIFT(121),
+  [481] = {.entry = {.count = 1, .reusable = true}}, SHIFT(175),
+  [483] = {.entry = {.count = 1, .reusable = true}}, SHIFT(190),
+  [485] = {.entry = {.count = 1, .reusable = true}}, SHIFT(77),
+  [487] = {.entry = {.count = 1, .reusable = true}}, SHIFT(198),
+  [489] = {.entry = {.count = 2, .reusable = true}}, REDUCE(aux_sym_function_definition_repeat1, 2, 0, 0), SHIFT_REPEAT(155),
+  [492] = {.entry = {.count = 1, .reusable = true}}, REDUCE(aux_sym_function_definition_repeat1, 2, 0, 0),
+  [494] = {.entry = {.count = 1, .reusable = true}}, SHIFT(117),
+  [496] = {.entry = {.count = 1, .reusable = true}}, SHIFT(108),
+  [498] = {.entry = {.count = 1, .reusable = true}}, SHIFT(200),
+  [500] = {.entry = {.count = 1, .reusable = true}}, SHIFT(113),
+  [502] = {.entry = {.count = 1, .reusable = true}}, SHIFT(192),
+  [504] = {.entry = {.count = 1, .reusable = true}}, SHIFT(111),
   [506] = {.entry = {.count = 1, .reusable = true}}, SHIFT(201),
-  [508] = {.entry = {.count = 1, .reusable = true}}, SHIFT(124),
-  [510] = {.entry = {.count = 1, .reusable = true}}, SHIFT(175),
-  [512] = {.entry = {.count = 1, .reusable = true}}, SHIFT(126),
-  [514] = {.entry = {.count = 1, .reusable = true}}, SHIFT(181),
-  [516] = {.entry = {.count = 1, .reusable = true}}, SHIFT(127),
-  [518] = {.entry = {.count = 1, .reusable = true}}, SHIFT(186),
-  [520] = {.entry = {.count = 1, .reusable = true}}, SHIFT(191),
-  [522] = {.entry = {.count = 1, .reusable = true}}, SHIFT(110),
-  [524] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_if, 5, 0, 12),
-  [526] = {.entry = {.count = 1, .reusable = true}}, SHIFT(198),
-  [528] = {.entry = {.count = 1, .reusable = true}}, SHIFT(188),
-  [530] = {.entry = {.count = 1, .reusable = true}}, SHIFT(51),
-  [532] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_context_statement, 2, 0, 10),
-  [534] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_parameter, 3, 0, 25),
-  [536] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 6, 0, 26),
-  [538] = {.entry = {.count = 1, .reusable = true}}, SHIFT(74),
-  [540] = {.entry = {.count = 1, .reusable = true}}, SHIFT(6),
-  [542] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 7, 0, 27),
-  [544] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 5, 0, 22),
-  [546] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 7, 0, 28),
-  [548] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_for, 7, 0, 30),
-  [550] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 8, 0, 31),
-  [552] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 8, 0, 32),
-  [554] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 8, 0, 33),
-  [556] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 34),
-  [558] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 35),
-  [560] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 36),
-  [562] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 37),
-  [564] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 10, 0, 38),
-  [566] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 10, 0, 39),
-  [568] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 10, 0, 40),
-  [570] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 11, 0, 41),
-  [572] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 11, 0, 42),
-  [574] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 12, 0, 43),
-  [576] = {.entry = {.count = 1, .reusable = true}}, SHIFT(68),
-  [578] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_while, 3, 0, 13),
-  [580] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 7, 0, 29),
-  [582] = {.entry = {.count = 1, .reusable = true}}, SHIFT(107),
-  [584] = {.entry = {.count = 1, .reusable = false}}, SHIFT(184),
-  [586] = {.entry = {.count = 1, .reusable = true}}, SHIFT(32),
-  [588] = {.entry = {.count = 1, .reusable = true}}, SHIFT(156),
-  [590] = {.entry = {.count = 1, .reusable = true}}, SHIFT(194),
-  [592] = {.entry = {.count = 1, .reusable = true}}, SHIFT(67),
-  [594] = {.entry = {.count = 1, .reusable = true}}, SHIFT(196),
-  [596] = {.entry = {.count = 1, .reusable = true}}, SHIFT(200),
-  [598] = {.entry = {.count = 1, .reusable = true}},  ACCEPT_INPUT(),
-  [600] = {.entry = {.count = 1, .reusable = true}}, SHIFT(160),
-  [602] = {.entry = {.count = 1, .reusable = true}}, SHIFT(178),
-  [604] = {.entry = {.count = 1, .reusable = true}}, SHIFT(54),
-  [606] = {.entry = {.count = 1, .reusable = false}}, SHIFT(69),
-  [608] = {.entry = {.count = 1, .reusable = true}}, SHIFT(187),
-  [610] = {.entry = {.count = 1, .reusable = true}}, SHIFT(163),
-  [612] = {.entry = {.count = 1, .reusable = true}}, SHIFT(109),
-  [614] = {.entry = {.count = 1, .reusable = true}}, SHIFT(192),
-  [616] = {.entry = {.count = 1, .reusable = true}}, SHIFT(135),
-  [618] = {.entry = {.count = 1, .reusable = true}}, SHIFT(149),
-  [620] = {.entry = {.count = 1, .reusable = true}}, SHIFT(165),
-  [622] = {.entry = {.count = 1, .reusable = true}}, SHIFT(130),
-  [624] = {.entry = {.count = 1, .reusable = true}}, SHIFT(172),
-  [626] = {.entry = {.count = 1, .reusable = true}}, SHIFT(136),
-  [628] = {.entry = {.count = 1, .reusable = true}}, SHIFT(182),
-  [630] = {.entry = {.count = 1, .reusable = true}}, SHIFT(43),
-  [632] = {.entry = {.count = 1, .reusable = true}}, SHIFT(152),
-  [634] = {.entry = {.count = 1, .reusable = true}}, SHIFT(185),
-  [636] = {.entry = {.count = 1, .reusable = false}}, SHIFT(65),
-  [638] = {.entry = {.count = 1, .reusable = true}}, SHIFT(33),
-  [640] = {.entry = {.count = 1, .reusable = true}}, SHIFT(153),
-  [642] = {.entry = {.count = 1, .reusable = true}}, SHIFT(145),
+  [508] = {.entry = {.count = 1, .reusable = true}}, SHIFT(125),
+  [510] = {.entry = {.count = 1, .reusable = true}}, SHIFT(178),
+  [512] = {.entry = {.count = 1, .reusable = true}}, SHIFT(127),
+  [514] = {.entry = {.count = 1, .reusable = true}}, SHIFT(184),
+  [516] = {.entry = {.count = 1, .reusable = true}}, SHIFT(128),
+  [518] = {.entry = {.count = 1, .reusable = true}}, SHIFT(189),
+  [520] = {.entry = {.count = 1, .reusable = true}}, SHIFT(194),
+  [522] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_if, 3, 0, 12),
+  [524] = {.entry = {.count = 1, .reusable = true}}, SHIFT(99),
+  [526] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 10, 0, 38),
+  [528] = {.entry = {.count = 1, .reusable = true}}, SHIFT(204),
+  [530] = {.entry = {.count = 1, .reusable = true}}, SHIFT(205),
+  [532] = {.entry = {.count = 1, .reusable = true}}, SHIFT(8),
+  [534] = {.entry = {.count = 1, .reusable = true}}, SHIFT(70),
+  [536] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_parameter, 3, 0, 25),
+  [538] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 6, 0, 26),
+  [540] = {.entry = {.count = 1, .reusable = true}}, SHIFT(55),
+  [542] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_context_statement, 2, 0, 10),
+  [544] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_while, 3, 0, 13),
+  [546] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 7, 0, 27),
+  [548] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 7, 0, 28),
+  [550] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 7, 0, 29),
+  [552] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_for, 7, 0, 30),
+  [554] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 8, 0, 31),
+  [556] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 5, 0, 22),
+  [558] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 8, 0, 32),
+  [560] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 8, 0, 33),
+  [562] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 34),
+  [564] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 35),
+  [566] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 36),
+  [568] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 9, 0, 37),
+  [570] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 10, 0, 39),
+  [572] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 10, 0, 40),
+  [574] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 11, 0, 41),
+  [576] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 11, 0, 42),
+  [578] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_function_definition, 12, 0, 43),
+  [580] = {.entry = {.count = 1, .reusable = true}}, REDUCE(sym_if, 5, 0, 12),
+  [582] = {.entry = {.count = 1, .reusable = true}}, SHIFT(73),
+  [584] = {.entry = {.count = 1, .reusable = true}}, SHIFT(138),
+  [586] = {.entry = {.count = 1, .reusable = true}}, SHIFT(174),
+  [588] = {.entry = {.count = 1, .reusable = true}}, SHIFT(188),
+  [590] = {.entry = {.count = 1, .reusable = true}}, SHIFT(6),
+  [592] = {.entry = {.count = 1, .reusable = true}}, SHIFT(161),
+  [594] = {.entry = {.count = 1, .reusable = true}}, SHIFT(186),
+  [596] = {.entry = {.count = 1, .reusable = true}}, SHIFT(197),
+  [598] = {.entry = {.count = 1, .reusable = true}}, SHIFT(177),
+  [600] = {.entry = {.count = 1, .reusable = true}}, SHIFT(179),
+  [602] = {.entry = {.count = 1, .reusable = true}},  ACCEPT_INPUT(),
+  [604] = {.entry = {.count = 1, .reusable = true}}, SHIFT(164),
+  [606] = {.entry = {.count = 1, .reusable = true}}, SHIFT(193),
+  [608] = {.entry = {.count = 1, .reusable = true}}, SHIFT(196),
+  [610] = {.entry = {.count = 1, .reusable = true}}, SHIFT(120),
+  [612] = {.entry = {.count = 1, .reusable = true}}, SHIFT(110),
+  [614] = {.entry = {.count = 1, .reusable = true}}, SHIFT(167),
+  [616] = {.entry = {.count = 1, .reusable = true}}, SHIFT(153),
+  [618] = {.entry = {.count = 1, .reusable = true}}, SHIFT(143),
+  [620] = {.entry = {.count = 1, .reusable = true}}, SHIFT(75),
+  [622] = {.entry = {.count = 1, .reusable = true}}, SHIFT(39),
+  [624] = {.entry = {.count = 1, .reusable = true}}, SHIFT(169),
+  [626] = {.entry = {.count = 1, .reusable = true}}, SHIFT(137),
+  [628] = {.entry = {.count = 1, .reusable = true}}, SHIFT(25),
+  [630] = {.entry = {.count = 1, .reusable = true}}, SHIFT(116),
+  [632] = {.entry = {.count = 1, .reusable = true}}, SHIFT(157),
+  [634] = {.entry = {.count = 1, .reusable = true}}, SHIFT(68),
+  [636] = {.entry = {.count = 1, .reusable = true}}, SHIFT(147),
+  [638] = {.entry = {.count = 1, .reusable = true}}, SHIFT(158),
+  [640] = {.entry = {.count = 1, .reusable = true}}, SHIFT(56),
+  [642] = {.entry = {.count = 1, .reusable = true}}, SHIFT(38),
+  [644] = {.entry = {.count = 1, .reusable = true}}, SHIFT(176),
+  [646] = {.entry = {.count = 1, .reusable = true}}, SHIFT(187),
 };
 
 #ifdef __cplusplus

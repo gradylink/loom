@@ -15,6 +15,8 @@ func sendMessage() { -- Implicit void return type
 }
 
 #load func load() {
+  if barrier at 1 1 -1 {}
+
   for i in 5..8 {
     say loops! $i
   }

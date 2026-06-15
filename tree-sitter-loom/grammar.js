@@ -207,6 +207,14 @@ module.exports = grammar({
 
     binary_expression: ($) =>
       choice(
+        prec.left(
+          6,
+          seq(
+            field("left", $.namespaced_arg),
+            field("operator", "at"),
+            field("right", $.vec3),
+          ),
+        ),
         ...["*", "/", "%"].map((op) =>
           prec.left(
             5,
@@ -365,7 +373,8 @@ module.exports = grammar({
         $._coordinate_component,
       ),
 
-    _coordinate_component: () => /[\^~]?-?([0-9]+(\.[0-9]+)?)?|[\^~]/,
+    _coordinate_component: () =>
+      /([~^]-?([0-9]+(\.[0-9]+)?)?|-?[0-9]+(\.[0-9]+)?)/,
 
     integer: () => /\d+/,
 

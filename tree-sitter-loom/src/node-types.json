@@ -74,6 +74,10 @@
             "named": true
           },
           {
+            "type": "namespaced_arg",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -140,6 +144,10 @@
             "named": false
           },
           {
+            "type": "at",
+            "named": false
+          },
+          {
             "type": "||",
             "named": false
           }
@@ -175,6 +183,10 @@
           },
           {
             "type": "variable_ref",
+            "named": true
+          },
+          {
+            "type": "vec3",
             "named": true
           }
         ]

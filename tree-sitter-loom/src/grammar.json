@@ -998,6 +998,39 @@
       "members": [
         {
           "type": "PREC_LEFT",
+          "value": 6,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "left",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "namespaced_arg"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "operator",
+                "content": {
+                  "type": "STRING",
+                  "value": "at"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "right",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "vec3"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "PREC_LEFT",
           "value": 5,
           "content": {
             "type": "SEQ",
@@ -1778,7 +1811,7 @@
     },
     "_coordinate_component": {
       "type": "PATTERN",
-      "value": "[\\^~]?-?([0-9]+(\\.[0-9]+)?)?|[\\^~]"
+      "value": "([~^]-?([0-9]+(\\.[0-9]+)?)?|-?[0-9]+(\\.[0-9]+)?)"
     },
     "integer": {
       "type": "PATTERN",

@@ -233,9 +233,28 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
   if (type == "binary_expression") {
     TSNode leftNode = ts_node_child_by_field_name(node, "left", 4);
     TSNode rightNode = ts_node_child_by_field_name(node, "right", 5);
-    ExpressionData left = compileExpression(leftNode, id, true);
-    ExpressionData right = compileExpression(rightNode, id + 1, true);
+
     const std::string_view op = getFieldText(node, "operator");
+
+    ExpressionData left;
+    ExpressionData right;
+
+    if (op == "at") { // TODO: optimize in "!" unary operation
+      return {
+        .data = std::format(
+          "scoreboard players set expr_output{} temp 0\nexecute if block {} {} run scoreboard players set expr_output{} temp 1",
+          id,
+          getNodeText(rightNode),
+          getNodeText(leftNode),
+          id
+        ),
+        .precomputed = false,
+        .type = Type::Boolean
+      };
+    } else {
+      left = compileExpression(leftNode, id, true);
+      right = compileExpression(rightNode, id + 1, true);
+    }
 
     const bool isMath = (op == "+" || op == "-" || op == "*" || op == "/" || op == "%");
     const bool isComparison = (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=");
