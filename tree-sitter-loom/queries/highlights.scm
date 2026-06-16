@@ -1,6 +1,6 @@
 "func" @keyword.function
 "return" @keyword.return
-["let" "const"] @keyword.storage
+["let" "const" "enum"] @keyword.storage
 ["if" "else"] @keyword.conditional
 ["while" "do" "for"] @keyword.repeat
 (for "in" @keyword.repeat)
@@ -21,6 +21,10 @@
 
 (selector [ "@s" "@r" "@p" "@e" "@a" "@n" ]) @variable.builtin
 (selector) @variable.parameter
+
+(enum_definition name: (identifier) @type)
+(enum_variant name: (identifier) @constant)
+(member_expression object: (identifier) @type property: (identifier) @contant)
 
 (function_definition name: (identifier) @function)
 (function_call name: (identifier) @function.call)

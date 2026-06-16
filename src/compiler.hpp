@@ -6,6 +6,7 @@
 #include <string_view>
 #include <tree_sitter/api.h>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 class Compiler {
@@ -26,6 +27,18 @@ public:
 private:
   enum class Type { Integer, Boolean, String };
   enum class ReturnType { Integer, Boolean, String, Void };
+  enum class EnumType { Integer, String };
+
+  struct EnumVariant {
+    std::string name;
+    std::variant<int32_t, std::string> value;
+  };
+
+  struct EnumData {
+    std::string name;
+    EnumType type = EnumType::Integer;
+    std::unordered_map<std::string, EnumVariant> variants;
+  };
 
   struct FunctionData {
     std::string name;
@@ -57,6 +70,7 @@ private:
 
   std::unordered_map<std::string, FunctionData> funcs;
   std::unordered_map<std::string, VariableData> vars;
+  std::unordered_map<std::string, EnumData> enums;
   std::vector<CompiledFunction> compiledFunctions;
 
   unsigned int currentExpressionId = 0;

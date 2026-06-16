@@ -47,7 +47,7 @@ connection.onInitialize(
         hoverProvider: true,
         completionProvider: {
           resolveProvider: false,
-          triggerCharacters: ["@", "#"],
+          triggerCharacters: ["@", "#", "."],
         },
       },
     };
@@ -159,6 +159,83 @@ documents.onDidChangeContent((change) => {
   });
 });
 
+const findGlobalEnum = (root: Node, targetName: string): Node | null => {
+  let found: Node | null = null;
+  const traverse = (node: Node) => {
+    if (found) return;
+    if (node.type === "enum_definition") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode && nameNode.text === targetName) {
+        found = node;
+        return;
+      }
+    }
+    for (let i = 0; i < node.childCount; i++) traverse(node.child(i)!);
+  };
+  traverse(root);
+  return found;
+};
+
+const findEnumVariant = (enumNode: Node, variantName: string): Node | null => {
+  let found: Node | null = null;
+  const traverse = (node: Node) => {
+    if (found) return;
+    if (node.type === "enum_variant") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode && nameNode.text === variantName) {
+        found = node;
+        return;
+      }
+    }
+    for (let i = 0; i < node.childCount; i++) traverse(node.child(i)!);
+  };
+  traverse(enumNode);
+  return found;
+};
+
+const getEnumVariantValueText = (variantNode: Node): string => {
+  const valueNode = variantNode.childForFieldName("value");
+  if (valueNode) return valueNode.text;
+
+  let enumNode: Node | null = variantNode.parent;
+  while (enumNode && enumNode.type !== "enum_definition") {
+    enumNode = enumNode.parent;
+  }
+  if (!enumNode) return "unknown";
+
+  let isStringEnum = false;
+  const variants: Node[] = [];
+
+  const traverse = (n: Node) => {
+    if (n.type === "enum_variant") {
+      variants.push(n);
+      const vNode = n.childForFieldName("value");
+      if (
+        vNode && (vNode.type === "string_literal" || vNode.type === "string")
+      ) {
+        isStringEnum = true;
+      }
+    }
+    for (let i = 0; i < n.childCount; i++) traverse(n.child(i)!);
+  };
+  traverse(enumNode);
+
+  if (isStringEnum) return "unknown";
+
+  let currentVal = 0;
+  for (const v of variants) {
+    const vNode = v.childForFieldName("value");
+    if (vNode && (vNode.type === "integer" || vNode.type === "number")) {
+      currentVal = parseInt(vNode.text, 10);
+    }
+    if (v.id === variantNode.id) {
+      return currentVal.toString();
+    }
+    currentVal++;
+  }
+  return "unknown";
+};
+
 function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
   let curr: Node | null = cursorNode;
 
@@ -214,6 +291,9 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
   let root = cursorNode;
   while (root.parent) root = root.parent;
 
+  const globalEnum = findGlobalEnum(root, targetName);
+  if (globalEnum) return globalEnum;
+
   let globalFunc: Node | null = null;
   const findGlobalFunc = (node: Node) => {
     if (globalFunc) return;
@@ -244,14 +324,33 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
-  const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
+  let targetNode: Node | null = null;
 
-  if (declarationNode) {
-    const nameNode = declarationNode.childForFieldName("name") ||
-      declarationNode.childForFieldName("iterator") ||
-      declarationNode.namedChild(0);
-    const targetNode = nameNode || declarationNode;
+  if (cursorNode.parent && cursorNode.parent.type === "member_expression") {
+    const objNode = cursorNode.parent.childForFieldName("object");
+    const propNode = cursorNode.parent.childForFieldName("property");
+    if (objNode && propNode && cursorNode.text === propNode.text) {
+      const enumNode = findGlobalEnum(tree.rootNode, objNode.text);
+      if (enumNode) {
+        const variantNode = findEnumVariant(enumNode, propNode.text);
+        if (variantNode) {
+          targetNode = variantNode.childForFieldName("name") || variantNode;
+        }
+      }
+    }
+  }
 
+  if (!targetNode) {
+    const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
+    if (declarationNode) {
+      targetNode = declarationNode.childForFieldName("name") ||
+        declarationNode.childForFieldName("iterator") ||
+        declarationNode.namedChild(0) ||
+        declarationNode;
+    }
+  }
+
+  if (targetNode) {
     return {
       uri: params.textDocument.uri,
       range: {
@@ -283,41 +382,77 @@ connection.onHover((params: HoverParams): Hover | null => {
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
-  const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
+  let hoverText = "";
 
-  if (declarationNode) {
-    let hoverText = "";
-
-    if (
-      declarationNode.type === "variable_declaration" ||
-      declarationNode.type === "parameter"
-    ) {
-      const isParam = declarationNode.type === "parameter";
-      const name = declarationNode.childForFieldName("name")?.text || "unknown";
-      const type = declarationNode.childForFieldName("type")?.text || "unknown";
-      const keyword = isParam
-        ? "(parameter)"
-        : (declarationNode.childForFieldName("keyword")?.text || "let");
-
-      hoverText = `\`\`\`loom\n${keyword} ${name}: ${type}\n\`\`\``;
-    } else if (declarationNode.type === "for") {
-      const iteratorName =
-        declarationNode.childForFieldName("iterator")?.text || "iterator";
-      hoverText = `\`\`\`loom\n(loop variable) ${iteratorName}: int\n\`\`\``;
-    } else if (declarationNode.type === "function_definition") {
-      const name = declarationNode.childForFieldName("name")?.text || "unknown";
-      const paramsText =
-        declarationNode.childForFieldName("parameters")?.text || "";
-      const typeNode = declarationNode.childForFieldName("type");
-      const returnType = typeNode ? `: ${typeNode.text}` : "";
-
-      hoverText =
-        `\`\`\`loom\nfunc ${name}(${paramsText})${returnType}\n\`\`\``;
+  if (cursorNode.parent && cursorNode.parent.type === "member_expression") {
+    const objNode = cursorNode.parent.childForFieldName("object");
+    const propNode = cursorNode.parent.childForFieldName("property");
+    if (objNode && propNode && cursorNode.text === propNode.text) {
+      const enumNode = findGlobalEnum(tree.rootNode, objNode.text);
+      if (enumNode) {
+        const variantNode = findEnumVariant(enumNode, propNode.text);
+        if (variantNode) {
+          const valStr = getEnumVariantValueText(variantNode);
+          hoverText =
+            `\`\`\`loom\n(enum variant) ${objNode.text}.${propNode.text} = ${valStr}\n\`\`\``;
+        }
+      }
     }
+  }
 
-    if (hoverText) {
-      return { contents: { kind: "markdown", value: hoverText } };
+  if (hoverText == "") {
+    const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
+
+    if (declarationNode) {
+      if (declarationNode.type === "enum_definition") {
+        const name = declarationNode.childForFieldName("name")?.text ||
+          "unknown";
+        hoverText = `\`\`\`loom\nenum ${name}\n\`\`\``;
+      } else if (declarationNode.type === "enum_variant") {
+        let p: Node | null = declarationNode.parent;
+        while (p && p.type !== "enum_definition") p = p.parent;
+        const enumName = p
+          ? (p.childForFieldName("name")?.text || "enum")
+          : "enum";
+        const varName = declarationNode.childForFieldName("name")?.text ||
+          "unknown";
+        const valStr = getEnumVariantValueText(declarationNode);
+        hoverText =
+          `\`\`\`loom\n(enum variant) ${enumName}.${varName} = ${valStr}\n\`\`\``;
+      } else if (
+        declarationNode.type === "variable_declaration" ||
+        declarationNode.type === "parameter"
+      ) {
+        const isParam = declarationNode.type === "parameter";
+        const name = declarationNode.childForFieldName("name")?.text ||
+          "unknown";
+        const type = declarationNode.childForFieldName("type")?.text ||
+          "unknown";
+        const keyword = isParam
+          ? "(parameter)"
+          : (declarationNode.childForFieldName("keyword")?.text || "let");
+
+        hoverText = `\`\`\`loom\n${keyword} ${name}: ${type}\n\`\`\``;
+      } else if (declarationNode.type === "for") {
+        const iteratorName =
+          declarationNode.childForFieldName("iterator")?.text || "iterator";
+        hoverText = `\`\`\`loom\n(loop variable) ${iteratorName}: int\n\`\`\``;
+      } else if (declarationNode.type === "function_definition") {
+        const name = declarationNode.childForFieldName("name")?.text ||
+          "unknown";
+        const paramsText =
+          declarationNode.childForFieldName("parameters")?.text || "";
+        const typeNode = declarationNode.childForFieldName("type");
+        const returnType = typeNode ? `: ${typeNode.text}` : "";
+
+        hoverText =
+          `\`\`\`loom\nfunc ${name}(${paramsText})${returnType}\n\`\`\``;
+      }
     }
+  }
+
+  if (hoverText != "") {
+    return { contents: { kind: "markdown", value: hoverText } };
   }
 
   return null;
@@ -340,6 +475,33 @@ connection.onCompletion(
     if (lineText.match(/@[srpean]\[[^\]]*$/i)) return [];
     if (lineText.includes("--")) return [];
 
+    const memberMatch = lineText.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.$/);
+    if (memberMatch) {
+      const enumName = memberMatch[1]!;
+      const enumNode = findGlobalEnum(tree.rootNode, enumName);
+      if (enumNode) {
+        const enumVariants: CompletionItem[] = [];
+        const collectVariants = (node: Node) => {
+          if (node.type === "enum_variant") {
+            const nameNode = node.childForFieldName("name");
+            if (nameNode) {
+              const valStr = getEnumVariantValueText(node);
+              enumVariants.push({
+                label: nameNode.text,
+                kind: CompletionItemKind.EnumMember,
+                detail: `= ${valStr}`,
+              });
+            }
+          }
+          for (let i = 0; i < node.childCount; i++) {
+            collectVariants(node.child(i)!);
+          }
+        };
+        collectVariants(enumNode);
+        return enumVariants;
+      }
+    }
+
     if (lineText.match(/:\s*[a-zA-Z_]*$/)) {
       return [
         { label: "int", kind: CompletionItemKind.TypeParameter },
@@ -348,7 +510,7 @@ connection.onCompletion(
         { label: "void", kind: CompletionItemKind.TypeParameter },
       ];
     }
-    if (lineText.match(/(let|const|func|for)\s+[a-z_0-9]*$/i)) return [];
+    if (lineText.match(/(let|const|func|for|enum)\s+[a-z_0-9]*$/i)) return [];
     if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) return [];
 
     if (lineText.match(/@$/)) {
@@ -375,18 +537,24 @@ connection.onCompletion(
     };
     const cursorNode = tree.rootNode.descendantForPosition(cursorPoint);
 
-    const variables = new Set<string>();
+    const variables = new Set<{ name: string; type: string; const: boolean }>();
     let inBlock = false;
+    let inEnum = false;
     let curr: Node | null = cursorNode;
 
     while (curr) {
       if (curr.type === "block") {
         inBlock = true;
       }
+      if (curr.type === "enum_definition") {
+        inEnum = true;
+      }
 
       if (curr.type === "for") {
         const iteratorNode = curr.childForFieldName("iterator");
-        if (iteratorNode) variables.add(iteratorNode.text);
+        if (iteratorNode) {
+          variables.add({ name: iteratorNode.text, type: "int", const: false });
+        }
       }
 
       if (curr.type === "block" || curr.type === "source_file") {
@@ -394,8 +562,16 @@ connection.onCompletion(
           const child = curr.child(i)!;
           if (child.endPosition.row <= params.position.line) {
             if (child.type === "variable_declaration") {
+              const keywordNode = child.childForFieldName("keyword");
               const nameNode = child.childForFieldName("name");
-              if (nameNode) variables.add(nameNode.text);
+              const typeNode = child.childForFieldName("type");
+              if (nameNode) {
+                variables.add({
+                  name: nameNode.text,
+                  type: typeNode ? typeNode.text : "unknown",
+                  const: keywordNode != null && keywordNode.text == "const",
+                });
+              }
             }
           }
         }
@@ -404,35 +580,99 @@ connection.onCompletion(
       curr = curr.parent;
     }
 
-    const functions = new Set<string>();
-    function findFunctions(node: Node) {
+    if (inEnum) return [];
+
+    const functions = new Set<
+      { name: string; type: string; params: { name: string; type: string }[] }
+    >();
+    const findFunctions = (node: Node) => {
       if (node.type === "function_definition") {
         const nameNode = node.childForFieldName("name");
-        if (nameNode) functions.add(nameNode.text);
+        const typeNode = node.childForFieldName("type");
+        if (nameNode) {
+          const params: { name: string; type: string }[] = [];
+
+          const paramsNode = node.childForFieldName("parameters");
+          if (paramsNode) {
+            for (const paramNode of paramsNode.children) {
+              const paramNameNode = paramNode.childForFieldName("name");
+              const paramTypeNode = paramNode.childForFieldName("type");
+              if (paramNameNode) {
+                params.push({
+                  name: paramNameNode.text,
+                  type: paramTypeNode ? paramTypeNode.text : "unknown",
+                });
+              }
+            }
+          }
+
+          functions.add({
+            name: nameNode.text,
+            params,
+            type: typeNode ? typeNode.text : "void",
+          });
+        }
       }
       for (let i = 0; i < node.childCount; i++) findFunctions(node.child(i)!);
-    }
+    };
     findFunctions(tree.rootNode);
+
+    const enumsSet = new Set<{ name: string }>();
+    const findEnums = (node: Node) => {
+      if (node.type === "enum_definition") {
+        const nameNode = node.childForFieldName("name");
+        if (nameNode) {
+          enumsSet.add({ name: nameNode.text });
+        }
+      }
+      for (let i = 0; i < node.childCount; i++) findEnums(node.child(i)!);
+    };
+    findEnums(tree.rootNode);
+
+    const addVariables = () => {
+      for (const v of variables) {
+        items.push({
+          label: v.name,
+          kind: CompletionItemKind.Variable,
+          detail: `${v.const ? "const" : "let"} ${v.name}: ${v.type}`,
+        });
+      }
+    };
+    const addFunctions = () => {
+      for (const fn of functions) {
+        items.push({
+          label: fn.name,
+          kind: CompletionItemKind.Function,
+          detail: `${fn.name}(${
+            fn.params.map((param) => `${param.name}: ${param.type}`).join(", ")
+          }): ${fn.type}`,
+        });
+      }
+    };
+    const addEnums = () => {
+      for (const e of enumsSet) {
+        items.push({
+          label: e.name,
+          kind: CompletionItemKind.Enum,
+          detail: `enum ${e.name}`,
+        });
+      }
+    };
 
     if (
       lineText.match(
         /(return|in|while)\s+|((let|const)\s+)?[a-z_0-9]+\s*=\s*|\${[^}]$/i,
       )
     ) {
-      for (const v of variables) {
-        items.push({
-          label: v,
-          kind: CompletionItemKind.Variable,
-          detail: "variable",
-        });
-      }
+      addVariables();
+      addEnums();
 
       return [
         ...items,
-        { label: "true", kind: CompletionItemKind.Keyword },
-        { label: "false", kind: CompletionItemKind.Keyword },
-        { label: "at", kind: CompletionItemKind.Keyword },
-        { label: "entity", kind: CompletionItemKind.Keyword },
+        { label: "true", kind: CompletionItemKind.Constant },
+        { label: "false", kind: CompletionItemKind.Constant },
+        { label: "at", kind: CompletionItemKind.Operator },
+        { label: "entity", kind: CompletionItemKind.Operator },
       ];
     }
 
@@ -459,27 +699,15 @@ connection.onCompletion(
       "positioned",
       "over",
       "rotated",
+      "enum",
     ];
     for (const kw of keywords) {
       items.push({ label: kw, kind: CompletionItemKind.Keyword });
     }
 
     if (inBlock) {
-      for (const fn of functions) {
-        items.push({
-          label: fn,
-          kind: CompletionItemKind.Function,
-          detail: "function",
-        });
-      }
-
-      for (const variable of variables) {
-        items.push({
-          label: variable,
-          kind: CompletionItemKind.Variable,
-          detail: "variable",
-        });
-      }
+      addFunctions();
+      addVariables();
     }
 
     return items;

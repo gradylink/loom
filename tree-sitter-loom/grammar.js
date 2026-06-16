@@ -14,6 +14,13 @@ function commaSep(rule) {
   return optional(seq(rule, repeat(seq(",", rule))));
 }
 
+/**
+ * @param {RuleOrLiteral} rule
+ */
+function multilineCommaSep(rule) {
+  return optional(seq(rule, repeat(seq(",", optional(/\n/), rule))));
+}
+
 module.exports = grammar({
   name: "loom",
 
@@ -29,6 +36,7 @@ module.exports = grammar({
     _statement: ($) =>
       seq(
         choice(
+          $.enum_definition,
           $.variable_declaration,
           $.assignment,
           $.function_definition,
@@ -45,6 +53,23 @@ module.exports = grammar({
       ),
 
     _newline: () => /\n/,
+
+    enum_definition: ($) =>
+      seq(
+        "enum",
+        field("name", $.identifier),
+        "{",
+        optional($._newline),
+        multilineCommaSep($.enum_variant),
+        optional($._newline),
+        "}",
+      ),
+
+    enum_variant: ($) =>
+      seq(
+        field("name", $.identifier),
+        optional(seq("=", field("value", choice($.integer, $.string_literal)))),
+      ),
 
     variable_declaration: ($) =>
       seq(
@@ -198,6 +223,7 @@ module.exports = grammar({
 
     _expression: ($) =>
       choice(
+        $.member_expression,
         $.binary_expression,
         $.unary_expression,
         $.slice_expression,
@@ -208,6 +234,16 @@ module.exports = grammar({
         $.boolean,
         $.string_literal,
         $.parenthesized_expression,
+      ),
+
+    member_expression: ($) =>
+      prec(
+        8,
+        seq(
+          field("object", $.identifier),
+          ".",
+          field("property", $.identifier),
+        ),
       ),
 
     slice_expression: ($) =>

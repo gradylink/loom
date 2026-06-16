@@ -38,6 +38,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -87,6 +91,10 @@
           },
           {
             "type": "integer",
+            "named": true
+          },
+          {
+            "type": "member_expression",
             "named": true
           },
           {
@@ -202,6 +210,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -251,6 +263,10 @@
         },
         {
           "type": "do_while",
+          "named": true
+        },
+        {
+          "type": "enum_definition",
           "named": true
         },
         {
@@ -511,6 +527,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -563,6 +583,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -609,6 +633,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -626,6 +654,62 @@
           },
           {
             "type": "variable_ref",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "enum_definition",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "enum_variant",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "enum_variant",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "string_literal",
             "named": true
           }
         ]
@@ -668,6 +752,10 @@
           },
           {
             "type": "integer",
+            "named": true
+          },
+          {
+            "type": "member_expression",
             "named": true
           },
           {
@@ -727,6 +815,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -780,6 +872,10 @@
           },
           {
             "type": "integer",
+            "named": true
+          },
+          {
+            "type": "member_expression",
             "named": true
           },
           {
@@ -915,6 +1011,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -981,6 +1081,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -998,6 +1102,32 @@
           },
           {
             "type": "variable_ref",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "member_expression",
+    "named": true,
+    "fields": {
+      "object": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "property": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
             "named": true
           }
         ]
@@ -1074,6 +1204,10 @@
           "named": true
         },
         {
+          "type": "member_expression",
+          "named": true
+        },
+        {
           "type": "parenthesized_expression",
           "named": true
         },
@@ -1122,6 +1256,10 @@
         },
         {
           "type": "integer",
+          "named": true
+        },
+        {
+          "type": "member_expression",
           "named": true
         },
         {
@@ -1210,6 +1348,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1253,6 +1395,10 @@
           },
           {
             "type": "integer",
+            "named": true
+          },
+          {
+            "type": "member_expression",
             "named": true
           },
           {
@@ -1302,6 +1448,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1348,6 +1498,10 @@
         },
         {
           "type": "do_while",
+          "named": true
+        },
+        {
+          "type": "enum_definition",
           "named": true
         },
         {
@@ -1412,6 +1566,10 @@
           },
           {
             "type": "integer",
+            "named": true
+          },
+          {
+            "type": "member_expression",
             "named": true
           },
           {
@@ -1523,6 +1681,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1611,6 +1773,10 @@
             "named": true
           },
           {
+            "type": "member_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1692,6 +1858,10 @@
   },
   {
     "type": "-",
+    "named": false
+  },
+  {
+    "type": ".",
     "named": false
   },
   {
@@ -1817,6 +1987,10 @@
   },
   {
     "type": "entity",
+    "named": false
+  },
+  {
+    "type": "enum",
     "named": false
   },
   {

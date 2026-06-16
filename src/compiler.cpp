@@ -100,6 +100,45 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, text), .precomputed = false, .type = Type::String};
   }
 
+  if (type == "member_expression") {
+    const std::string &obj = std::string(getFieldText(node, "object"));
+    const std::string &prop = std::string(getFieldText(node, "property"));
+
+    const auto &enumIt = enums.find(obj);
+    if (enumIt != enums.end()) {
+      const auto &enumRef = enumIt->second;
+
+      auto varIt = enumRef.variants.find(prop);
+      if (varIt == enumRef.variants.end()) {
+        throw std::runtime_error(formatError(ts_node_child_by_field_name(node, "property", 8), std::format("Enum '{}' has no variant named '{}'", obj, prop)));
+      }
+
+      const EnumVariant &var = varIt->second;
+
+      ExpressionData exprResult = std::visit(
+        [id, precompute](auto &&arg) -> ExpressionData {
+          using T = std::decay_t<decltype(arg)>;
+
+          if constexpr (std::is_same_v<T, int32_t>) {
+            if (precompute) {
+              return {.data = std::to_string(arg), .precomputed = true, .type = Type::Integer};
+            }
+            return {.data = std::format("scoreboard players set expr_output{} temp {}", id, arg), .precomputed = false, .type = Type::Integer};
+          } else if constexpr (std::is_same_v<T, std::string>) {
+            if (precompute) {
+              return {.data = arg, .precomputed = true, .type = Type::String};
+            }
+            return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, arg), .precomputed = false, .type = Type::String};
+          }
+        },
+        var.value
+      );
+
+      return exprResult;
+    }
+    throw std::runtime_error(formatError(ts_node_child_by_field_name(node, "object", 0), std::format("Unknown identifier: '{}'", obj)));
+  }
+
   if (type == "unary_expression") {
     TSNode opNode = ts_node_child_by_field_name(node, "operator", 8);
     TSNode argNode = ts_node_child_by_field_name(node, "argument", 8);
@@ -608,6 +647,63 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
     TSNode child = ts_node_named_child(root, i);
     std::string type = ts_node_type(child);
+
+    if (type == "enum_definition") {
+      const std::string &enumName = std::string(getFieldText(child, "name"));
+
+      EnumData enumData = {.name = enumName};
+
+      bool typeKnown = false;
+      int32_t nextValue = 0;
+      for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
+        TSNode variantNode = ts_node_named_child(child, j);
+        if (std::string(ts_node_type(variantNode)) != "enum_variant") continue;
+
+        const std::string &varName = std::string(getFieldText(variantNode, "name"));
+        TSNode valueNode = ts_node_child_by_field_name(variantNode, "value", 5);
+
+        EnumVariant variant;
+        variant.name = varName;
+
+        if (!ts_node_is_null(valueNode)) {
+          const std::string &valType = ts_node_type(valueNode);
+          const std::string &rawText = std::string(getNodeText(valueNode));
+
+          if (valType == "string_literal") {
+            if (typeKnown && enumData.type == EnumType::Integer) {
+              throw std::runtime_error(formatError(valueNode, "Cannot mix enum types."));
+            }
+
+            typeKnown = true;
+            enumData.type = EnumType::String;
+            variant.value = rawText;
+          } else if (valType == "integer") {
+            if (typeKnown && enumData.type == EnumType::String) {
+              throw std::runtime_error(formatError(valueNode, "Cannot mix enum types."));
+            }
+
+            typeKnown = true;
+            enumData.type = EnumType::Integer;
+            const int32_t parsedInt = std::stoi(rawText);
+            variant.value = parsedInt;
+            nextValue = parsedInt + 1;
+          }
+        } else {
+          if (typeKnown && enumData.type == EnumType::String) {
+            throw std::runtime_error(formatError(variantNode, "Enum variants must be explicit for string enums."));
+          }
+          typeKnown = true;
+          enumData.type = EnumType::Integer;
+          variant.value = nextValue++;
+        }
+
+        enumData.variants[varName] = variant;
+      }
+
+      enums[enumName] = enumData;
+      continue;
+    }
+
     if (type == "function_definition") {
       std::string name = std::string(getFieldText(child, "name"));
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -695,11 +791,19 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         }
       );
 
-      if (!value.has_value() || !constant) {
+      if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
-          globalInit += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
+          if (varType == Type::String) {
+            globalInit += std::format("data modify storage loom:global vars.{} set value {}\n", mangled, expr.data);
+          } else {
+            globalInit += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
+          }
         } else {
-          globalInit += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangled);
+          if (varType == Type::String) {
+            globalInit += std::format("{}\ndata modify storage loom:global vars.{} set from storage loom:global expr_str1\n", expr.data, mangled);
+          } else {
+            globalInit += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangled);
+          }
         }
       }
       continue;
@@ -750,7 +854,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       continue;
     }
 
-    if (type != "comment") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
+    if (type != "comment" && type != "enum_definition") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
   }
 
   return compiledFunctions;
@@ -1098,12 +1202,20 @@ std::string Compiler::compileBlock(TSNode node) {
         }
       );
 
-      if (!value.has_value()) {
+      if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
-          ret += std::format("scoreboard players set {} vars {}\n", mangledName, expr.data);
-          continue;
+          if (varType == Type::String) {
+            ret += std::format("data modify storage loom:global vars.{} set value {}\n", mangledName, expr.data);
+          } else {
+            ret += std::format("scoreboard players set {} vars {}\n", mangledName, expr.data);
+          }
+        } else {
+          if (varType == Type::String) {
+            ret += std::format("{}\ndata modify storage loom:global vars.{} set from storage loom:global expr_str1\n", expr.data, mangledName);
+          } else {
+            ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangledName);
+          }
         }
-        ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangledName);
       }
       continue;
     }
@@ -1129,7 +1241,11 @@ std::string Compiler::compileBlock(TSNode node) {
       }
 
       if (expr.precomputed) {
-        ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
+        if (vars[name].type == Type::String) {
+          ret += std::format("data modify storage loom:global vars.{} set value {}\n", vars[name].mangledName, expr.data);
+        } else {
+          ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
+        }
       } else {
         if (std::string(ts_node_type(expNode)) == "binary_expression" && vars[name].type != Type::String) {
           const std::string_view op = getFieldText(expNode, "operator");
@@ -1156,7 +1272,11 @@ std::string Compiler::compileBlock(TSNode node) {
           }
         }
 
-        ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, vars[name].mangledName);
+        if (vars[name].type == Type::String) {
+          ret += std::format("{}\ndata modify storage loom:global vars.{} set from storage loom:global expr_str1\n", expr.data, vars[name].mangledName);
+        } else {
+          ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, vars[name].mangledName);
+        }
       }
       continue;
     }
