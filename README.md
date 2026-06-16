@@ -47,12 +47,12 @@ A programming language that compiles to Minecraft datapacks.
   - [ ] Extern Functions (rn all functions are extern since you can only have 1
         file but this will be important later.)
 - [x] Integers
-- [ ] Strings
+- [x] Strings
 - [x] Booleans
 - [ ] Floats
 - [ ] Dictionaries
 - [ ] Lists
-- [ ] Enums
+- [x] Enums
 - [ ] Structs (more optimized than dictionaries)
 - [x] Conditionals
   - [x] `if`
