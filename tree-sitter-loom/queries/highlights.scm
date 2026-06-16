@@ -49,7 +49,7 @@
 "=" @operator
 (unary_expression operator: _ @operator)
 (binary_expression operator: _ @operator)
-[":" ";" "(" ")" "{" "}" "," "[" "]" "!"] @punctuation.delimiter
+[":" ";" "(" ")" "{" "}" "," "[" "]" "!" "."] @punctuation.delimiter
 
 (comment) @comment @spell
 
