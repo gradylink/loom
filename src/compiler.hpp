@@ -25,8 +25,6 @@ public:
   std::string globalInit = setupScoreboards;
 
 private:
-  enum class Type { Integer, Boolean, String };
-  enum class ReturnType { Integer, Boolean, String, Void };
   enum class EnumType { Integer, String };
 
   struct EnumVariant {
@@ -40,9 +38,34 @@ private:
     std::unordered_map<std::string, EnumVariant> variants;
   };
 
+  struct Type {
+    enum Kind { Integer, Boolean, String, Enum } kind = Integer;
+    const EnumData *enumRef = nullptr;
+
+    static Type IntegerType() { return Type{Integer, nullptr}; }
+    static Type BooleanType() { return Type{Boolean, nullptr}; }
+    static Type StringType() { return Type{String, nullptr}; }
+    static Type EnumTypeOf(const EnumData *ref) { return Type{Enum, ref}; }
+
+    bool operator==(const Type &o) const { return kind == o.kind && enumRef == o.enumRef; }
+    bool operator!=(const Type &o) const { return !(*this == o); }
+
+    bool isInteger() const {
+      if (kind == Integer) return true;
+      if (kind == Enum && enumRef) return enumRef->type == EnumType::Integer;
+      return false;
+    }
+    bool isBoolean() const { return kind == Boolean; }
+    bool isString() const {
+      if (kind == String) return true;
+      if (kind == Enum && enumRef) return enumRef->type == EnumType::String;
+      return false;
+    }
+  };
+
   struct FunctionData {
     std::string name;
-    ReturnType returnType;
+    std::optional<Type> returnType;
     std::vector<Type> params;
     std::optional<std::string> tag;
   };
@@ -83,6 +106,8 @@ private:
 
   std::string_view getNodeText(TSNode node);
   std::string_view getFieldText(TSNode node, const std::string &field);
+
+  Type parseTypeFromString(const std::string &typeText) const;
 
   ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
 

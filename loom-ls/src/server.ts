@@ -502,35 +502,6 @@ connection.onCompletion(
       }
     }
 
-    if (lineText.match(/:\s*[a-zA-Z_]*$/)) {
-      return [
-        { label: "int", kind: CompletionItemKind.TypeParameter },
-        { label: "bool", kind: CompletionItemKind.TypeParameter },
-        { label: "string", kind: CompletionItemKind.TypeParameter },
-        { label: "void", kind: CompletionItemKind.TypeParameter },
-      ];
-    }
-    if (lineText.match(/(let|const|func|for|enum)\s+[a-z_0-9]*$/i)) return [];
-    if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) return [];
-
-    if (lineText.match(/@$/)) {
-      return [
-        { label: "a", kind: CompletionItemKind.EnumMember },
-        { label: "p", kind: CompletionItemKind.EnumMember },
-        { label: "s", kind: CompletionItemKind.EnumMember },
-        { label: "r", kind: CompletionItemKind.EnumMember },
-        { label: "n", kind: CompletionItemKind.EnumMember },
-        { label: "e", kind: CompletionItemKind.EnumMember },
-      ];
-    }
-
-    if (lineText.match(/#$/)) {
-      return [
-        { label: "load", kind: CompletionItemKind.EnumMember },
-        { label: "tick", kind: CompletionItemKind.EnumMember },
-      ];
-    }
-
     const cursorPoint = {
       row: params.position.line,
       column: Math.max(0, params.position.character - 1),
@@ -658,6 +629,37 @@ connection.onCompletion(
         });
       }
     };
+
+    if (lineText.match(/:\s*[a-zA-Z_]*$/)) {
+      addEnums();
+      return [
+        ...items,
+        { label: "int", kind: CompletionItemKind.TypeParameter },
+        { label: "bool", kind: CompletionItemKind.TypeParameter },
+        { label: "string", kind: CompletionItemKind.TypeParameter },
+        { label: "void", kind: CompletionItemKind.TypeParameter },
+      ];
+    }
+    if (lineText.match(/(let|const|func|for|enum)\s+[a-z_0-9]*$/i)) return [];
+    if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) return [];
+
+    if (lineText.match(/@$/)) {
+      return [
+        { label: "a", kind: CompletionItemKind.EnumMember },
+        { label: "p", kind: CompletionItemKind.EnumMember },
+        { label: "s", kind: CompletionItemKind.EnumMember },
+        { label: "r", kind: CompletionItemKind.EnumMember },
+        { label: "n", kind: CompletionItemKind.EnumMember },
+        { label: "e", kind: CompletionItemKind.EnumMember },
+      ];
+    }
+
+    if (lineText.match(/#$/)) {
+      return [
+        { label: "load", kind: CompletionItemKind.EnumMember },
+        { label: "tick", kind: CompletionItemKind.EnumMember },
+      ];
+    }
 
     if (
       lineText.match(

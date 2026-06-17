@@ -66,6 +66,15 @@ std::string_view Compiler::getNodeText(TSNode node) {
 
 std::string_view Compiler::getFieldText(TSNode node, const std::string &field) { return getNodeText(ts_node_child_by_field_name(node, field.c_str(), field.length())); }
 
+Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const {
+  if (typeText == "int") return Type::IntegerType();
+  if (typeText == "bool") return Type::BooleanType();
+  if (typeText == "string") return Type::StringType();
+  const auto &it = enums.find(typeText);
+  if (it == enums.end()) throw std::runtime_error(std::format("Unknown type: {}", typeText));
+  return Type::EnumTypeOf(&it->second);
+}
+
 Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int id, bool precompute) {
   if (ts_node_is_null(node)) {
     throw std::runtime_error(formatError(node, "Malformed Expression"));
@@ -79,25 +88,25 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
   if (type == "integer") {
     if (precompute) {
-      return {.data = std::string(getNodeText(node)), .precomputed = true, .type = Type::Integer};
+      return {.data = std::string(getNodeText(node)), .precomputed = true, .type = Type::IntegerType()};
     }
-    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, getNodeText(node)), .precomputed = false, .type = Type::Integer};
+    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, getNodeText(node)), .precomputed = false, .type = Type::IntegerType()};
   }
 
   if (type == "boolean") {
     const std::string &numericVal = (getNodeText(node) == "true") ? "1" : "0";
     if (precompute) {
-      return {.data = numericVal, .precomputed = true, .type = Type::Boolean};
+      return {.data = numericVal, .precomputed = true, .type = Type::BooleanType()};
     }
-    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, numericVal), .precomputed = false, .type = Type::Boolean};
+    return {.data = std::format("scoreboard players set expr_output{} temp {}", id, numericVal), .precomputed = false, .type = Type::BooleanType()};
   }
 
   if (type == "string_literal") {
     const std::string &text = std::string(getNodeText(node));
     if (precompute) {
-      return {.data = text, .precomputed = true, .type = Type::String};
+      return {.data = text, .precomputed = true, .type = Type::StringType()};
     }
-    return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, text), .precomputed = false, .type = Type::String};
+    return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, text), .precomputed = false, .type = Type::StringType()};
   }
 
   if (type == "member_expression") {
@@ -121,14 +130,18 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
           if constexpr (std::is_same_v<T, int32_t>) {
             if (precompute) {
-              return {.data = std::to_string(arg), .precomputed = true, .type = Type::Integer};
+              return {.data = std::to_string(arg), .precomputed = true, .type = Type::EnumTypeOf(&enumIt->second)};
             }
-            return {.data = std::format("scoreboard players set expr_output{} temp {}", id, arg), .precomputed = false, .type = Type::Integer};
+            return {.data = std::format("scoreboard players set expr_output{} temp {}", id, arg), .precomputed = false, .type = Type::EnumTypeOf(&enumIt->second)};
           } else if constexpr (std::is_same_v<T, std::string>) {
             if (precompute) {
-              return {.data = arg, .precomputed = true, .type = Type::String};
+              return {.data = arg, .precomputed = true, .type = Type::EnumTypeOf(&enumIt->second)};
             }
-            return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, arg), .precomputed = false, .type = Type::String};
+            return {
+              .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, arg),
+              .precomputed = false,
+              .type = Type::EnumTypeOf(&enumIt->second)
+            };
           }
         },
         var.value
@@ -149,7 +162,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       return {
         .data = std::format("scoreboard players set expr_output{} temp 0\nexecute if entity {} run scoreboard players set expr_output{} temp 1", id, getNodeText(argNode), id),
         .precomputed = false,
-        .type = Type::Boolean
+        .type = Type::BooleanType()
       };
     }
 
@@ -157,13 +170,13 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     Type expType;
     if (op == "-") {
-      expType = Type::Integer;
-      if (subExpr.type != Type::Integer && subExpr.type != Type::Boolean) {
+      expType = Type::IntegerType();
+      if (!subExpr.type.isInteger() && !subExpr.type.isBoolean()) {
         throw std::runtime_error(formatError(node, "Unary minus '-' can only be applied to integers and booleans."));
       }
     } else if (op == "!") {
-      expType = Type::Boolean;
-      if (subExpr.type != Type::Boolean) {
+      expType = Type::BooleanType();
+      if (!subExpr.type.isBoolean()) {
         throw std::runtime_error(formatError(node, "Logical NOT operator '!' can only be applied to booleans."));
       }
     } else {
@@ -193,7 +206,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     }
 
     if (op == "-") {
-      return {.data = std::format("{}\nscoreboard players operation expr_output{} temp *= invert temp", subExpr.data, id), .precomputed = false, .type = Type::Integer};
+      return {.data = std::format("{}\nscoreboard players operation expr_output{} temp *= invert temp", subExpr.data, id), .precomputed = false, .type = Type::IntegerType()};
     }
 
     if (op == "!") {
@@ -208,7 +221,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
           id
         ),
         .precomputed = false,
-        .type = Type::Boolean
+        .type = Type::BooleanType()
       };
     }
   }
@@ -241,7 +254,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, argExpr.data);
       } else {
         argPushData += argExpr.data + "\n";
-        if (argExpr.type == Type::String) {
+        if (argExpr.type.isString()) {
           argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
         } else {
           argPushData += std::format("execute store result storage {}:stack regs append int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace);
@@ -262,12 +275,11 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
             pop;
     }
 
-    Type funcType = Type::Integer;
-    if (funcs[targetFunc].returnType == ReturnType::Boolean) funcType = Type::Boolean;
-    if (funcs[targetFunc].returnType == ReturnType::String) funcType = Type::String;
+    Type funcType = Type::IntegerType();
+    if (funcs[targetFunc].returnType.has_value()) funcType = funcs[targetFunc].returnType.value();
 
     std::string callCommand;
-    if (funcs[targetFunc].returnType == ReturnType::Void) {
+    if (!funcs[targetFunc].returnType.has_value()) {
       callCommand = std::format("function {}:{}", datapackNamespace, funcs[targetFunc].name);
     } else {
       callCommand = std::format("execute store result score expr_output{} temp run function {}:{}", id, datapackNamespace, funcs[targetFunc].name);
@@ -283,12 +295,12 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       throw std::runtime_error(formatError(node, "Unknown variable used in expression: " + targetVar));
     }
 
-    if (vars[targetVar].type == Type::String) {
+    if (vars[targetVar].type.isString()) {
       return {
         .data =
           std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
         .precomputed = false,
-        .type = Type::String
+        .type = vars[targetVar].type
       };
     }
 
@@ -315,10 +327,10 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     ExpressionData start = compileExpression(startNode, id + 1, true);
     ExpressionData end = compileExpression(endNode, id + 2, true);
 
-    if (target.type != Type::String) {
+    if (!target.type.isString()) {
       throw std::runtime_error(formatError(node, "Slice parameters can only be used on strings."));
     }
-    if (start.type != Type::Integer || end.type != Type::Integer) {
+    if (!start.type.isInteger() || !end.type.isInteger()) {
       throw std::runtime_error(formatError(node, "Slice ranges must evaluate to integer bounds."));
     }
 
@@ -331,8 +343,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       int32_t eIdx = std::clamp(std::stoi(end.data), sIdx, (int32_t)rawStr.size());
       const std::string &sliced = "\"" + rawStr.substr(sIdx, eIdx - sIdx) + "\"";
 
-      if (precompute) return {.data = sliced, .precomputed = true, .type = Type::String};
-      return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, sliced), .precomputed = false, .type = Type::String};
+      if (precompute) return {.data = sliced, .precomputed = true, .type = Type::StringType()};
+      return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, sliced), .precomputed = false, .type = Type::StringType()};
     }
 
     if (target.precomputed) target.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, target.data);
@@ -355,7 +367,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       datapackNamespace,
       datapackNamespace
     );
-    return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
+    return {.data = runtimeCmds, .precomputed = false, .type = Type::StringType()};
   }
 
   if (type == "element_expression") {
@@ -365,11 +377,11 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     ExpressionData target = compileExpression(targetNode, id, true);
     ExpressionData index = compileExpression(indexNode, id + 1, true);
 
-    if (index.type != Type::Integer) {
+    if (!index.type.isInteger()) {
       throw std::runtime_error(formatError(node, "Index must evaluate to an integer."));
     }
 
-    if (target.type != Type::String) {
+    if (!target.type.isString()) {
       throw std::runtime_error(formatError(node, "Only strings can be queried."));
     }
 
@@ -381,8 +393,12 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       int32_t idx = std::stoi(index.data);
       std::string singleChar = (idx >= 0 && idx < (int32_t)rawStr.size()) ? std::string(1, rawStr[idx]) : "";
 
-      if (precompute) return {.data = "\"" + singleChar + "\"", .precomputed = true, .type = Type::String};
-      return {.data = std::format("data modify storage {}:global expr_str{} set value \"{}\"", datapackNamespace, id, singleChar), .precomputed = false, .type = Type::String};
+      if (precompute) return {.data = "\"" + singleChar + "\"", .precomputed = true, .type = Type::StringType()};
+      return {
+        .data = std::format("data modify storage {}:global expr_str{} set value \"{}\"", datapackNamespace, id, singleChar),
+        .precomputed = false,
+        .type = Type::StringType()
+      };
     }
 
     if (target.precomputed) target.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, target.data);
@@ -409,7 +425,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       datapackNamespace,
       datapackNamespace
     );
-    return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
+    return {.data = runtimeCmds, .precomputed = false, .type = Type::StringType()};
   }
 
   if (type == "binary_expression") {
@@ -431,15 +447,15 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
           id
         ),
         .precomputed = false,
-        .type = Type::Boolean
+        .type = Type::BooleanType()
       };
     } else {
       left = compileExpression(leftNode, id, true);
       right = compileExpression(rightNode, id + 1, true);
     }
 
-    if (op == "+" && (left.type == Type::String || right.type == Type::String)) {
-      if (left.type != Type::String || right.type != Type::String) {
+    if (op == "+" && (left.type.isString() || right.type.isString())) {
+      if (!left.type.isString() || !right.type.isString()) {
         throw std::runtime_error(formatError(node, "Implicit concatenation coercion between strings and numeric primitives is not allowed."));
       }
 
@@ -450,8 +466,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         if (rStr.size() >= 2 && (rStr.front() == '"' || rStr.front() == '\'')) rStr = rStr.substr(1, rStr.size() - 2);
         std::string joined = "\"" + lStr + rStr + "\"";
 
-        if (precompute) return {.data = joined, .precomputed = true, .type = Type::String};
-        return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, joined), .precomputed = false, .type = Type::String};
+        if (precompute) return {.data = joined, .precomputed = true, .type = Type::StringType()};
+        return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, joined), .precomputed = false, .type = Type::StringType()};
       }
 
       if (left.precomputed) left.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, left.data);
@@ -474,7 +490,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         datapackNamespace,
         datapackNamespace
       );
-      return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
+      return {.data = runtimeCmds, .precomputed = false, .type = Type::StringType()};
     }
 
     const bool isMath = (op == "+" || op == "-" || op == "*" || op == "/" || op == "%");
@@ -486,16 +502,16 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     }
 
     if (isLogical) {
-      if (left.type != Type::Boolean || right.type != Type::Boolean) {
+      if (!left.type.isBoolean() || !right.type.isBoolean()) {
         throw std::runtime_error(formatError(node, "Logical operators '&&' and '||' require boolean operands."));
       }
     } else {
-      if ((left.type != Type::Integer && left.type != Type::Boolean) || (right.type != Type::Integer && right.type != Type::Boolean)) {
+      if ((!left.type.isInteger() && !left.type.isBoolean()) || (!right.type.isInteger() && !right.type.isBoolean())) {
         throw std::runtime_error(formatError(node, "Invalid operand types for binary operation: " + std::string(op)));
       }
     }
 
-    const Type expectedReturnType = isMath ? Type::Integer : Type::Boolean;
+    const Type expectedReturnType = isMath ? Type::IntegerType() : Type::BooleanType();
 
     if (left.precomputed && right.precomputed) {
       const int32_t lVal = std::stoi(left.data);
@@ -742,19 +758,11 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         tag = getNodeText(tagNode);
       }
 
-      ReturnType retType = ReturnType::Void;
+      std::optional<Type> retType = std::nullopt;
       TSNode typeNode = ts_node_child_by_field_name(child, "type", 4);
       if (!ts_node_is_null(typeNode)) {
-        const auto &typeText = getNodeText(typeNode);
-        if (typeText == "int" || typeText == "integer") {
-          retType = ReturnType::Integer;
-        } else if (typeText == "bool" || typeText == "boolean") {
-          retType = ReturnType::Boolean;
-        } else if (typeText == "string") {
-          retType = ReturnType::String;
-        } else {
-          throw std::runtime_error(formatError(typeNode, "Invalid type in function definition: " + std::string(typeText)));
-        }
+        const auto &typeText = std::string(getNodeText(typeNode));
+        retType = parseTypeFromString(typeText);
       }
 
       std::vector<Type> paramTypes;
@@ -764,17 +772,11 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           TSNode paramTypeNode = ts_node_child_by_field_name(paramNode, "type", 4);
           std::string typeStr = std::string(getNodeText(paramTypeNode));
 
-          if (typeStr == "int" || typeStr == "integer") {
-            paramTypes.push_back(Type::Integer);
-          } else if (typeStr == "bool" || typeStr == "boolean") {
-            paramTypes.push_back(Type::Boolean);
-          } else if (typeStr == "string") {
-            paramTypes.push_back(Type::String);
-          } else {
-            throw std::runtime_error(formatError(paramTypeNode, "Invalid parameter type: " + typeStr));
-          }
+          Type pType = parseTypeFromString(typeStr);
+          paramTypes.push_back(pType);
         }
       }
+
       funcs[name] = {name, retType, paramTypes, tag};
     }
   }
@@ -791,16 +793,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       const auto &typeText = getNodeText(varTypeNode);
       std::optional<int32_t> value = std::nullopt;
 
-      Type varType;
-      if (typeText == "int" || typeText == "integer") {
-        varType = Type::Integer;
-      } else if (typeText == "bool" || typeText == "boolean") {
-        varType = Type::Boolean;
-      } else if (typeText == "string") {
-        varType = Type::String;
-      } else {
-        throw std::runtime_error(formatError(varTypeNode, "Invalid type in variable declaration: " + std::string(typeText)));
-      }
+      Type varType = parseTypeFromString(std::string(typeText));
 
       if (constant && expr.precomputed) {
         value = std::stoi(expr.data);
@@ -821,13 +814,13 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
       if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
-          if (varType == Type::String) {
+          if (varType.isString()) {
             globalInit += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);
           } else {
             globalInit += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
           }
         } else {
-          if (varType == Type::String) {
+          if (varType.isString()) {
             globalInit +=
               std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
           } else {
@@ -857,9 +850,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         TSNode pNode = *it;
         std::string pName = std::string(getFieldText(pNode, "name"));
         std::string pTypeStr = std::string(getFieldText(pNode, "type"));
-        Type pType = Type::String;
-        if (pTypeStr == "int" || pTypeStr == "integer") pType = Type::Integer;
-        if (pTypeStr == "bool" || pTypeStr == "boolean") pType = Type::Boolean;
+        Type pType = parseTypeFromString(pTypeStr);
 
         std::string mangledName = pName + "_" + randomMangleString();
 
@@ -895,7 +886,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
   const std::string &name = "if_" + randomFunctionMangleString();
   const ExpressionData expr = compileExpression(ts_node_child_by_field_name(ifRoot, "expression", 10));
 
-  if (expr.type != Type::Boolean) throw std::runtime_error(formatError(ifRoot, "Invalid type for if statement expression."));
+  if (!expr.type.isBoolean()) throw std::runtime_error(formatError(ifRoot, "Invalid type for if statement expression."));
 
   TSNode blockNode = ts_node_child_by_field_name(ifRoot, "block", 5);
 
@@ -970,7 +961,7 @@ std::string Compiler::compileWhile(TSNode whileNode) {
   TSNode blockNode = ts_node_child_by_field_name(whileNode, "block", 5);
 
   const ExpressionData &condExpr = compileExpression(condNode);
-  if (condExpr.type != Type::Boolean) {
+  if (!condExpr.type.isBoolean()) {
     throw std::runtime_error(formatError(condNode, "While loop condition must evaluate to a boolean."));
   }
 
@@ -1004,7 +995,7 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
   TSNode condNode = ts_node_child_by_field_name(doWhileNode, "condition", 9);
 
   const ExpressionData &condExpr = compileExpression(condNode);
-  if (condExpr.type != Type::Boolean) {
+  if (!condExpr.type.isBoolean()) {
     throw std::runtime_error(formatError(condNode, "Do-while loop condition must evaluate to a boolean."));
   }
 
@@ -1038,14 +1029,17 @@ std::string Compiler::compileFor(TSNode forNode) {
   const ExpressionData &startExpr = compileExpression(startNode, 1, false);
   const ExpressionData &endExpr = compileExpression(endNode, 2, false);
 
-  if (startExpr.type != Type::Integer && startExpr.type != Type::Boolean) {
+  if (!startExpr.type.isInteger() && !startExpr.type.isBoolean()) {
     throw std::runtime_error(formatError(startNode, "For loop start boundary must be an integer."));
   }
-  if (endExpr.type != Type::Integer && endExpr.type != Type::Boolean) {
+  if (!endExpr.type.isInteger() && !endExpr.type.isBoolean()) {
     throw std::runtime_error(formatError(endNode, "For loop end boundary must be an integer."));
   }
 
-  vars.emplace(iterName, VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::Integer, .scope = blockNode, .constant = false, .value = std::nullopt});
+  vars.emplace(
+    iterName,
+    VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::IntegerType(), .scope = blockNode, .constant = false, .value = std::nullopt}
+  );
 
   if (startExpr.precomputed) {
     ret += std::format("scoreboard players set {} vars {}\n", iterMangled, startExpr.data);
@@ -1203,16 +1197,7 @@ std::string Compiler::compileBlock(TSNode node) {
       TSNode varTypeNode = ts_node_child_by_field_name(child, "type", 4);
       const auto &typeText = getNodeText(varTypeNode);
 
-      Type varType;
-      if (typeText == "int" || typeText == "integer") {
-        varType = Type::Integer;
-      } else if (typeText == "bool" || typeText == "boolean") {
-        varType = Type::Boolean;
-      } else if (typeText == "string") {
-        varType = Type::String;
-      } else {
-        throw std::runtime_error(formatError(varTypeNode, "Invalid type in variable declaration: " + std::string(typeText)));
-      }
+      Type varType = parseTypeFromString(std::string(typeText));
 
       std::optional<int32_t> value = std::nullopt;
       if (constant && expr.precomputed) {
@@ -1233,13 +1218,13 @@ std::string Compiler::compileBlock(TSNode node) {
 
       if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
-          if (varType == Type::String) {
+          if (varType.isString()) {
             ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangledName, expr.data);
           } else {
             ret += std::format("scoreboard players set {} vars {}\n", mangledName, expr.data);
           }
         } else {
-          if (varType == Type::String) {
+          if (varType.isString()) {
             ret +=
               std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangledName, datapackNamespace);
           } else {
@@ -1262,22 +1247,28 @@ std::string Compiler::compileBlock(TSNode node) {
       TSNode expNode = ts_node_child_by_field_name(child, "value", 5);
       const ExpressionData expr = compileExpression(expNode);
 
-      if (vars[name].type == Type::Boolean && expr.type == Type::Integer) {
-        throw std::runtime_error(formatError(expNode, "Cannot assign an 'int' to 'bool' variable: " + name));
-      }
+      if (vars[name].type.kind == Compiler::Type::Enum) {
+        if (expr.type.kind != Compiler::Type::Enum || expr.type.enumRef != vars[name].type.enumRef) {
+          throw std::runtime_error(formatError(expNode, "Assignment to enum variable requires a variant of the same enum: " + name));
+        }
+      } else {
+        if (vars[name].type.isBoolean() && expr.type.isInteger()) {
+          throw std::runtime_error(formatError(expNode, "Cannot assign an 'int' to 'bool' variable: " + name));
+        }
 
-      if (vars[name].type == Type::String && expr.type != Type::String) {
-        throw std::runtime_error(formatError(expNode, "Invalid type for 'string' variable: " + name));
+        if (vars[name].type.isString() && !expr.type.isString()) {
+          throw std::runtime_error(formatError(expNode, "Invalid type for 'string' variable: " + name));
+        }
       }
 
       if (expr.precomputed) {
-        if (vars[name].type == Type::String) {
+        if (vars[name].type.isString()) {
           ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, vars[name].mangledName, expr.data);
         } else {
           ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
         }
       } else {
-        if (std::string(ts_node_type(expNode)) == "binary_expression" && vars[name].type != Type::String) {
+        if (std::string(ts_node_type(expNode)) == "binary_expression" && !vars[name].type.isString()) {
           const std::string_view op = getFieldText(expNode, "operator");
 
           if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
@@ -1302,7 +1293,7 @@ std::string Compiler::compileBlock(TSNode node) {
           }
         }
 
-        if (vars[name].type == Type::String) {
+        if (vars[name].type.isString()) {
           ret += std::format(
             "{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n",
             expr.data,

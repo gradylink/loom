@@ -20,7 +20,7 @@ enum TestEnum {
 }
 
 #load func load() {
-  const myEnumTestVar: int = TestEnum.Value2;
+  const myEnumTestVar: TestEnum = TestEnum.Value2;
   say ${myEnumTestVar}
 
   let myStrVar1: string = "hello";
