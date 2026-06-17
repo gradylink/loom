@@ -2,4 +2,4 @@ build/
 .cache/
 CPM.cmake
 
-loom/
+loom_test/

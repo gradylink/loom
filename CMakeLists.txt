@@ -21,6 +21,13 @@ CPMAddPackage(
     GIT_TAG 1.7.0
 )
 
+CPMAddPackage(
+  NAME ryml
+  GITHUB_REPOSITORY biojppm/rapidyaml
+  VERSION 0.15.2
+  OPTIONS "RYML_INSTALL OFF"
+)
+
 find_package(tree-sitter QUIET)
 if(NOT tree-sitter_FOUND)
   CPMAddPackage(
@@ -32,6 +39,6 @@ endif()
 
 add_executable(loom src/main.cpp src/compiler.cpp tree-sitter-loom/src/parser.c)
 target_include_directories(loom PRIVATE tree-sitter-loom/src)
-target_link_libraries(loom PRIVATE tree-sitter bfg::lyra)
+target_link_libraries(loom PRIVATE tree-sitter bfg::lyra ryml)
 
 install(TARGETS loom RUNTIME DESTINATION bin)

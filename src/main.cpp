@@ -6,12 +6,19 @@
 #include <fstream>
 #include <iostream>
 #include <lyra/lyra.hpp>
+#include <ryml.hpp>
+#include <ryml_std.hpp>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 
-bool runCompilation(const std::string &inputPath, const std::string &outputPath) {
+struct Config {
+  std::string namespaceStr;
+  std::string descriptionStr;
+};
+
+bool runCompilation(const std::string &inputPath, const std::string &outputPath, Config config) {
   std::ifstream f(inputPath);
   if (!f.is_open()) {
     std::cerr << "Error: Could not open input file: " << inputPath << "\n";
@@ -24,24 +31,27 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
   f.close();
 
   try {
-    Compiler compiler(source);
+    Compiler compiler(source, config.namespaceStr);
     const auto &compiledFunctions = compiler.compile();
 
-    std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / "loom" / "function";
+    std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / config.namespaceStr / "function";
     std::filesystem::create_directories(functionalDir);
 
     std::filesystem::path metaPath = std::filesystem::path(outputPath) / "pack.mcmeta";
     if (!std::filesystem::exists(metaPath)) {
       std::ofstream metaFile(metaPath);
-      metaFile << R"({
-  "pack": {
+      metaFile << std::format(
+        R"({{
+  "pack": {{
     "pack_format": 18,
     "supported_formats": [18, 101],
     "min_version": 18,
     "max_version": [101, 1],
-    "description": "Loom Generated Datapack"
-  }
-})";
+    "description": "{}"
+  }}
+}})",
+        config.descriptionStr
+      );
       metaFile.close();
     }
 
@@ -96,7 +106,7 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
         if (tagOutFile.is_open()) {
           std::string data = R"({"values":[)";
           for (const auto &func : funcs) {
-            data += "\"loom:" + func + "\",";
+            data += std::format("\"{}:{}\",", config.namespaceStr, func);
           }
           data.pop_back();
           data += "]}";
@@ -119,15 +129,30 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath)
 }
 
 int main(int argc, char *argv[]) {
+  Config config = {.namespaceStr = "loom", .descriptionStr = "Loom Generated Datapack"};
+
+  std::ifstream configFile("loom.yml", std::ios::binary);
+  if (configFile) {
+    std::stringstream buffer;
+    buffer << configFile.rdbuf();
+    std::string data = buffer.str();
+
+    ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(data));
+    ryml::ConstNodeRef root = tree.rootref();
+
+    if (root.has_child("namespace")) root["namespace"] >> config.namespaceStr;
+    if (root.has_child("description")) root["description"] >> config.descriptionStr;
+  }
+
   std::string inputPath;
   bool help = false;
-  std::string outputPath = "loom";
+  std::string outputPath = config.namespaceStr;
   bool watch = false;
   bool optimize = true;
 
   auto cli = lyra::help(help) | lyra::arg(inputPath, "source file")("Path to a .loom file to compile.").required() |
              lyra::opt(outputPath, "output")["-o"]["--output"]("Folder to output the datapack into.") |
-             lyra::opt(watch, "watch")["-w"]["--watch"]("Watch the input file for changes, and recompile.");
+             lyra::opt(watch)["-w"]["--watch"]("Watch the input file for changes, and recompile.");
 
   auto res = cli.parse({argc, argv});
   if (!res.is_ok()) {
@@ -144,7 +169,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  runCompilation(inputPath, outputPath);
+  runCompilation(inputPath, outputPath, config);
 
   if (watch) {
     std::cout << "Watching " << inputPath << " for changes... Press Ctrl+C to stop.\n";
@@ -158,7 +183,7 @@ int main(int argc, char *argv[]) {
         if (currentWrite != lastWrite) {
           lastWrite = currentWrite;
           std::cout << "Change detected! Recompiling...\n";
-          runCompilation(inputPath, outputPath);
+          runCompilation(inputPath, outputPath, config);
         }
       }
     }

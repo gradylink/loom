@@ -44,7 +44,7 @@ static std::string formatError(TSNode node, const std::string &message) {
   return std::format("line {}, col {}: {}", start.row + 1, start.column + 1, message);
 }
 
-Compiler::Compiler(const std::string_view &source) : source(source) {
+Compiler::Compiler(const std::string_view &source, const std::string &datapackNamespace) : source(source), datapackNamespace(datapackNamespace) {
   parser = ts_parser_new();
   ts_parser_set_language(parser, tree_sitter_loom());
 
@@ -97,7 +97,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     if (precompute) {
       return {.data = text, .precomputed = true, .type = Type::String};
     }
-    return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, text), .precomputed = false, .type = Type::String};
+    return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, text), .precomputed = false, .type = Type::String};
   }
 
   if (type == "member_expression") {
@@ -116,7 +116,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       const EnumVariant &var = varIt->second;
 
       ExpressionData exprResult = std::visit(
-        [id, precompute](auto &&arg) -> ExpressionData {
+        [&](auto &&arg) -> ExpressionData {
           using T = std::decay_t<decltype(arg)>;
 
           if constexpr (std::is_same_v<T, int32_t>) {
@@ -128,7 +128,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
             if (precompute) {
               return {.data = arg, .precomputed = true, .type = Type::String};
             }
-            return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, arg), .precomputed = false, .type = Type::String};
+            return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, arg), .precomputed = false, .type = Type::String};
           }
         },
         var.value
@@ -238,13 +238,13 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       }
 
       if (argExpr.precomputed) {
-        argPushData += std::format("data modify storage loom:stack regs append value {}\n", argExpr.data);
+        argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, argExpr.data);
       } else {
         argPushData += argExpr.data + "\n";
         if (argExpr.type == Type::String) {
-          argPushData += std::format("data modify storage loom:stack regs append from storage loom:global expr_str{}\n", id);
+          argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
         } else {
-          argPushData += "execute store result storage loom:stack regs append int 1 run scoreboard players get expr_output1 temp\n";
+          argPushData += std::format("execute store result storage {}:stack regs append int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace);
         }
       }
     }
@@ -252,8 +252,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     std::string push;
     std::string pop;
     for (unsigned int i = 1; i < id; i++) {
-      push += std::format("execute store result storage loom:stack regs append int 1 run scoreboard players get expr_output{} temp\n", i);
-      pop = std::format("\nexecute store result score expr_output{} temp run data get storage loom:stack regs[-1]\ndata remove storage loom:stack regs[-1]", i) + pop;
+      push += std::format("execute store result storage {}:stack regs append int 1 run scoreboard players get expr_output{} temp\n", datapackNamespace, i);
+      pop = std::format(
+              "\nexecute store result score expr_output{} temp run data get storage {}:stack regs[-1]\ndata remove storage {}:stack regs[-1]",
+              i,
+              datapackNamespace,
+              datapackNamespace
+            ) +
+            pop;
     }
 
     Type funcType = Type::Integer;
@@ -262,9 +268,9 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     std::string callCommand;
     if (funcs[targetFunc].returnType == ReturnType::Void) {
-      callCommand = std::format("function loom:{}", funcs[targetFunc].name);
+      callCommand = std::format("function {}:{}", datapackNamespace, funcs[targetFunc].name);
     } else {
-      callCommand = std::format("execute store result score expr_output{} temp run function loom:{}", id, funcs[targetFunc].name);
+      callCommand = std::format("execute store result score expr_output{} temp run function {}:{}", id, datapackNamespace, funcs[targetFunc].name);
     }
 
     return {.data = std::format("{}{}{}{}", push, argPushData, callCommand, pop), .precomputed = false, .type = funcType};
@@ -279,7 +285,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     if (vars[targetVar].type == Type::String) {
       return {
-        .data = std::format("data modify storage loom:global expr_str{} set from storage loom:global vars.{}", id, vars[targetVar].mangledName),
+        .data =
+          std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
         .precomputed = false,
         .type = Type::String
       };
@@ -325,23 +332,28 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       const std::string &sliced = "\"" + rawStr.substr(sIdx, eIdx - sIdx) + "\"";
 
       if (precompute) return {.data = sliced, .precomputed = true, .type = Type::String};
-      return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, sliced), .precomputed = false, .type = Type::String};
+      return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, sliced), .precomputed = false, .type = Type::String};
     }
 
-    if (target.precomputed) target.data = std::format("data modify storage loom:global expr_str{} set value {}", id, target.data);
+    if (target.precomputed) target.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, target.data);
     if (start.precomputed) start.data = std::format("scoreboard players set expr_output{} temp {}", id + 1, start.data);
     if (end.precomputed) end.data = std::format("scoreboard players set expr_output{} temp {}", id + 2, end.data);
 
     std::string runtimeCmds = target.data + "\n" + start.data + "\n" + end.data + "\n";
     runtimeCmds += std::format(
-      "data modify storage loom:global macro_args set value {{out_id: {}, target_id: {}}}\n"
-      "execute store result storage loom:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
-      "execute store result storage loom:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
-      "function loom:internal_string_slice with storage loom:global macro_args",
+      "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
+      "execute store result storage {}:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
+      "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
+      "function {}:internal_string_slice with storage {}:global macro_args",
+      datapackNamespace,
       id,
       id,
+      datapackNamespace,
       id + 1,
-      id + 2
+      datapackNamespace,
+      id + 2,
+      datapackNamespace,
+      datapackNamespace
     );
     return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
   }
@@ -370,27 +382,32 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       std::string singleChar = (idx >= 0 && idx < (int32_t)rawStr.size()) ? std::string(1, rawStr[idx]) : "";
 
       if (precompute) return {.data = "\"" + singleChar + "\"", .precomputed = true, .type = Type::String};
-      return {.data = std::format("data modify storage loom:global expr_str{} set value \"{}\"", id, singleChar), .precomputed = false, .type = Type::String};
+      return {.data = std::format("data modify storage {}:global expr_str{} set value \"{}\"", datapackNamespace, id, singleChar), .precomputed = false, .type = Type::String};
     }
 
-    if (target.precomputed) target.data = std::format("data modify storage loom:global expr_str{} set value {}", id, target.data);
+    if (target.precomputed) target.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, target.data);
     if (index.precomputed) index.data = std::format("scoreboard players set expr_output{} temp {}", id + 1, index.data);
 
     std::string runtimeCmds = target.data + "\n" + index.data + "\n";
     runtimeCmds += std::format(
       "scoreboard players operation expr_output{} temp = expr_output{} temp\n"
       "scoreboard players add expr_output{} temp 1\n"
-      "data modify storage loom:global macro_args set value {{out_id: {}, target_id: {}}}\n"
-      "execute store result storage loom:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
-      "execute store result storage loom:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
-      "function loom:internal_string_slice with storage loom:global macro_args",
+      "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
+      "execute store result storage {}:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
+      "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
+      "function {}:internal_string_slice with storage {}:global macro_args",
       id + 2,
       id + 1,
       id + 2,
+      datapackNamespace,
       id,
       id,
+      datapackNamespace,
       id + 1,
-      id + 2
+      datapackNamespace,
+      id + 2,
+      datapackNamespace,
+      datapackNamespace
     );
     return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
   }
@@ -434,21 +451,28 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         std::string joined = "\"" + lStr + rStr + "\"";
 
         if (precompute) return {.data = joined, .precomputed = true, .type = Type::String};
-        return {.data = std::format("data modify storage loom:global expr_str{} set value {}", id, joined), .precomputed = false, .type = Type::String};
+        return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, joined), .precomputed = false, .type = Type::String};
       }
 
-      if (left.precomputed) left.data = std::format("data modify storage loom:global expr_str{} set value {}", id, left.data);
-      if (right.precomputed) right.data = std::format("data modify storage loom:global expr_str{} set value {}", id + 1, right.data);
+      if (left.precomputed) left.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, left.data);
+      if (right.precomputed) right.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id + 1, right.data);
 
       std::string runtimeCmds = left.data + "\n" + right.data + "\n";
       runtimeCmds += std::format(
-        "data modify storage loom:global macro_args set value {{out_id: {}}}\n"
-        "data modify storage loom:global macro_args.left set from storage loom:global expr_str{}\n"
-        "data modify storage loom:global macro_args.right set from storage loom:global expr_str{}\n"
-        "function loom:internal_string_concat with storage loom:global macro_args",
+        "data modify storage {}:global macro_args set value {{out_id: {}}}\n"
+        "data modify storage {}:global macro_args.left set from storage {}:global expr_str{}\n"
+        "data modify storage {}:global macro_args.right set from storage {}:global expr_str{}\n"
+        "function {}:internal_string_concat with storage {}:global macro_args",
+        datapackNamespace,
         id,
+        datapackNamespace,
+        datapackNamespace,
         id,
-        id + 1
+        datapackNamespace,
+        datapackNamespace,
+        id + 1,
+        datapackNamespace,
+        datapackNamespace
       );
       return {.data = runtimeCmds, .precomputed = false, .type = Type::String};
     }
@@ -639,9 +663,13 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
 std::vector<Compiler::CompiledFunction> Compiler::compile() {
   compiledFunctions.clear();
 
-  compiledFunctions.push_back({.name = "internal_string_concat", .data = "$data modify storage loom:global expr_str$(out_id) set value \"$(left)$(right)\""});
   compiledFunctions.push_back(
-    {.name = "internal_string_slice", .data = "$data modify storage loom:global expr_str$(out_id) set string storage loom:global expr_str$(target_id) $(start) $(end)"}
+    {.name = "internal_string_concat", .data = std::format("$data modify storage {}:global expr_str$(out_id) set value \"$(left)$(right)\"", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_slice",
+     .data =
+       std::format("$data modify storage {}:global expr_str$(out_id) set string storage {}:global expr_str$(target_id) $(start) $(end)", datapackNamespace, datapackNamespace)}
   );
 
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
@@ -794,13 +822,14 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
           if (varType == Type::String) {
-            globalInit += std::format("data modify storage loom:global vars.{} set value {}\n", mangled, expr.data);
+            globalInit += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);
           } else {
             globalInit += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
           }
         } else {
           if (varType == Type::String) {
-            globalInit += std::format("{}\ndata modify storage loom:global vars.{} set from storage loom:global expr_str1\n", expr.data, mangled);
+            globalInit +=
+              std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
           } else {
             globalInit += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangled);
           }
@@ -846,8 +875,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           }
         );
 
-        paramSetup += std::format("execute store result score {} vars run data get storage loom:stack regs[-1]\n", mangledName);
-        paramSetup += "data remove storage loom:stack regs[-1]\n";
+        paramSetup += std::format("execute store result score {} vars run data get storage {}:stack regs[-1]\n", mangledName, datapackNamespace);
+        paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
       }
 
       compiledFunctions.push_back({.name = name, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag});
@@ -904,7 +933,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
       ret += std::format("execute if score {} temp matches 1 run {}", condScore, trueData);
     } else {
       compiledFunctions.push_back({.name = name + "_true", .data = trueData});
-      ret += std::format("execute if score {} temp matches 1 run function loom:{}_true\n", condScore, name);
+      ret += std::format("execute if score {} temp matches 1 run function {}:{}_true\n", condScore, datapackNamespace, name);
     }
   }
 
@@ -925,7 +954,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
         ret += std::format("execute unless score {} temp matches 1 run {}", condScore, altData);
       } else {
         compiledFunctions.push_back({.name = name + "_false", .data = altData});
-        ret += std::format("execute unless score {} temp matches 1 run function loom:{}_false\n", condScore, name);
+        ret += std::format("execute unless score {} temp matches 1 run function {}:{}_false\n", condScore, datapackNamespace, name);
       }
     }
   }
@@ -950,18 +979,18 @@ std::string Compiler::compileWhile(TSNode whileNode) {
   std::string loopFuncBody = compileBlock(blockNode);
   if (!condExpr.precomputed) {
     loopFuncBody += condExpr.data + "\n";
-    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function loom:{}\n", loopName);
+    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:{}\n", datapackNamespace, loopName);
   } else if (condExpr.data == "1") {
-    loopFuncBody += std::format("function loom:{}\n", loopName);
+    loopFuncBody += std::format("function {}:{}\n", datapackNamespace, loopName);
   }
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
   if (condExpr.precomputed) {
-    ret += std::format("function loom:{}\n", loopName);
+    ret += std::format("function {}:{}\n", datapackNamespace, loopName);
   } else {
     ret += condExpr.data + "\n";
-    ret += std::format("execute if score expr_output1 temp matches 1 run function loom:{}\n", loopName);
+    ret += std::format("execute if score expr_output1 temp matches 1 run function {}:{}\n", datapackNamespace, loopName);
   }
 
   return ret;
@@ -982,14 +1011,14 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
   std::string loopFuncBody = compileBlock(blockNode);
   if (!condExpr.precomputed) {
     loopFuncBody += condExpr.data + "\n";
-    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function loom:{}\n", loopName);
+    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:{}\n", datapackNamespace, loopName);
   } else if (condExpr.data == "1") {
-    loopFuncBody += std::format("function loom:{}\n", loopName);
+    loopFuncBody += std::format("function {}:{}\n", datapackNamespace, loopName);
   }
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
-  ret += std::format("function loom:{}\n", loopName);
+  ret += std::format("function {}:{}\n", datapackNamespace, loopName);
   return ret;
 }
 
@@ -1034,11 +1063,11 @@ std::string Compiler::compileFor(TSNode forNode) {
 
   std::string loopFuncBody = compileBlock(blockNode);
   loopFuncBody += std::format("scoreboard players add {} vars 1\n", iterMangled);
-  loopFuncBody += std::format("execute if score {} vars < {} vars run function loom:{}\n", iterMangled, endMangled, loopName);
+  loopFuncBody += std::format("execute if score {} vars < {} vars run function {}:{}\n", iterMangled, endMangled, datapackNamespace, loopName);
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
-  ret += std::format("execute if score {} vars < {} vars run function loom:{}\n", iterMangled, endMangled, loopName);
+  ret += std::format("execute if score {} vars < {} vars run function {}:{}\n", iterMangled, endMangled, datapackNamespace, loopName);
   return ret;
 }
 
@@ -1161,7 +1190,7 @@ std::string Compiler::compileBlock(TSNode node) {
           macroBody += line + "\n";
         }
         compiledFunctions.push_back({.name = macroFuncName, .data = macroBody});
-        ret += std::format("{} run function loom:{}\n", contextChain, macroFuncName);
+        ret += std::format("{} run function {}:{}\n", contextChain, datapackNamespace, macroFuncName);
       }
       continue;
     }
@@ -1205,13 +1234,14 @@ std::string Compiler::compileBlock(TSNode node) {
       if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
           if (varType == Type::String) {
-            ret += std::format("data modify storage loom:global vars.{} set value {}\n", mangledName, expr.data);
+            ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangledName, expr.data);
           } else {
             ret += std::format("scoreboard players set {} vars {}\n", mangledName, expr.data);
           }
         } else {
           if (varType == Type::String) {
-            ret += std::format("{}\ndata modify storage loom:global vars.{} set from storage loom:global expr_str1\n", expr.data, mangledName);
+            ret +=
+              std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangledName, datapackNamespace);
           } else {
             ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangledName);
           }
@@ -1242,7 +1272,7 @@ std::string Compiler::compileBlock(TSNode node) {
 
       if (expr.precomputed) {
         if (vars[name].type == Type::String) {
-          ret += std::format("data modify storage loom:global vars.{} set value {}\n", vars[name].mangledName, expr.data);
+          ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, vars[name].mangledName, expr.data);
         } else {
           ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
         }
@@ -1273,7 +1303,13 @@ std::string Compiler::compileBlock(TSNode node) {
         }
 
         if (vars[name].type == Type::String) {
-          ret += std::format("{}\ndata modify storage loom:global vars.{} set from storage loom:global expr_str1\n", expr.data, vars[name].mangledName);
+          ret += std::format(
+            "{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n",
+            expr.data,
+            datapackNamespace,
+            vars[name].mangledName,
+            datapackNamespace
+          );
         } else {
           ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, vars[name].mangledName);
         }
@@ -1363,7 +1399,8 @@ std::string Compiler::compileBlock(TSNode node) {
 
             macroSetup += expr.data + "\n";
 
-            macroSetup += std::format("execute store result storage loom:function_input var_{} int 1 run scoreboard players get expr_output1 temp\n", macroVarId);
+            macroSetup +=
+              std::format("execute store result storage {}:function_input var_{} int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace, macroVarId);
             macroVarId++;
           }
         } else {
@@ -1375,7 +1412,7 @@ std::string Compiler::compileBlock(TSNode node) {
       compiledFunctions.push_back({.name = macroFuncName, .data = macroBody + "\n"});
 
       ret += macroSetup;
-      ret += std::format("function loom:{} with storage loom:function_input\n", macroFuncName);
+      ret += std::format("function {}:{} with storage {}:function_input\n", datapackNamespace, macroFuncName, datapackNamespace);
       continue;
     }
 

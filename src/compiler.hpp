@@ -11,7 +11,7 @@
 
 class Compiler {
 public:
-  Compiler(const std::string_view &source);
+  Compiler(const std::string_view &source, const std::string &datapackNamespace);
   ~Compiler();
 
   struct CompiledFunction {
@@ -62,6 +62,7 @@ private:
     Type type;
   };
 
+  const std::string datapackNamespace;
   const std::string source;
 
   TSParser *parser;
