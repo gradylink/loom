@@ -35,7 +35,7 @@ A programming language that compiles to Minecraft datapacks.
 
 ### Implemented Language Features
 
-- [ ] Datapack ID and other meta data
+- [x] Datapack ID and other meta data
 - [x] Comments
 - [ ] Imports
 - [x] Variables
