@@ -36,6 +36,7 @@ module.exports = grammar({
     _statement: ($) =>
       seq(
         choice(
+          $.import_statement,
           $.enum_definition,
           $.variable_declaration,
           $.assignment,
@@ -54,8 +55,13 @@ module.exports = grammar({
 
     _newline: () => /\n/,
 
+    import_statement: ($) => seq("import", field("path", $.path)),
+
+    path: () => /[\.\/a-zA-Z0-9_-]+\.loom/,
+
     enum_definition: ($) =>
       seq(
+        optional("export"),
         "enum",
         field("name", $.identifier),
         "{",
@@ -73,6 +79,7 @@ module.exports = grammar({
 
     variable_declaration: ($) =>
       seq(
+        repeat($._modifier),
         field("keyword", choice("let", "const")),
         field("name", $.identifier),
         ":",
@@ -96,6 +103,7 @@ module.exports = grammar({
         optional(
           seq("#", field("tag", $.namespaced_arg), optional($._newline)),
         ),
+        repeat($._modifier),
         "func",
         field("name", $.identifier),
         "(",
@@ -463,6 +471,8 @@ module.exports = grammar({
       )),
 
     namespaced_arg: ($) => seq(optional(seq($.identifier, ":")), $.identifier),
+
+    _modifier: () => choice("export", "extern"),
 
     comment: () => token(seq("--", /.*/)),
   },

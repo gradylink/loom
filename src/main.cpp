@@ -31,7 +31,7 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath,
   f.close();
 
   try {
-    Compiler compiler(source, config.namespaceStr);
+    Compiler compiler(source, config.namespaceStr, std::filesystem::path(inputPath).parent_path());
     const auto &compiledFunctions = compiler.compile();
 
     std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / config.namespaceStr / "function";

@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <tree_sitter/api.h>
+#include <unordered_set>
 #include <vector>
 
 extern "C" const TSLanguage *tree_sitter_loom(void);
@@ -44,7 +48,8 @@ static std::string formatError(TSNode node, const std::string &message) {
   return std::format("line {}, col {}: {}", start.row + 1, start.column + 1, message);
 }
 
-Compiler::Compiler(const std::string_view &source, const std::string &datapackNamespace) : source(source), datapackNamespace(datapackNamespace) {
+Compiler::Compiler(const std::string_view &source, const std::string &datapackNamespace, std::filesystem::path currentDir)
+    : source(source), datapackNamespace(datapackNamespace), currentDir(currentDir) {
   parser = ts_parser_new();
   ts_parser_set_language(parser, tree_sitter_loom());
 
@@ -282,7 +287,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     if (!funcs[targetFunc].returnType.has_value()) {
       callCommand = std::format("function {}:{}", datapackNamespace, funcs[targetFunc].name);
     } else {
-      callCommand = std::format("execute store result score expr_output{} temp run function {}:{}", id, datapackNamespace, funcs[targetFunc].name);
+      callCommand = std::format("execute store result score expr_output{} temp run function {}:{}", id, datapackNamespace, funcs[targetFunc].mangledName);
     }
 
     return {.data = std::format("{}{}{}{}", push, argPushData, callCommand, pop), .precomputed = false, .type = funcType};
@@ -692,6 +697,68 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     TSNode child = ts_node_named_child(root, i);
     std::string type = ts_node_type(child);
 
+    if (type == "import_statement") {
+      std::string importPathStr = std::string(getFieldText(child, "path"));
+
+      std::filesystem::path importPath(importPathStr);
+      std::filesystem::path absPath = std::filesystem::absolute(currentDir / importPathStr);
+      std::string absPathStr = absPath.string();
+
+      static std::unordered_set<std::string> importedFiles;
+      if (importedFiles.contains(absPathStr)) {
+        continue;
+      }
+      importedFiles.insert(absPathStr);
+
+      std::ifstream f(absPath);
+      if (!f.is_open()) {
+        throw std::runtime_error("Compilation Error: Could not open imported file: " + importPath.string());
+      }
+
+      std::ostringstream buf;
+      buf << f.rdbuf();
+      std::string importedSource = buf.str();
+
+      Compiler importCompiler(importedSource, datapackNamespace, absPath.parent_path());
+      std::vector<CompiledFunction> importedFuncs = importCompiler.compile();
+
+      for (const auto &[name, funcData] : importCompiler.funcs) {
+        if (funcData.exported) {
+          funcs[name] = funcData;
+          funcs[name].exported = false;
+        }
+      }
+
+      for (const auto &[name, varData] : importCompiler.vars) {
+        if (varData.exported) {
+          vars[name] = varData;
+          vars[name].scope = root;
+          vars[name].exported = false;
+        }
+      }
+
+      for (const auto &[name, enumData] : importCompiler.enums) {
+        if (enumData.exported) {
+          enums[name] = enumData;
+          enums[name].exported = false;
+        }
+      }
+
+      for (const auto &func : importedFuncs) {
+        if (func.name != "internal_string_concat" && func.name != "internal_string_slice") {
+          compiledFunctions.push_back(func);
+        }
+      }
+
+      std::string importedInit = importCompiler.globalInit;
+      if (importedInit.starts_with(setupScoreboards)) {
+        importedInit = importedInit.substr(std::strlen(setupScoreboards));
+      }
+      globalInit += importedInit;
+
+      continue;
+    }
+
     if (type == "enum_definition") {
       const std::string &enumName = std::string(getFieldText(child, "name"));
 
@@ -744,6 +811,15 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         enumData.variants[varName] = variant;
       }
 
+      for (uint32_t j = 0; j < ts_node_child_count(child); j++) {
+        TSNode node = ts_node_child(child, j);
+        const std::string &nodeType = std::string(ts_node_type(node));
+        if (nodeType == "export") {
+          if (enumData.exported) throw std::runtime_error(formatError(node, "Cannot use 'export' twice."));
+          enumData.exported = true;
+        }
+      }
+
       enums[enumName] = enumData;
       continue;
     }
@@ -765,19 +841,32 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         retType = parseTypeFromString(typeText);
       }
 
+      bool isExport = false;
+      bool isExtern = false;
+
       std::vector<Type> paramTypes;
-      for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
-        TSNode paramNode = ts_node_named_child(child, j);
-        if (std::string(ts_node_type(paramNode)) == "parameter") {
-          TSNode paramTypeNode = ts_node_child_by_field_name(paramNode, "type", 4);
+      for (uint32_t j = 0; j < ts_node_child_count(child); j++) {
+        TSNode node = ts_node_child(child, j);
+        const std::string &nodeType = std::string(ts_node_type(node));
+        if (nodeType == "parameter") {
+          TSNode paramTypeNode = ts_node_child_by_field_name(node, "type", 4);
           std::string typeStr = std::string(getNodeText(paramTypeNode));
 
           Type pType = parseTypeFromString(typeStr);
           paramTypes.push_back(pType);
+        } else if (nodeType == "export") {
+          if (isExport) throw std::runtime_error(formatError(node, "Cannot use 'export' twice."));
+          isExport = true;
+        } else if (nodeType == "extern") {
+          if (isExtern) throw std::runtime_error(formatError(node, "Cannot use 'extern' twice."));
+          isExtern = true;
         }
       }
 
-      funcs[name] = {name, retType, paramTypes, tag};
+      std::string mangledName = name;
+      if (!isExtern) mangledName += "_" + randomFunctionMangleString();
+
+      funcs[name] = {.name = name, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport};
     }
   }
 
@@ -799,18 +888,24 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         value = std::stoi(expr.data);
       }
 
-      std::string mangled = name + "_" + randomMangleString();
-      vars.emplace(
-        name,
-        VariableData{
-          .name = name,
-          .mangledName = mangled,
-          .type = varType,
-          .scope = root,
-          .constant = constant,
-          .value = value,
+      bool isExport = false;
+      bool isExtern = false;
+      for (uint32_t j = 0; j < ts_node_child_count(child); j++) {
+        TSNode node = ts_node_child(child, j);
+        const std::string &nodeType = std::string(ts_node_type(node));
+        if (nodeType == "export") {
+          if (isExport) throw std::runtime_error(formatError(node, "Cannot use 'export' twice."));
+          isExport = true;
+        } else if (nodeType == "extern") {
+          if (isExtern) throw std::runtime_error(formatError(node, "Cannot use 'extern' twice."));
+          isExtern = true;
         }
-      );
+      }
+
+      std::string mangled = name;
+      if (!isExtern) mangled += "_" + randomMangleString();
+
+      vars.emplace(name, VariableData{.name = name, .mangledName = mangled, .type = varType, .scope = root, .value = value, .constant = constant, .exported = isExport});
 
       if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
@@ -861,8 +956,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
             .mangledName = mangledName,
             .type = pType,
             .scope = blockNode,
-            .constant = false,
             .value = std::nullopt,
+            .constant = false,
           }
         );
 
@@ -870,11 +965,11 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
       }
 
-      compiledFunctions.push_back({.name = name, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag});
+      compiledFunctions.push_back({.name = funcs[name].mangledName, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag});
       continue;
     }
 
-    if (type != "comment" && type != "enum_definition") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
+    if (type != "comment" && type != "enum_definition" && type != "import_statement") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
   }
 
   return compiledFunctions;
@@ -1038,7 +1133,7 @@ std::string Compiler::compileFor(TSNode forNode) {
 
   vars.emplace(
     iterName,
-    VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::IntegerType(), .scope = blockNode, .constant = false, .value = std::nullopt}
+    VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::IntegerType(), .scope = blockNode, .value = std::nullopt, .constant = false}
   );
 
   if (startExpr.precomputed) {
@@ -1211,8 +1306,8 @@ std::string Compiler::compileBlock(TSNode node) {
           .mangledName = mangledName,
           .type = varType,
           .scope = node,
-          .constant = constant,
           .value = value,
+          .constant = constant,
         }
       );
 

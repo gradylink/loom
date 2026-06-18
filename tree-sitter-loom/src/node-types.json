@@ -286,6 +286,10 @@
           "named": true
         },
         {
+          "type": "import_statement",
+          "named": true
+        },
+        {
           "type": "return_statement",
           "named": true
         },
@@ -1053,6 +1057,22 @@
     }
   },
   {
+    "type": "import_statement",
+    "named": true,
+    "fields": {
+      "path": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "path",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "interpolation",
     "named": true,
     "fields": {
@@ -1518,6 +1538,10 @@
         },
         {
           "type": "if",
+          "named": true
+        },
+        {
+          "type": "import_statement",
           "named": true
         },
         {
@@ -1994,6 +2018,14 @@
     "named": false
   },
   {
+    "type": "export",
+    "named": false
+  },
+  {
+    "type": "extern",
+    "named": false
+  },
+  {
     "type": "eyes",
     "named": false
   },
@@ -2023,6 +2055,10 @@
   },
   {
     "type": "if",
+    "named": false
+  },
+  {
+    "type": "import",
     "named": false
   },
   {
@@ -2072,6 +2108,10 @@
   {
     "type": "passengers",
     "named": false
+  },
+  {
+    "type": "path",
+    "named": true
   },
   {
     "type": "positioned",

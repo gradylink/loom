@@ -37,15 +37,14 @@ A programming language that compiles to Minecraft datapacks.
 
 - [x] Datapack ID and other meta data
 - [x] Comments
-- [ ] Imports
+- [x] Imports
 - [x] Variables
 - [x] Functions
   - [x] Returns
   - [x] Arguments
   - [x] Tags (`#init` on previous line would set init function for example)
   - [ ] Inline Functions (Macros?)
-  - [ ] Extern Functions (rn all functions are extern since you can only have 1
-        file but this will be important later.)
+  - [x] `extern` and `export`
 - [x] Integers
 - [x] Strings
 - [x] Booleans
@@ -53,7 +52,8 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] Dictionaries
 - [ ] Lists
 - [x] Enums
-- [ ] Structs (more optimized than dictionaries)
+- [ ] Structs (more optimized than dictionaries, since they can be treated like
+      fixed-length lists internally)
 - [x] Conditionals
   - [x] `if`
   - [x] `else`

@@ -1,5 +1,7 @@
 "func" @keyword.function
 "return" @keyword.return
+"import" @keyword.import
+["export" "extern"] @keyword.storage
 ["let" "const" "enum"] @keyword.storage
 ["if" "else"] @keyword.conditional
 ["while" "do" "for"] @keyword.repeat

@@ -16,7 +16,7 @@ import {
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Language, Node, Parser } from "web-tree-sitter";
+import { Language, Node, Parser, Tree } from "web-tree-sitter";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -27,10 +27,160 @@ const documents = new TextDocuments(TextDocument);
 
 let parser: Parser;
 const trees: Map<string, any> = new Map();
+const importCache: Map<string, { tree: Tree; path: string }> = new Map();
 
 const COMPILER_PATH = "/home/grady.link/loom/build/loom" as const;
 const WASM_PATH =
   "/home/grady.link/loom/tree-sitter-loom/tree-sitter-loom.wasm" as const;
+
+function resolveImportPath(
+  importPath: string,
+  sourceDir: string,
+): string | null {
+  const resolved = path.resolve(sourceDir, importPath);
+  if (fs.existsSync(resolved)) {
+    return resolved;
+  }
+  return null;
+}
+
+function getOrParseFile(filePath: string, sourceDir: string): any {
+  const resolved = resolveImportPath(filePath, sourceDir);
+  if (!resolved) return null;
+
+  if (importCache.has(resolved)) {
+    return importCache.get(resolved)!.tree;
+  }
+
+  try {
+    const content = fs.readFileSync(resolved, "utf8");
+    const tree = parser.parse(content);
+    if (!tree) return null;
+    importCache.set(resolved, { tree, path: resolved });
+    return tree;
+  } catch {
+    return null;
+  }
+}
+
+function getImports(tree: Tree): string[] {
+  const imports: string[] = [];
+  const traverse = (node: Node) => {
+    if (node.type === "import_statement") {
+      const pathNode = node.childForFieldName("path");
+      if (pathNode) {
+        imports.push(pathNode.text);
+      }
+    }
+    for (let i = 0; i < node.childCount; i++) {
+      traverse(node.child(i)!);
+    }
+  };
+  traverse(tree.rootNode);
+  return imports;
+}
+
+function findExportedSymbols(tree: Tree): {
+  enums: Map<string, Node>;
+  functions: Map<string, Node>;
+  variables: Map<string, Node>;
+} {
+  const enums = new Map<string, Node>();
+  const functions = new Map<string, Node>();
+  const variables = new Map<string, Node>();
+
+  const traverse = (node: Node) => {
+    if (node.type === "enum_definition") {
+      const exportNode = node.children.find((n) => n.text === "export");
+      if (exportNode) {
+        const nameNode = node.childForFieldName("name");
+        if (nameNode) enums.set(nameNode.text, node);
+      }
+    } else if (node.type === "function_definition") {
+      const exportNode = node.children.find((n) => n.text === "export");
+      if (exportNode) {
+        const nameNode = node.childForFieldName("name");
+        if (nameNode) functions.set(nameNode.text, node);
+      }
+    } else if (node.type === "variable_declaration") {
+      const exportNode = node.children.find((n) => n.text === "export");
+      if (exportNode) {
+        const nameNode = node.childForFieldName("name");
+        if (nameNode) variables.set(nameNode.text, node);
+      }
+    }
+
+    for (let i = 0; i < node.childCount; i++) {
+      traverse(node.child(i)!);
+    }
+  };
+
+  traverse(tree.rootNode);
+  return { enums, functions, variables };
+}
+
+function collectAllSymbols(
+  tree: Tree,
+  docUri: string,
+  visited = new Set<string>(),
+): {
+  enums: Map<string, { node: Node; file: string }>;
+  functions: Map<string, { node: Node; file: string }>;
+  variables: Map<string, { node: Node; file: string }>;
+} {
+  const enums = new Map<string, { node: Node; file: string }>();
+  const functions = new Map<string, { node: Node; file: string }>();
+  const variables = new Map<string, { node: Node; file: string }>();
+
+  const sourceDir = path.dirname(docUri.replace("file://", ""));
+
+  const traverse = (node: Node) => {
+    if (node.type === "enum_definition") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode) enums.set(nameNode.text, { node, file: docUri });
+    } else if (node.type === "function_definition") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode) functions.set(nameNode.text, { node, file: docUri });
+    } else if (node.type === "variable_declaration") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode) variables.set(nameNode.text, { node, file: docUri });
+    }
+
+    for (let i = 0; i < node.childCount; i++) {
+      traverse(node.child(i)!);
+    }
+  };
+  traverse(tree.rootNode);
+
+  const imports = getImports(tree);
+  for (const importPath of imports) {
+    const resolved = resolveImportPath(importPath, sourceDir);
+    if (resolved && !visited.has(resolved)) {
+      visited.add(resolved);
+      const importedTree = getOrParseFile(importPath, sourceDir);
+      if (importedTree) {
+        const exported = findExportedSymbols(importedTree);
+        exported.enums.forEach((node, name) => {
+          if (!enums.has(name)) {
+            enums.set(name, { node, file: `file://${resolved}` });
+          }
+        });
+        exported.functions.forEach((node, name) => {
+          if (!functions.has(name)) {
+            functions.set(name, { node, file: `file://${resolved}` });
+          }
+        });
+        exported.variables.forEach((node, name) => {
+          if (!variables.has(name)) {
+            variables.set(name, { node, file: `file://${resolved}` });
+          }
+        });
+      }
+    }
+  }
+
+  return { enums, functions, variables };
+}
 
 connection.onInitialize(
   async (params: InitializeParams): Promise<InitializeResult> => {
@@ -236,14 +386,18 @@ const getEnumVariantValueText = (variantNode: Node): string => {
   return "unknown";
 };
 
-function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
+function getDeclarationNode(
+  cursorNode: Node,
+  targetName: string,
+  docUri?: string,
+): { node: Node; file: string } | null {
   let curr: Node | null = cursorNode;
 
   while (curr) {
     if (curr.type === "for") {
       const iteratorNode = curr.childForFieldName("iterator");
       if (iteratorNode && iteratorNode.text === targetName) {
-        return curr;
+        return { node: curr, file: docUri || "" };
       }
     }
 
@@ -256,7 +410,7 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
         if (child.type === "variable_declaration") {
           const nameNode = child.childForFieldName("name");
           if (nameNode && nameNode.text === targetName) {
-            return child;
+            return { node: child, file: docUri || "" };
           }
         }
       }
@@ -265,7 +419,7 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
     if (curr.type === "function_definition") {
       const funcNameNode = curr.childForFieldName("name");
       if (funcNameNode && funcNameNode.text === targetName) {
-        return curr;
+        return { node: curr, file: docUri || "" };
       }
 
       const paramsNode = curr.childForFieldName("parameters");
@@ -281,7 +435,7 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
           for (let i = 0; i < n.childCount; i++) checkParam(n.child(i)!);
         };
         checkParam(paramsNode);
-        if (foundParam) return foundParam;
+        if (foundParam) return { node: foundParam, file: docUri || "" };
       }
     }
 
@@ -292,7 +446,7 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
   while (root.parent) root = root.parent;
 
   const globalEnum = findGlobalEnum(root, targetName);
-  if (globalEnum) return globalEnum;
+  if (globalEnum) return { node: globalEnum, file: docUri || "" };
 
   let globalFunc: Node | null = null;
   const findGlobalFunc = (node: Node) => {
@@ -308,7 +462,28 @@ function getDeclarationNode(cursorNode: Node, targetName: string): Node | null {
   };
   findGlobalFunc(root);
 
-  return globalFunc;
+  if (globalFunc) return { node: globalFunc, file: docUri || "" };
+
+  if (docUri) {
+    const tree = trees.get(docUri);
+    if (tree) {
+      const allSymbols = collectAllSymbols(tree, docUri);
+      if (allSymbols.enums.has(targetName)) {
+        const sym = allSymbols.enums.get(targetName)!;
+        return { node: sym.node, file: sym.file };
+      }
+      if (allSymbols.functions.has(targetName)) {
+        const sym = allSymbols.functions.get(targetName)!;
+        return { node: sym.node, file: sym.file };
+      }
+      if (allSymbols.variables.has(targetName)) {
+        const sym = allSymbols.variables.get(targetName)!;
+        return { node: sym.node, file: sym.file };
+      }
+    }
+  }
+
+  return null;
 }
 
 connection.onDefinition((params: DefinitionParams): Location | null => {
@@ -324,7 +499,7 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
-  let targetNode: Node | null = null;
+  let targetNode: { node: Node; file: string } | null = null;
 
   if (cursorNode.parent && cursorNode.parent.type === "member_expression") {
     const objNode = cursorNode.parent.childForFieldName("object");
@@ -334,33 +509,59 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
       if (enumNode) {
         const variantNode = findEnumVariant(enumNode, propNode.text);
         if (variantNode) {
-          targetNode = variantNode.childForFieldName("name") || variantNode;
+          targetNode = {
+            node: variantNode.childForFieldName("name") || variantNode,
+            file: params.textDocument.uri,
+          };
+        }
+      } else {
+        const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
+        if (allSymbols.enums.has(objNode.text)) {
+          const importedEnum = allSymbols.enums.get(objNode.text)!;
+          const importedTree = trees.get(importedEnum.file);
+          if (importedTree) {
+            const variantNode = findEnumVariant(
+              importedEnum.node,
+              propNode.text,
+            );
+            if (variantNode) {
+              targetNode = {
+                node: variantNode.childForFieldName("name") || variantNode,
+                file: importedEnum.file,
+              };
+            }
+          }
         }
       }
     }
   }
 
   if (!targetNode) {
-    const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
-    if (declarationNode) {
-      targetNode = declarationNode.childForFieldName("name") ||
-        declarationNode.childForFieldName("iterator") ||
-        declarationNode.namedChild(0) ||
-        declarationNode;
+    const declarationData = getDeclarationNode(
+      cursorNode,
+      cursorNode.text,
+      params.textDocument.uri,
+    );
+    if (declarationData) {
+      const nameFieldNode = declarationData.node.childForFieldName("name") ||
+        declarationData.node.childForFieldName("iterator") ||
+        declarationData.node.namedChild(0) ||
+        declarationData.node;
+      targetNode = { node: nameFieldNode, file: declarationData.file };
     }
   }
 
   if (targetNode) {
     return {
-      uri: params.textDocument.uri,
+      uri: targetNode.file,
       range: {
         start: {
-          line: targetNode.startPosition.row,
-          character: targetNode.startPosition.column,
+          line: targetNode.node.startPosition.row,
+          character: targetNode.node.startPosition.column,
         },
         end: {
-          line: targetNode.endPosition.row,
-          character: targetNode.endPosition.column,
+          line: targetNode.node.endPosition.row,
+          character: targetNode.node.endPosition.column,
         },
       },
     };
@@ -396,14 +597,33 @@ connection.onHover((params: HoverParams): Hover | null => {
           hoverText =
             `\`\`\`loom\n(enum variant) ${objNode.text}.${propNode.text} = ${valStr}\n\`\`\``;
         }
+      } else {
+        const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
+        if (allSymbols.enums.has(objNode.text)) {
+          const importedEnum = allSymbols.enums.get(objNode.text)!;
+          const variantNode = findEnumVariant(
+            importedEnum.node,
+            propNode.text,
+          );
+          if (variantNode) {
+            const valStr = getEnumVariantValueText(variantNode);
+            hoverText =
+              `\`\`\`loom\n(enum variant) ${objNode.text}.${propNode.text} = ${valStr}\n\`\`\``;
+          }
+        }
       }
     }
   }
 
   if (hoverText == "") {
-    const declarationNode = getDeclarationNode(cursorNode, cursorNode.text);
+    const declarationData = getDeclarationNode(
+      cursorNode,
+      cursorNode.text,
+      params.textDocument.uri,
+    );
 
-    if (declarationNode) {
+    if (declarationData) {
+      const declarationNode = declarationData.node;
       if (declarationNode.type === "enum_definition") {
         const name = declarationNode.childForFieldName("name")?.text ||
           "unknown";
@@ -499,6 +719,30 @@ connection.onCompletion(
         };
         collectVariants(enumNode);
         return enumVariants;
+      } else {
+        const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
+        if (allSymbols.enums.has(enumName)) {
+          const importedEnum = allSymbols.enums.get(enumName)!;
+          const enumVariants: CompletionItem[] = [];
+          const collectVariants = (node: Node) => {
+            if (node.type === "enum_variant") {
+              const nameNode = node.childForFieldName("name");
+              if (nameNode) {
+                const valStr = getEnumVariantValueText(node);
+                enumVariants.push({
+                  label: nameNode.text,
+                  kind: CompletionItemKind.EnumMember,
+                  detail: `= ${valStr}`,
+                });
+              }
+            }
+            for (let i = 0; i < node.childCount; i++) {
+              collectVariants(node.child(i)!);
+            }
+          };
+          collectVariants(importedEnum.node);
+          return enumVariants;
+        }
       }
     }
 
@@ -600,6 +844,39 @@ connection.onCompletion(
     };
     findEnums(tree.rootNode);
 
+    const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
+    for (const [varName, varData] of allSymbols.variables) {
+      variables.add({
+        name: varName,
+        type: varData.node.childForFieldName("type")?.text || "unknown",
+        const: varData.node.childForFieldName("keyword")?.text === "const",
+      });
+    }
+    for (const [funcName, funcData] of allSymbols.functions) {
+      const params: { name: string; type: string }[] = [];
+      const paramsNode = funcData.node.childForFieldName("parameters");
+      if (paramsNode) {
+        for (const paramNode of paramsNode.children) {
+          const paramNameNode = paramNode.childForFieldName("name");
+          const paramTypeNode = paramNode.childForFieldName("type");
+          if (paramNameNode) {
+            params.push({
+              name: paramNameNode.text,
+              type: paramTypeNode ? paramTypeNode.text : "unknown",
+            });
+          }
+        }
+      }
+      functions.add({
+        name: funcName,
+        params,
+        type: funcData.node.childForFieldName("type")?.text || "void",
+      });
+    }
+    for (const [enumName] of allSymbols.enums) {
+      enumsSet.add({ name: enumName });
+    }
+
     const addVariables = () => {
       for (const v of variables) {
         items.push({
@@ -678,6 +955,13 @@ connection.onCompletion(
       ];
     }
 
+    if (lineText.match(/(?:export|extern)\s+$/)) {
+      return ["let", "const", "enum", "func"].map((keyword) => ({
+        label: keyword,
+        kind: CompletionItemKind.Keyword,
+      }));
+    }
+
     const keywords = [
       "let",
       "const",
@@ -702,6 +986,9 @@ connection.onCompletion(
       "over",
       "rotated",
       "enum",
+      "import",
+      "export",
+      "extern",
     ];
     for (const kw of keywords) {
       items.push({ label: kw, kind: CompletionItemKind.Keyword });

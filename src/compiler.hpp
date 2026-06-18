@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -11,7 +12,7 @@
 
 class Compiler {
 public:
-  Compiler(const std::string_view &source, const std::string &datapackNamespace);
+  Compiler(const std::string_view &source, const std::string &datapackNamespace, std::filesystem::path currentDir = ".");
   ~Compiler();
 
   struct CompiledFunction {
@@ -36,6 +37,8 @@ private:
     std::string name;
     EnumType type = EnumType::Integer;
     std::unordered_map<std::string, EnumVariant> variants;
+
+    bool exported = false;
   };
 
   struct Type {
@@ -65,9 +68,12 @@ private:
 
   struct FunctionData {
     std::string name;
+    std::string mangledName;
     std::optional<Type> returnType;
     std::vector<Type> params;
     std::optional<std::string> tag;
+
+    bool exported = false;
   };
 
   struct VariableData {
@@ -75,8 +81,10 @@ private:
     std::string mangledName;
     Type type;
     TSNode scope;
-    bool constant;
     std::optional<int32_t> value;
+
+    bool constant = false;
+    bool exported = false;
   };
 
   struct ExpressionData {
@@ -87,6 +95,7 @@ private:
 
   const std::string datapackNamespace;
   const std::string source;
+  const std::filesystem::path currentDir;
 
   TSParser *parser;
   TSTree *tree;
