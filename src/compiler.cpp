@@ -72,6 +72,10 @@ std::string_view Compiler::getNodeText(TSNode node) {
 std::string_view Compiler::getFieldText(TSNode node, const std::string &field) { return getNodeText(ts_node_child_by_field_name(node, field.c_str(), field.length())); }
 
 Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const {
+  if (typeText.ends_with("[]")) {
+    return Type::ListTypeOf(parseTypeFromString(typeText.substr(0, typeText.length() - 2)));
+  }
+
   if (typeText == "int") return Type::IntegerType();
   if (typeText == "bool") return Type::BooleanType();
   if (typeText == "string") return Type::StringType();
@@ -112,6 +116,67 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       return {.data = text, .precomputed = true, .type = Type::StringType()};
     }
     return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, text), .precomputed = false, .type = Type::StringType()};
+  }
+
+  if (type == "list_expression") {
+    uint32_t childCount = ts_node_named_child_count(node);
+
+    Type elementType = Type::IntegerType();
+    bool allPrecomputed = true;
+    std::vector<ExpressionData> compiledElements;
+    compiledElements.reserve(childCount);
+
+    for (uint32_t i = 0; i < childCount; ++i) {
+      TSNode child = ts_node_named_child(node, i);
+      ExpressionData elemData = compileExpression(child, id + 1, true);
+
+      if (i == 0) {
+        elementType = elemData.type;
+      } else if (elemData.type != elementType) {
+        throw std::runtime_error(formatError(child, "Mismatched types inside list expression."));
+      }
+
+      if (!elemData.precomputed) {
+        allPrecomputed = false;
+      }
+      compiledElements.push_back(elemData);
+    }
+
+    Type listType = Type::ListTypeOf(elementType);
+
+    if (allPrecomputed) {
+      std::string jsonArray = "[";
+      for (size_t i = 0; i < compiledElements.size(); ++i) {
+        jsonArray += compiledElements[i].data;
+        if (i + 1 < compiledElements.size()) jsonArray += ",";
+      }
+      jsonArray += "]";
+
+      if (precompute) {
+        return {.data = jsonArray, .precomputed = true, .type = listType};
+      }
+      return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, jsonArray), .precomputed = false, .type = listType};
+    }
+
+    // TODO: optimize begging of list being precomputed
+    std::string runtimeCmds = std::format("data modify storage {}:global expr_str{} set value []\n", datapackNamespace, id);
+
+    for (const auto &elemData : compiledElements) {
+      if (elemData.precomputed) {
+        runtimeCmds += std::format("data modify storage {}:global expr_str{} append value {}\n", datapackNamespace, id, elemData.data);
+      } else {
+        runtimeCmds += elemData.data + "\n";
+
+        if (elemData.type.isString() || elemData.type.kind == Type::List) {
+          runtimeCmds += std::format("data modify storage {}:global expr_str{} append from storage {}:global expr_str{}\n", datapackNamespace, id, datapackNamespace, id + 1);
+        } else {
+          runtimeCmds +=
+            std::format("execute store result storage {}:global expr_str{} append int 1 run scoreboard players get expr_output{} temp\n", datapackNamespace, id, id + 1);
+        }
+      }
+    }
+
+    return {.data = runtimeCmds, .precomputed = false, .type = listType};
   }
 
   if (type == "member_expression") {
@@ -235,7 +300,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     std::string targetFunc = std::string(getFieldText(node, "name"));
     std::transform(targetFunc.begin(), targetFunc.end(), targetFunc.begin(), ::tolower);
 
-    if (funcs.find(targetFunc) == funcs.end()) {
+    if (funcs.find(targetFunc) == funcs.end() && targetFunc != "append" && targetFunc != "remove" && targetFunc != "insert" && targetFunc != "len") {
       throw std::runtime_error(formatError(node, "Unknown function: " + targetFunc));
     }
 
@@ -244,8 +309,250 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       argNodes.push_back(ts_node_named_child(node, i));
     }
 
-    if (argNodes.size() != funcs[targetFunc].params.size()) {
+    unsigned int targetSize;
+    if (targetFunc == "append" || targetFunc == "remove") targetSize = 2;
+    else if (targetFunc == "insert") targetSize = 3;
+    else if (targetFunc == "len") targetSize = 1;
+    else targetSize = funcs[targetFunc].params.size();
+    if (argNodes.size() != targetSize) {
       throw std::runtime_error(formatError(node, std::format("Function '{}' expects {} arguments, got {}", targetFunc, funcs[targetFunc].params.size(), argNodes.size())));
+    }
+
+    if (targetFunc == "len") {
+      ExpressionData objExpr = compileExpression(argNodes[0], id, true);
+
+      if (!objExpr.type.isList() && !objExpr.type.isString()) {
+        throw std::runtime_error(formatError(argNodes[0], "Argument to 'len' must be a list or a string."));
+      }
+
+      if (objExpr.precomputed) {
+        size_t length = 0;
+        if (objExpr.type.isString()) {
+          std::string rawStr = objExpr.data;
+          if (rawStr.size() >= 2 && rawStr.front() == '"' && rawStr.back() == '"') {
+            length = rawStr.size() - 2;
+          } else {
+            length = rawStr.size();
+          }
+        } else {
+          length = std::count(objExpr.data.begin(), objExpr.data.end(), ',') + 1;
+        }
+        if (!precompute) return {.data = std::format("scoreboard players set expr_output{} temp {}", id, length), .precomputed = false, .type = Type::IntegerType()};
+        return {.data = std::to_string(length), .precomputed = true, .type = Type::IntegerType()};
+      }
+
+      return {
+        .data = std::format("{2}\nexecute store result score expr_output{0} temp run data get storage {1}:global expr_str{0}", id, datapackNamespace, objExpr.data),
+        .precomputed = false,
+        .type = Type::IntegerType()
+      };
+    }
+
+    if (targetFunc == "append" || targetFunc == "remove" || targetFunc == "insert") {
+      ExpressionData listExpr = compileExpression(argNodes[0], id, true);
+      if (!listExpr.type.isList() && !listExpr.type.isString()) {
+        throw std::runtime_error(formatError(argNodes[0], "First argument to '" + targetFunc + "' must be a list or a string."));
+      }
+
+      const bool &isStringMode = listExpr.type.isString();
+      std::string cmds = listExpr.data + "\n";
+      if (listExpr.precomputed) {
+        cmds += std::format("data modify storage {0}:global expr_str{1} set value {2}\n", datapackNamespace, id, listExpr.data);
+      }
+
+      if (targetFunc == "append") {
+        ExpressionData elemExpr = compileExpression(argNodes[1], id + 1, true);
+        cmds += elemExpr.data + "\n";
+
+        if (isStringMode) {
+          if (!elemExpr.type.isString()) {
+            throw std::runtime_error(formatError(argNodes[1], "Type mismatch: cannot append non-string to a string."));
+          }
+          if (elemExpr.precomputed) {
+            cmds += std::format(
+              "data modify storage {0}:global macro_args set value {{target_id: {1}, value: {2}}}\n"
+              "function {0}:internal_string_append with storage {0}:global macro_args\n",
+              datapackNamespace,
+              id,
+              elemExpr.data
+            );
+          } else {
+            cmds += std::format(
+              "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
+              "function {0}:internal_string_append_str with storage {0}:global macro_args\n",
+              datapackNamespace,
+              id,
+              id + 1
+            );
+          }
+        } else {
+          if (elemExpr.type != *listExpr.type.baseType) {
+            throw std::runtime_error(formatError(argNodes[1], "Type mismatch: cannot append element to this list type."));
+          }
+          if (elemExpr.precomputed) {
+            cmds += std::format("data modify storage {0}:global expr_str{1} append value {2}\n", datapackNamespace, id, elemExpr.data);
+          } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+            cmds += std::format("data modify storage {0}:global expr_str{1} append from storage {0}:global expr_str{2}\n", datapackNamespace, id, id + 1);
+          } else {
+            cmds +=
+              std::format("execute store result storage {0}:global expr_str{1} append int 1 run scoreboard players get expr_output{2} temp\n", datapackNamespace, id, id + 1);
+          }
+        }
+      } else if (targetFunc == "remove") {
+        ExpressionData idxExpr = compileExpression(argNodes[1], id + 1, true);
+        if (!idxExpr.type.isInteger()) {
+          throw std::runtime_error(formatError(argNodes[1], "Index must evaluate to an integer."));
+        }
+        cmds += idxExpr.data + "\n";
+
+        if (isStringMode) {
+          if (idxExpr.precomputed) {
+            int idxVal = std::stoi(idxExpr.data);
+            cmds += std::format(
+              "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, index_plus_one: {3}}}\n"
+              "function {0}:internal_string_remove with storage {0}:global macro_args\n",
+              datapackNamespace,
+              id,
+              idxVal,
+              idxVal + 1
+            );
+          } else {
+            cmds += std::format(
+              "data modify storage {0}:global macro_args set value {{target_id: {1}}}\n"
+              "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{2} temp\n"
+              "scoreboard players operation expr_output3 temp = expr_output{2} temp\n"
+              "scoreboard players add expr_output3 temp 1\n"
+              "execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get expr_output3 temp\n"
+              "function {0}:internal_string_remove with storage {0}:global macro_args\n",
+              datapackNamespace,
+              id,
+              id + 1
+            );
+          }
+        } else {
+          if (idxExpr.precomputed) {
+            cmds += std::format("data remove storage {0}:global expr_str{1}[{2}]\n", datapackNamespace, id, idxExpr.data);
+          } else {
+            cmds += std::format(
+              "data modify storage {0}:global macro_args set value {{target_id: {1}}}\n"
+              "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{2} temp\n"
+              "function {0}:internal_list_remove with storage {0}:global macro_args\n",
+              datapackNamespace,
+              id,
+              id + 1
+            );
+          }
+        }
+      } else if (targetFunc == "insert") {
+        ExpressionData idxExpr = compileExpression(argNodes[1], id + 1, true);
+        ExpressionData elemExpr = compileExpression(argNodes[2], id + 2, true);
+        if (!idxExpr.type.isInteger()) {
+          throw std::runtime_error(formatError(argNodes[1], "Index must evaluate to an integer."));
+        }
+
+        if (isStringMode) {
+          if (!elemExpr.type.isString()) {
+            throw std::runtime_error(formatError(argNodes[2], "Type mismatch: cannot insert non-string into a string."));
+          }
+          cmds += idxExpr.data + "\n" + elemExpr.data + "\n";
+
+          if (idxExpr.precomputed) {
+            if (elemExpr.precomputed) {
+              cmds += std::format(
+                "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, value: {3}}}\n"
+                "function {0}:internal_string_insert_value with storage {0}:global macro_args\n",
+                datapackNamespace,
+                id,
+                idxExpr.data,
+                elemExpr.data
+              );
+            } else {
+              cmds += std::format(
+                "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, elem_id: {3}}}\n"
+                "function {0}:internal_string_insert_str with storage {0}:global macro_args\n",
+                datapackNamespace,
+                id,
+                idxExpr.data,
+                id + 2
+              );
+            }
+          } else {
+            cmds += std::format(
+              "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
+              "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n",
+              datapackNamespace,
+              id,
+              id + 2,
+              id + 1
+            );
+            if (elemExpr.precomputed) {
+              cmds += std::format(
+                "data modify storage {0}:global macro_args.value set value {1}\n"
+                "function {0}:internal_string_insert_value with storage {0}:global macro_args\n",
+                datapackNamespace,
+                elemExpr.data
+              );
+            } else {
+              cmds += std::format("function {0}:internal_string_insert_str with storage {0}:global macro_args\n", datapackNamespace);
+            }
+          }
+        } else {
+          if (elemExpr.type != *listExpr.type.baseType) {
+            throw std::runtime_error(formatError(argNodes[2], "Type mismatch: cannot insert element into this list type."));
+          }
+          cmds += idxExpr.data + "\n" + elemExpr.data + "\n";
+
+          if (idxExpr.precomputed) {
+            if (elemExpr.precomputed) {
+              cmds += std::format("data modify storage {0}:global expr_str{1} insert {2} value {3}\n", datapackNamespace, id, idxExpr.data, elemExpr.data);
+            } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+              cmds += std::format("data modify storage {0}:global expr_str{1} insert {2} from storage {0}:global expr_str{3}\n", datapackNamespace, id, idxExpr.data, id + 2);
+            } else {
+              cmds += std::format(
+                "execute store result storage {0}:global expr_str{1} insert {2} int 1 run scoreboard players get expr_output{3} temp\n",
+                datapackNamespace,
+                id,
+                idxExpr.data,
+                id + 2
+              );
+            }
+          } else {
+            if (elemExpr.precomputed) {
+              cmds += std::format(
+                "data modify storage {0}:global macro_args set value {{target_id: {1}, value: {2}}}\n"
+                "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n"
+                "function {0}:internal_list_insert_value with storage {0}:global macro_args\n",
+                datapackNamespace,
+                id,
+                elemExpr.data,
+                id + 1
+              );
+            } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+              cmds += std::format(
+                "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
+                "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n"
+                "function {0}:internal_list_insert_object with storage {0}:global macro_args\n",
+                datapackNamespace,
+                id,
+                id + 2,
+                id + 1
+              );
+            } else {
+              cmds += std::format(
+                "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
+                "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n"
+                "function {0}:internal_list_insert_primitive with storage {0}:global macro_args\n",
+                datapackNamespace,
+                id,
+                id + 2,
+                id + 1
+              );
+            }
+          }
+        }
+      }
+
+      return {.data = cmds, .precomputed = false, .type = listExpr.type};
     }
 
     std::string argPushData = "";
@@ -332,14 +639,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     ExpressionData start = compileExpression(startNode, id + 1, true);
     ExpressionData end = compileExpression(endNode, id + 2, true);
 
-    if (!target.type.isString()) {
-      throw std::runtime_error(formatError(node, "Slice parameters can only be used on strings."));
+    if (!target.type.isString() && !target.type.isList()) {
+      throw std::runtime_error(formatError(node, "Slice parameters can only be used on strings or lists."));
     }
     if (!start.type.isInteger() || !end.type.isInteger()) {
       throw std::runtime_error(formatError(node, "Slice ranges must evaluate to integer bounds."));
     }
 
-    if (target.precomputed && start.precomputed && end.precomputed) {
+    if (target.type.isString() && target.precomputed && start.precomputed && end.precomputed) {
       std::string rawStr = target.data;
       if (rawStr.size() >= 2 && (rawStr.front() == '"' || rawStr.front() == '\'')) {
         rawStr = rawStr.substr(1, rawStr.size() - 2);
@@ -360,19 +667,23 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     runtimeCmds += std::format(
       "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
       "execute store result storage {}:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
-      "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
-      "function {}:internal_string_slice with storage {}:global macro_args",
+      "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n",
       datapackNamespace,
       id,
       id,
       datapackNamespace,
       id + 1,
       datapackNamespace,
-      id + 2,
-      datapackNamespace,
-      datapackNamespace
+      id + 2
     );
-    return {.data = runtimeCmds, .precomputed = false, .type = Type::StringType()};
+
+    if (target.type.isString()) {
+      runtimeCmds += std::format("function {}:internal_string_slice with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+    } else {
+      runtimeCmds += std::format("function {}:internal_list_slice with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+    }
+
+    return {.data = runtimeCmds, .precomputed = false, .type = target.type};
   }
 
   if (type == "element_expression") {
@@ -385,12 +696,13 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     if (!index.type.isInteger()) {
       throw std::runtime_error(formatError(node, "Index must evaluate to an integer."));
     }
-
-    if (!target.type.isString()) {
-      throw std::runtime_error(formatError(node, "Only strings can be queried."));
+    if (!target.type.isString() && !target.type.isList()) {
+      throw std::runtime_error(formatError(node, "Only strings and lists can be queried."));
     }
 
-    if (target.precomputed && index.precomputed) {
+    Type resultType = target.type.isString() ? Type::StringType() : *target.type.baseType;
+
+    if (target.type.isString() && target.precomputed && index.precomputed) {
       std::string rawStr = target.data;
       if (rawStr.size() >= 2 && (rawStr.front() == '"' || rawStr.front() == '\'')) {
         rawStr = rawStr.substr(1, rawStr.size() - 2);
@@ -410,27 +722,47 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     if (index.precomputed) index.data = std::format("scoreboard players set expr_output{} temp {}", id + 1, index.data);
 
     std::string runtimeCmds = target.data + "\n" + index.data + "\n";
-    runtimeCmds += std::format(
-      "scoreboard players operation expr_output{} temp = expr_output{} temp\n"
-      "scoreboard players add expr_output{} temp 1\n"
-      "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
-      "execute store result storage {}:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
-      "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
-      "function {}:internal_string_slice with storage {}:global macro_args",
-      id + 2,
-      id + 1,
-      id + 2,
-      datapackNamespace,
-      id,
-      id,
-      datapackNamespace,
-      id + 1,
-      datapackNamespace,
-      id + 2,
-      datapackNamespace,
-      datapackNamespace
-    );
-    return {.data = runtimeCmds, .precomputed = false, .type = Type::StringType()};
+
+    if (target.type.isString()) {
+      runtimeCmds += std::format(
+        "scoreboard players operation expr_output{} temp = expr_output{} temp\n"
+        "scoreboard players add expr_output{} temp 1\n"
+        "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
+        "execute store result storage {}:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
+        "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
+        "function {}:internal_string_slice with storage {}:global macro_args",
+        id + 2,
+        id + 1,
+        id + 2,
+        datapackNamespace,
+        id,
+        id,
+        datapackNamespace,
+        id + 1,
+        datapackNamespace,
+        id + 2,
+        datapackNamespace,
+        datapackNamespace
+      );
+    } else {
+      runtimeCmds += std::format(
+        "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
+        "execute store result storage {}:global macro_args.index int 1 run scoreboard players get expr_output{} temp\n",
+        datapackNamespace,
+        id,
+        id,
+        datapackNamespace,
+        id + 1
+      );
+
+      if (resultType.isString() || resultType.isList()) {
+        runtimeCmds += std::format("function {}:internal_list_get_object with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+      } else {
+        runtimeCmds += std::format("function {}:internal_list_get_primitive with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+      }
+    }
+
+    return {.data = runtimeCmds, .precomputed = false, .type = resultType};
   }
 
   if (type == "binary_expression") {
@@ -689,8 +1021,130 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   );
   compiledFunctions.push_back(
     {.name = "internal_string_slice",
-     .data =
-       std::format("$data modify storage {}:global expr_str$(out_id) set string storage {}:global expr_str$(target_id) $(start) $(end)", datapackNamespace, datapackNamespace)}
+     .data = std::format("$data modify storage {0}:global expr_str$(out_id) set string storage {0}:global expr_str$(target_id) $(start) $(end)", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_mutate_static",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.before set string storage {0}:global vars.$(var_name)$(path) 0 $(index)\n"
+       "$data modify storage {0}:global macro_args.after set string storage {0}:global vars.$(var_name)$(path) $(index_plus_one)\n"
+       "$data modify storage {0}:global vars.$(var_name)$(path) set value \"$(before)$(value)$(after)\"",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_mutate_dynamic",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.before set string storage {0}:global vars.$(var_name)$(path) 0 $(index)\n"
+       "$data modify storage {0}:global macro_args.after set string storage {0}:global vars.$(var_name)$(path) $(index_plus_one)\n"
+       "$data modify storage {0}:global vars.$(var_name)$(path) set value \"$(before)$(value)$(after)\"",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_append",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.left set from storage {0}:global expr_str$(target_id)\n"
+       "$data modify storage {0}:global expr_str$(target_id) set value \"$(left)$(value)\"",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_append_str",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.left set from storage {0}:global expr_str$(target_id)\n"
+       "$data modify storage {0}:global macro_args.right set from storage {0}:global expr_str$(elem_id)\n"
+       "$data modify storage {0}:global expr_str$(target_id) set value \"$(left)$(right)\"",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_remove",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
+       "$data modify storage {0}:global macro_args.after set string storage {0}:global expr_str$(target_id) $(index_plus_one)\n"
+       "$data modify storage {0}:global expr_str$(target_id) set value \"$(before)$(after)\"",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_insert_value",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
+       "$data modify storage {0}:global macro_args.after set string storage {0}:global expr_str$(target_id) $(index)\n"
+       "$data modify storage {0}:global expr_str$(target_id) set value \"$(before)$(value)$(after)\"",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_string_insert_str",
+     .data = std::format(
+       "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
+       "$data modify storage {0}:global macro_args.after set string storage {0}:global expr_str$(target_id) $(index)\n"
+       "$data modify storage {0}:global macro_args.right set from storage {0}:global expr_str$(elem_id)\n"
+       "$data modify storage {0}:global expr_str$(target_id) set value \"$(before)$(right)$(after)\"",
+       datapackNamespace
+     )}
+  );
+
+  compiledFunctions.push_back(
+    {.name = "internal_list_get_primitive",
+     .data = std::format("$execute store result score expr_output$(out_id) temp run data get storage {}:global expr_str$(target_id)[$(index)]", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_get_object",
+     .data = std::format("$data modify storage {0}:global expr_str$(out_id) set from storage {0}:global expr_str$(target_id)[$(index)]", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_slice",
+     .data = std::format(
+       "$data modify storage {0}:global expr_str$(out_id) set value []\n"
+       "$data modify storage {0}:global macro_args.current int $(start)\n"
+       "function {0}:internal_list_slice_loop with storage {0}:global macro_args",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_slice_loop",
+     .data = std::format(
+       "execute store result score internal_current temp run data get storage {0}:global macro_args.current\n"
+       "execute store result score internal_end temp run data get storage {0}:global macro_args.end\n"
+       "$execute if score internal_current temp < internal_end temp run data modify storage {0}:global expr_str$(out_id) append from storage {0}:global "
+       "expr_str$(target_id)[$(current)]\n"
+       "execute if score internal_current temp < internal_end temp run data modify storage {0}:global macro_args.current add value 1\n"
+       "execute if score internal_current temp < internal_end temp run function {0}:internal_list_slice_loop with storage {0}:global macro_args",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back({.name = "internal_list_remove", .data = std::format("$data remove storage {0}:global expr_str$(target_id)[$(index)]", datapackNamespace)});
+  compiledFunctions.push_back(
+    {.name = "internal_list_insert_value", .data = std::format("$data modify storage {0}:global expr_str$(target_id) insert $(index) value $(value)", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_insert_object",
+     .data = std::format("$data modify storage {0}:global expr_str$(target_id) insert $(index) from storage {0}:global expr_str$(elem_id)", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_insert_primitive",
+     .data = std::format(
+       "$execute store result storage {0}:global expr_str$(target_id) insert $(index) int 1 run scoreboard players get expr_output$(elem_id) temp",
+       datapackNamespace
+     )}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_path_append",
+     .data = std::format("$data modify storage {0}:global macro_args.path set value \"$(string_before)[$(index_to_append)]\"", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_nested_set_value", .data = std::format("$data modify storage {0}:global vars.$(var_name)$(path) set value $(value)", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_nested_set_object",
+     .data = std::format("$data modify storage {0}:global vars.$(var_name)$(path) set from storage {0}:global expr_str1", datapackNamespace)}
+  );
+  compiledFunctions.push_back(
+    {.name = "internal_list_nested_set_primitive",
+     .data = std::format("$execute store result storage {0}:global vars.$(var_name)$(path) int 1 run scoreboard players get expr_output1 temp", datapackNamespace)}
   );
 
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
@@ -760,7 +1214,9 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     }
 
     if (type == "enum_definition") {
-      const std::string &enumName = std::string(getFieldText(child, "name"));
+      TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
+      const std::string &enumName = std::string(getNodeText(nameNode));
+      if (enumName == "append" || enumName == "remove" || enumName == "insert" || enumName == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
       EnumData enumData = {.name = enumName};
 
@@ -825,8 +1281,11 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     }
 
     if (type == "function_definition") {
-      std::string name = std::string(getFieldText(child, "name"));
+      TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
+      std::string name = std::string(getNodeText(nameNode));
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+
+      if (name == "append" || name == "remove" || name == "insert" || name == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
       std::optional<std::string> tag = std::nullopt;
       TSNode tagNode = ts_node_child_by_field_name(child, "tag", 3);
@@ -875,7 +1334,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     const std::string type = ts_node_type(child);
 
     if (type == "variable_declaration") {
-      const std::string name = std::string(getFieldText(child, "name"));
+      TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
+      const std::string name = std::string(getNodeText(nameNode));
+      if (name == "append" || name == "remove" || name == "insert" || name == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
+
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
       const bool constant = getFieldText(child, "keyword") == "const";
       TSNode varTypeNode = ts_node_child_by_field_name(child, "type", 4);
@@ -1285,7 +1747,10 @@ std::string Compiler::compileBlock(TSNode node) {
     }
 
     if (type == "variable_declaration") {
-      const std::string name = std::string(getFieldText(child, "name"));
+      TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
+      const std::string name = std::string(getNodeText(nameNode));
+      if (name == "append" || name == "remove" || name == "insert" || name == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
+
       const std::string mangledName = name + "_" + randomMangleString();
       const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
       const bool constant = getFieldText(child, "keyword") == "const";
@@ -1340,6 +1805,165 @@ std::string Compiler::compileBlock(TSNode node) {
       }
 
       TSNode expNode = ts_node_child_by_field_name(child, "value", 5);
+
+      std::vector<TSNode> indexNodes;
+      uint32_t namedCount = ts_node_named_child_count(child);
+      for (uint32_t i = 1; i < namedCount - 1; i++) {
+        indexNodes.push_back(ts_node_named_child(child, i));
+      }
+      const bool &isIndexed = !indexNodes.empty();
+
+      if (isIndexed) {
+        if (!vars[name].type.isList() && !vars[name].type.isString()) {
+          throw std::runtime_error(formatError(child, "Cannot use index assignment on non-container variable: " + name));
+        }
+
+        const ExpressionData expr = compileExpression(expNode, 1, true);
+        ret += expr.data + "\n";
+
+        Compiler::Type expectedType = vars[name].type;
+        bool endsInStringSubscript = false;
+
+        if (expectedType.isString()) {
+          if (indexNodes.size() != 1) {
+            throw std::runtime_error(formatError(child, "Flat strings can only take a single index descriptor."));
+          }
+          endsInStringSubscript = true;
+        } else {
+          for (size_t i = 0; i < indexNodes.size(); i++) {
+            if (!expectedType.isList()) {
+              throw std::runtime_error(formatError(indexNodes[i], "Too many indices provided for this list depth."));
+            }
+            expectedType = *expectedType.baseType;
+          }
+          if (expectedType.isString()) {
+            endsInStringSubscript = true;
+          }
+        }
+
+        if (endsInStringSubscript) {
+          if (!expr.type.isString()) {
+            throw std::runtime_error(formatError(expNode, "Type mismatch: cannot assign non-string to a string character index."));
+          }
+        } else {
+          if (expr.type != expectedType) {
+            throw std::runtime_error(formatError(expNode, "Type mismatch: cannot assign value to this nested list element type."));
+          }
+        }
+
+        std::vector<ExpressionData> compiledIndices;
+        bool allIndicesPrecomputed = true;
+        for (size_t i = 0; i < indexNodes.size(); i++) {
+          ExpressionData idxExpr = compileExpression(indexNodes[i], 2, true);
+          if (!idxExpr.type.isInteger()) {
+            throw std::runtime_error(formatError(indexNodes[i], "Indices must evaluate to integers."));
+          }
+          if (!idxExpr.precomputed) {
+            allIndicesPrecomputed = false;
+          }
+          compiledIndices.push_back(idxExpr);
+        }
+
+        std::string pathSuffix = "";
+        size_t listDimensions = endsInStringSubscript ? indexNodes.size() - 1 : indexNodes.size();
+        for (size_t i = 0; i < listDimensions; i++) {
+          pathSuffix += "[" + compiledIndices[i].data + "]";
+        }
+
+        if (endsInStringSubscript) {
+          ExpressionData stringCharIdx = compiledIndices.back();
+
+          ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, vars[name].mangledName);
+
+          if (expr.precomputed) {
+            ret += std::format("data modify storage {0}:global macro_args.value set value {1}\n", datapackNamespace, expr.data);
+          } else {
+            ret += std::format("data modify storage {0}:global macro_args.value set from storage {0}:global expr_str1\n", datapackNamespace);
+          }
+
+          if (allIndicesPrecomputed) {
+            ret += std::format("data modify storage {0}:global macro_args.path set value \"{1}\"\n", datapackNamespace, pathSuffix);
+          } else {
+            ret += std::format("data modify storage {0}:global macro_args.path set value \"\"\n", datapackNamespace);
+            for (size_t i = 0; i < listDimensions; i++) {
+              if (!compiledIndices[i].precomputed) ret += compiledIndices[i].data + "\n";
+              ret += std::format("data modify storage {0}:global macro_args.string_before set from storage {0}:global macro_args.path\n", datapackNamespace);
+              if (compiledIndices[i].precomputed) {
+                ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledIndices[i].data);
+              } else {
+                ret +=
+                  std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+              }
+              ret += std::format("function {0}:internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
+            }
+          }
+
+          if (stringCharIdx.precomputed) {
+            int idxVal = std::stoi(stringCharIdx.data);
+            ret += std::format(
+              "data modify storage {0}:global macro_args.index set value {1}\n"
+              "data modify storage {0}:global macro_args.index_plus_one set value {2}\n"
+              "function {0}:internal_string_mutate_static with storage {0}:global macro_args\n",
+              datapackNamespace,
+              idxVal,
+              idxVal + 1
+            );
+          } else {
+            ret += stringCharIdx.data + "\n";
+            ret += std::format(
+              "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output2 temp\n"
+              "scoreboard players operation expr_output3 temp = expr_output2 temp\n"
+              "scoreboard players add expr_output3 temp 1\n"
+              "execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get expr_output3 temp\n"
+              "function {0}:internal_string_mutate_dynamic with storage {0}:global macro_args\n",
+              datapackNamespace
+            );
+          }
+          continue;
+        }
+
+        if (allIndicesPrecomputed) {
+          if (expr.precomputed) {
+            ret += std::format("data modify storage {0}:global vars.{1}{2} set value {3}\n", datapackNamespace, vars[name].mangledName, pathSuffix, expr.data);
+          } else if (expr.type.isString() || expr.type.isList()) {
+            ret += std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_str1\n", datapackNamespace, vars[name].mangledName, pathSuffix);
+          } else {
+            ret += std::format(
+              "execute store result storage {0}:global vars.{1}{2} int 1 run scoreboard players get expr_output1 temp\n",
+              datapackNamespace,
+              vars[name].mangledName,
+              pathSuffix
+            );
+          }
+        } else {
+          ret += std::format("data modify storage {0}:global macro_args.path set value \"\"\n", datapackNamespace);
+          for (size_t i = 0; i < indexNodes.size(); i++) {
+            if (!compiledIndices[i].precomputed) ret += compiledIndices[i].data + "\n";
+            ret += std::format("data modify storage {0}:global macro_args.string_before set from storage {0}:global macro_args.path\n", datapackNamespace);
+            if (compiledIndices[i].precomputed) {
+              ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledIndices[i].data);
+            } else {
+              ret += std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+            }
+            ret += std::format("function {0}:internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
+          }
+
+          ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, vars[name].mangledName);
+          if (expr.precomputed) {
+            ret += std::format(
+              "data modify storage {0}:global macro_args.value set value {1}\nfunction {0}:internal_list_nested_set_value with storage {0}:global macro_args\n",
+              datapackNamespace,
+              expr.data
+            );
+          } else if (expr.type.isString() || expr.type.isList()) {
+            ret += std::format("function {0}:internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
+          } else {
+            ret += std::format("function {0}:internal_list_nested_set_primitive with storage {0}:global macro_args\n", datapackNamespace);
+          }
+        }
+        continue;
+      }
+
       const ExpressionData expr = compileExpression(expNode);
 
       if (vars[name].type.kind == Compiler::Type::Enum) {
@@ -1350,7 +1974,6 @@ std::string Compiler::compileBlock(TSNode node) {
         if (vars[name].type.isBoolean() && expr.type.isInteger()) {
           throw std::runtime_error(formatError(expNode, "Cannot assign an 'int' to 'bool' variable: " + name));
         }
-
         if (vars[name].type.isString() && !expr.type.isString()) {
           throw std::runtime_error(formatError(expNode, "Invalid type for 'string' variable: " + name));
         }
@@ -1358,7 +1981,7 @@ std::string Compiler::compileBlock(TSNode node) {
 
       if (expr.precomputed) {
         if (vars[name].type.isString()) {
-          ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, vars[name].mangledName, expr.data);
+          ret += std::format("data modify storage {0}:global vars.{1} set value {2}\n", datapackNamespace, vars[name].mangledName, expr.data);
         } else {
           ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
         }
@@ -1370,32 +1993,21 @@ std::string Compiler::compileBlock(TSNode node) {
             TSNode leftNode = ts_node_child_by_field_name(expNode, "left", 4);
             TSNode rightNode = ts_node_child_by_field_name(expNode, "right", 5);
 
-            if (std::string(ts_node_type(leftNode)) == "variable_ref") {
-              if (std::string(getFieldText(leftNode, "name")) == name) {
-                const ExpressionData rightExpr = compileExpression(rightNode, 1, false);
-                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, vars[name].mangledName, op);
-                continue;
-              }
+            if (std::string(ts_node_type(leftNode)) == "variable_ref" && std::string(getFieldText(leftNode, "name")) == name) {
+              const ExpressionData rightExpr = compileExpression(rightNode, 1, false);
+              ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, vars[name].mangledName, op);
+              continue;
             }
-
-            if (std::string(ts_node_type(rightNode)) == "variable_ref") {
-              if (std::string(getFieldText(rightNode, "name")) == name) {
-                const ExpressionData leftExpr = compileExpression(leftNode, 1, false);
-                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, vars[name].mangledName, op);
-                continue;
-              }
+            if (std::string(ts_node_type(rightNode)) == "variable_ref" && std::string(getFieldText(rightNode, "name")) == name) {
+              const ExpressionData leftExpr = compileExpression(leftNode, 1, false);
+              ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, vars[name].mangledName, op);
+              continue;
             }
           }
         }
 
         if (vars[name].type.isString()) {
-          ret += std::format(
-            "{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n",
-            expr.data,
-            datapackNamespace,
-            vars[name].mangledName,
-            datapackNamespace
-          );
+          ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, vars[name].mangledName);
         } else {
           ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, vars[name].mangledName);
         }

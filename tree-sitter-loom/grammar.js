@@ -91,6 +91,7 @@ module.exports = grammar({
     assignment: ($) =>
       seq(
         field("name", $.identifier),
+        repeat(seq("[", field("index", $._expression), "]")),
         "=",
         field("value", $._expression),
       ),
@@ -242,6 +243,7 @@ module.exports = grammar({
         $.boolean,
         $.string_literal,
         $.parenthesized_expression,
+        $.list_expression,
       ),
 
     member_expression: ($) =>
@@ -363,6 +365,8 @@ module.exports = grammar({
         ),
       ),
 
+    list_expression: ($) => seq("[", commaSep($._expression), "]"),
+
     function_call: ($) =>
       seq(
         field("name", $.identifier),
@@ -411,7 +415,8 @@ module.exports = grammar({
 
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
-    type: () => /[a-z]+/i,
+    type: ($) => choice(/[a-z]+/i, $.list_type),
+    list_type: ($) => seq($.type, "[]"),
 
     string_literal: ($) =>
       choice(

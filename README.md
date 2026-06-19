@@ -50,7 +50,7 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Booleans
 - [ ] Floats
 - [ ] Dictionaries
-- [ ] Lists
+- [x] Lists
 - [x] Enums
 - [ ] Structs (more optimized than dictionaries, since they can be treated like
       fixed-length lists internally)
@@ -58,6 +58,7 @@ A programming language that compiles to Minecraft datapacks.
   - [x] `if`
   - [x] `else`
   - [x] `else if`
+- [ ] `cast<type>(value)`
 - [ ] Loops
   - [x] `while`
   - [x] `do while`

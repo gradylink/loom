@@ -56,3 +56,5 @@
 (comment) @comment @spell
 
 (interpolation ["${" "}"] @punctuation.special)
+
+(function_call name: (identifier) @function.builtin (#match? @function.builtin "^(append|remove|insert|len)$"))

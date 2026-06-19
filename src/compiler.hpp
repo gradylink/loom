@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -42,15 +43,40 @@ private:
   };
 
   struct Type {
-    enum Kind { Integer, Boolean, String, Enum } kind = Integer;
+    enum Kind { Integer, Boolean, String, Enum, List } kind = Integer;
     const EnumData *enumRef = nullptr;
 
-    static Type IntegerType() { return Type{Integer, nullptr}; }
-    static Type BooleanType() { return Type{Boolean, nullptr}; }
-    static Type StringType() { return Type{String, nullptr}; }
-    static Type EnumTypeOf(const EnumData *ref) { return Type{Enum, ref}; }
+    std::unique_ptr<Type> baseType = nullptr;
 
-    bool operator==(const Type &o) const { return kind == o.kind && enumRef == o.enumRef; }
+    Type() = default;
+
+    Type(Kind k, const EnumData *ref, std::unique_ptr<Type> base) : kind(k), enumRef(ref), baseType(std::move(base)) {}
+
+    static Type IntegerType() { return {Integer, nullptr, nullptr}; }
+    static Type BooleanType() { return {Boolean, nullptr, nullptr}; }
+    static Type StringType() { return {String, nullptr, nullptr}; }
+    static Type EnumTypeOf(const EnumData *ref) { return {Enum, ref, nullptr}; }
+    static Type ListTypeOf(Type type) { return {List, nullptr, std::make_unique<Type>(std::move(type))}; }
+
+    Type(const Type &o) : kind(o.kind), enumRef(o.enumRef), baseType(o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr) {}
+
+    Type &operator=(const Type &o) {
+      if (this != &o) {
+        kind = o.kind;
+        enumRef = o.enumRef;
+        baseType = o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr;
+      }
+      return *this;
+    }
+
+    Type(Type &&) noexcept = default;
+    Type &operator=(Type &&) noexcept = default;
+
+    bool operator==(const Type &o) const {
+      if (kind != o.kind || enumRef != o.enumRef) return false;
+      if (baseType && o.baseType) return *baseType == *o.baseType;
+      return baseType == o.baseType;
+    }
     bool operator!=(const Type &o) const { return !(*this == o); }
 
     bool isInteger() const {
@@ -64,8 +90,8 @@ private:
       if (kind == Enum && enumRef) return enumRef->type == EnumType::String;
       return false;
     }
+    bool isList() const { return kind == List; }
   };
-
   struct FunctionData {
     std::string name;
     std::string mangledName;

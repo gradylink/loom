@@ -891,7 +891,7 @@ connection.onCompletion(
         items.push({
           label: fn.name,
           kind: CompletionItemKind.Function,
-          detail: `${fn.name}(${
+          detail: `func ${fn.name}(${
             fn.params.map((param) => `${param.name}: ${param.type}`).join(", ")
           }): ${fn.type}`,
         });
@@ -952,6 +952,26 @@ connection.onCompletion(
         { label: "false", kind: CompletionItemKind.Constant },
         { label: "at", kind: CompletionItemKind.Operator },
         { label: "entity", kind: CompletionItemKind.Operator },
+        {
+          label: "append",
+          kind: CompletionItemKind.Function,
+          detail: "func append(list: T[], value: T): T[]",
+        },
+        {
+          label: "insert",
+          kind: CompletionItemKind.Function,
+          detail: "func insert(list: T[], index: int, value: T): T[]",
+        },
+        {
+          label: "remove",
+          kind: CompletionItemKind.Function,
+          detail: "func remove(list: T[], index: int): T[]",
+        },
+        {
+          label: "len",
+          kind: CompletionItemKind.Function,
+          detail: "func len(list: string | any[]): int",
+        },
       ];
     }
 
