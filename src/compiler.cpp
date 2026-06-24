@@ -179,6 +179,35 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     return {.data = runtimeCmds, .precomputed = false, .type = listType};
   }
 
+  if (type == "ternary_expression") {
+    TSNode conditionNode = ts_node_child_by_field_name(node, "condition", 9);
+    TSNode leftNode = ts_node_child_by_field_name(node, "left", 4);
+    TSNode rightNode = ts_node_child_by_field_name(node, "right", 5);
+    ExpressionData condition = compileExpression(conditionNode, id + 2, true);
+
+    if (!condition.type.isBoolean()) throw std::runtime_error(formatError(conditionNode, "Condition of ternary must be a boolean."));
+
+    if (condition.precomputed) {
+      return compileExpression(condition.data == "1" ? leftNode : rightNode, id, precompute);
+    }
+    ExpressionData left = compileExpression(leftNode, id + 1, false);
+    ExpressionData right = compileExpression(rightNode, id, false);
+
+    if (left.type != right.type) throw std::runtime_error(formatError(rightNode, "Both possible ternary outputs must match."));
+
+    return {
+      .data = std::format(
+        "{0}\n{1}\nexecute if score expr_output{2} temp matches 1 run scoreboard players operation expr_output{3} temp = expr_output{2} temp",
+        condition.data,
+        right.data,
+        id + 2,
+        id
+      ),
+      .precomputed = false,
+      .type = left.type
+    };
+  }
+
   if (type == "member_expression") {
     const std::string &obj = std::string(getFieldText(node, "object"));
     const std::string &prop = std::string(getFieldText(node, "property"));

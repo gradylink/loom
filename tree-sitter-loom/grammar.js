@@ -232,6 +232,7 @@ module.exports = grammar({
 
     _expression: ($) =>
       choice(
+        $.ternary_expression,
         $.member_expression,
         $.binary_expression,
         $.unary_expression,
@@ -246,9 +247,21 @@ module.exports = grammar({
         $.list_expression,
       ),
 
+    ternary_expression: ($) =>
+      prec.left(
+        7,
+        seq(
+          field("condition", $._expression),
+          "?",
+          field("left", $._expression),
+          ":",
+          field("right", $._expression),
+        ),
+      ),
+
     member_expression: ($) =>
       prec(
-        8,
+        9,
         seq(
           field("object", $.identifier),
           ".",
@@ -258,7 +271,7 @@ module.exports = grammar({
 
     slice_expression: ($) =>
       prec(
-        7,
+        8,
         seq(
           field("target", $._expression),
           "[",
@@ -271,7 +284,7 @@ module.exports = grammar({
 
     element_expression: ($) =>
       prec(
-        7,
+        8,
         seq(
           field("target", $._expression),
           "[",

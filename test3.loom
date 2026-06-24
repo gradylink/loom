@@ -1,0 +1,5 @@
+#load func load() {
+  let myVar: bool = true;
+
+  let x: int = myVar ? 1 : 0;
+}

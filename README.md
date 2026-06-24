@@ -39,17 +39,19 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Comments
 - [x] Imports
 - [x] Variables
+  - [ ] Implicit types
 - [x] Functions
   - [x] Returns
   - [x] Arguments
   - [x] Tags (`#init` on previous line would set init function for example)
-  - [ ] Inline Functions (Macros?)
+  - [ ] Macro Functions
   - [x] `extern` and `export`
 - [x] Integers
 - [x] Strings
 - [x] Booleans
 - [ ] Floats
 - [ ] Dictionaries
+- [ ] `vec3` and `vec2`
 - [x] Lists
 - [x] Enums
 - [ ] Structs (more optimized than dictionaries, since they can be treated like
