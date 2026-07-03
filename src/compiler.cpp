@@ -1375,7 +1375,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
       Type varType = parseTypeFromString(std::string(typeText));
 
-      if (constant && expr.precomputed) {
+      if (constant && expr.precomputed && (expr.type.isInteger() || expr.type.isBoolean())) {
         value = std::stoi(expr.data);
       }
 
