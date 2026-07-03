@@ -598,7 +598,11 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         if (argExpr.type.isString()) {
           argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
         } else {
-          argPushData += std::format("execute store result storage {}:stack regs append int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace);
+          argPushData += std::format(
+            "execute store result storage {0}:global stack_temp int 1 run scoreboard players get expr_output1 temp\ndata modify storage {0}:stack regs append from storage "
+            "{0}:global stack_temp\n",
+            datapackNamespace
+          );
         }
       }
     }
@@ -621,7 +625,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     std::string callCommand;
     if (!funcs[targetFunc].returnType.has_value()) {
-      callCommand = std::format("function {}:{}", datapackNamespace, funcs[targetFunc].name);
+      callCommand = std::format("function {}:{}", datapackNamespace, funcs[targetFunc].mangledName);
     } else {
       callCommand = std::format("execute store result score expr_output{} temp run function {}:{}", id, datapackNamespace, funcs[targetFunc].mangledName);
     }
@@ -636,7 +640,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       throw std::runtime_error(formatError(node, "Unknown variable used in expression: " + targetVar));
     }
 
-    if (vars[targetVar].type.isString()) {
+    if (vars[targetVar].type.isString() || vars[targetVar].type.isList()) {
       return {
         .data =
           std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
@@ -990,6 +994,7 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
         }
       } else {
         std::string val = std::string(getNodeText(arg));
+        if (val.find_first_of("{}") != std::string::npos) return "";
         out += std::format(R"({{"text":"{}","color":"white"}})", val);
       }
 
@@ -1000,33 +1005,43 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
   };
 
   if (commandName == "say") {
-    return std::format(
-      R"({}tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{}])",
-      setup,
-      buildJsonTextArray(0).substr(1)
-    );
+    const auto &jsonArray = buildJsonTextArray(0);
+    if (jsonArray.empty()) return std::nullopt;
+
+    return std::format(R"({}tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{}])", setup, jsonArray.substr(1));
   }
 
   if (commandName == "tellraw" && args.size() >= 2) {
     std::string target = std::string(getNodeText(args[0]));
-    return std::format("{}tellraw {} {}", setup, target, buildJsonTextArray(1));
+
+    const auto &jsonArray = buildJsonTextArray(1);
+    if (jsonArray.empty()) return std::nullopt;
+
+    return std::format("{}tellraw {} {}", setup, target, jsonArray);
   }
 
   if (commandName == "title" && args.size() >= 3) {
     std::string target = std::string(getNodeText(args[0]));
     std::string position = std::string(getNodeText(args[1]));
-    return std::format("{}title {} {} {}", setup, target, position, buildJsonTextArray(2));
+
+    const auto &jsonArray = buildJsonTextArray(2);
+    if (jsonArray.empty()) return std::nullopt;
+
+    return std::format("{}title {} {} {}", setup, target, position, jsonArray);
   }
 
   if ((commandName == "msg" || commandName == "tell" || commandName == "w") && args.size() >= 2) {
     std::string target = std::string(getNodeText(args[0]));
+
+    const auto &jsonArray = buildJsonTextArray(1);
+    if (jsonArray.empty()) return std::nullopt;
+
     return std::format(
       R"({}tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{}])",
       setup,
       target,
       target,
-      target,
-      buildJsonTextArray(1).substr(1)
+      jsonArray.substr(1)
     );
   }
 
@@ -1035,7 +1050,10 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
     std::string id = std::string(getNodeText(args[2]));
     std::string property = std::string(getNodeText(args[3]));
     if (action == "set" && property == "name") {
-      return std::format("{}bossbar set {} name {}", setup, id, buildJsonTextArray(4));
+      const auto &jsonArray = buildJsonTextArray(4);
+      if (jsonArray.empty()) return std::nullopt;
+
+      return std::format("{}bossbar set {} name {}", setup, id, jsonArray);
     }
   }
 
@@ -1140,7 +1158,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "execute store result score internal_end temp run data get storage {0}:global macro_args.end\n"
        "$execute if score internal_current temp < internal_end temp run data modify storage {0}:global expr_str$(out_id) append from storage {0}:global "
        "expr_str$(target_id)[$(current)]\n"
-       "execute if score internal_current temp < internal_end temp run data modify storage {0}:global macro_args.current add value 1\n"
+       "execute if score internal_current temp < internal_end temp run scoreboard players add internal_current temp 1\n"
+       "execute if score internal_current temp < internal_end temp store result storage {0}:global macro_args.current int 1 run scoreboard players get internal_current temp\n"
        "execute if score internal_current temp < internal_end temp run function {0}:internal_list_slice_loop with storage {0}:global macro_args",
        datapackNamespace
      )}
@@ -1400,7 +1419,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
       if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
         if (expr.precomputed) {
-          if (varType.isString()) {
+          if (varType.isString() || varType.isList()) {
             globalInit += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);
           } else {
             globalInit += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
@@ -1452,7 +1471,12 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           }
         );
 
-        paramSetup += std::format("execute store result score {} vars run data get storage {}:stack regs[-1]\n", mangledName, datapackNamespace);
+        if (pType.isString() || pType.isList()) {
+          paramSetup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
+        } else {
+          paramSetup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
+        }
+
         paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
       }
 
@@ -2098,14 +2122,28 @@ std::string Compiler::compileBlock(TSNode node) {
         continue;
       }
 
+      auto getSpacingBetween = [&](TSNode prev, TSNode curr) -> std::string {
+        uint32_t prevEnd = ts_node_end_byte(prev);
+        uint32_t currStart = ts_node_start_byte(curr);
+        if (currStart > prevEnd) {
+          return std::string(source.substr(prevEnd, currStart - prevEnd));
+        }
+        return "";
+      };
+
+      TSNode cmdNameNode = ts_node_named_child(child, 0);
+
       if (!requiresMacro) {
         ret += cmdName;
+        TSNode lastNode = cmdNameNode;
         for (size_t i = 0; i < args.size(); i++) {
+          ret += getSpacingBetween(lastNode, args[i]);
           if (compiledArgs[i].has_value()) {
-            ret += " " + compiledArgs[i].value().data;
+            ret += compiledArgs[i].value().data;
           } else {
-            ret += " " + std::string(getNodeText(args[i]));
+            ret += std::string(getNodeText(args[i]));
           }
+          lastNode = args[i];
         }
         ret += "\n";
         continue;
@@ -2114,25 +2152,31 @@ std::string Compiler::compileBlock(TSNode node) {
       std::string macroBody = "$" + cmdName;
       std::string macroSetup = "";
       int macroVarId = 0;
+      TSNode lastNode = cmdNameNode;
 
       for (size_t i = 0; i < args.size(); i++) {
+        macroBody += getSpacingBetween(lastNode, args[i]);
         if (compiledArgs[i].has_value()) {
           Compiler::ExpressionData &expr = compiledArgs[i].value();
 
           if (expr.precomputed) {
-            macroBody += " " + expr.data;
+            macroBody += expr.data;
           } else {
-            macroBody += std::format(" $(var_{})", macroVarId);
-
+            macroBody += std::format("$(var_{})", macroVarId);
             macroSetup += expr.data + "\n";
 
-            macroSetup +=
-              std::format("execute store result storage {}:function_input var_{} int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace, macroVarId);
+            if (expr.type.isString() || expr.type.isList()) {
+              macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_str1\n", datapackNamespace, macroVarId);
+            } else {
+              macroSetup +=
+                std::format("execute store result storage {0}:function_input var_{1} int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace, macroVarId);
+            }
             macroVarId++;
           }
         } else {
-          macroBody += " " + std::string(getNodeText(args[i]));
+          macroBody += std::string(getNodeText(args[i]));
         }
+        lastNode = args[i];
       }
 
       const std::string macroFuncName = std::format("_generated_function_{}", currentGeneratedFunction++);
