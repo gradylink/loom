@@ -37,7 +37,8 @@ if(NOT tree-sitter_FOUND)
     )
 endif()
 
-add_executable(loom src/main.cpp src/compiler.cpp tree-sitter-loom/src/parser.c)
+file(GLOB_RECURSE LOOM_SOURCES src/*.cpp)
+add_executable(loom ${LOOM_SOURCES} tree-sitter-loom/src/parser.c)
 target_include_directories(loom PRIVATE tree-sitter-loom/src)
 target_link_libraries(loom PRIVATE tree-sitter bfg::lyra ryml)
 

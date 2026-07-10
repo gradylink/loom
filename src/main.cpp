@@ -34,6 +34,10 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath,
     Compiler compiler(source, config.namespaceStr, std::filesystem::path(inputPath).parent_path());
     const auto &compiledFunctions = compiler.compile();
 
+    if (std::filesystem::exists(outputPath)) {
+      std::filesystem::remove_all(outputPath);
+    }
+
     std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / config.namespaceStr / "function";
     std::filesystem::create_directories(functionalDir);
 

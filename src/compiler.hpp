@@ -11,7 +11,12 @@
 #include <variant>
 #include <vector>
 
+class TypeHandler;
+class TypeRegistry;
+
 class Compiler {
+  friend class TypeHandler;
+
 public:
   Compiler(const std::string_view &source, const std::string &datapackNamespace, std::filesystem::path currentDir = ".");
   ~Compiler();
@@ -26,7 +31,7 @@ public:
 
   std::string globalInit = setupScoreboards;
 
-private:
+public:
   enum class EnumType { Integer, String };
 
   struct EnumVariant {
@@ -119,6 +124,7 @@ private:
     Type type;
   };
 
+private:
   const std::string datapackNamespace;
   const std::string source;
   const std::filesystem::path currentDir;
@@ -135,6 +141,13 @@ private:
   unsigned int currentExpressionId = 0;
   unsigned int currentGeneratedFunction = 0;
 
+public:
+  std::unique_ptr<TypeRegistry> typeRegistry;
+  void registerDefaultTypeHandlers();
+  TypeHandler *getHandler(const Type &type);
+
+  const std::string &getDatapackNamespace() const { return datapackNamespace; }
+
   static constexpr const char *setupScoreboards = "scoreboard objectives add vars dummy\n"
                                                   "scoreboard objectives add temp dummy\n"
                                                   "scoreboard players set invert temp -1\n";
@@ -145,6 +158,8 @@ private:
   Type parseTypeFromString(const std::string &typeText) const;
 
   ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
+
+  std::string compileVariableDeclaration(TSNode child, TSNode scope, bool isGlobal);
 
   std::string compileIf(TSNode ifRoot);
   std::string compileWhile(TSNode whileNode);
