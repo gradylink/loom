@@ -16,7 +16,7 @@ import {
   TextDocumentSyncKind,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { Language, Node, Parser, Tree } from "web-tree-sitter";
+const { Language, Node, Parser, Tree } = require("web-tree-sitter");
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -25,13 +25,13 @@ import { exec } from "child_process";
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
 
-let parser: Parser;
+let parser: typeof Parser;
 const trees: Map<string, any> = new Map();
-const importCache: Map<string, { tree: Tree; path: string }> = new Map();
+const importCache: Map<string, { tree: typeof Tree; path: string }> = new Map();
 
-const COMPILER_PATH = "/home/grady.link/loom/build/loom" as const;
-const WASM_PATH =
-  "/home/grady.link/loom/tree-sitter-loom/tree-sitter-loom.wasm" as const;
+const COMPILER_PATH = process.env.LOOM_EXECUTABLE || "loom";
+const WASM_PATH = process.env.LOOM_WASM_PATH ||
+  "/home/grady.link/loom/tree-sitter-loom/tree-sitter-loom.wasm";
 
 function resolveImportPath(
   importPath: string,
@@ -63,9 +63,9 @@ function getOrParseFile(filePath: string, sourceDir: string): any {
   }
 }
 
-function getImports(tree: Tree): string[] {
+function getImports(tree: typeof Tree): string[] {
   const imports: string[] = [];
-  const traverse = (node: Node) => {
+  const traverse = (node: typeof Node) => {
     if (node.type === "import_statement") {
       const pathNode = node.childForFieldName("path");
       if (pathNode) {
@@ -80,30 +80,36 @@ function getImports(tree: Tree): string[] {
   return imports;
 }
 
-function findExportedSymbols(tree: Tree): {
-  enums: Map<string, Node>;
-  functions: Map<string, Node>;
-  variables: Map<string, Node>;
+function findExportedSymbols(tree: typeof Tree): {
+  enums: Map<string, typeof Node>;
+  functions: Map<string, typeof Node>;
+  variables: Map<string, typeof Node>;
 } {
-  const enums = new Map<string, Node>();
-  const functions = new Map<string, Node>();
-  const variables = new Map<string, Node>();
+  const enums = new Map<string, typeof Node>();
+  const functions = new Map<string, typeof Node>();
+  const variables = new Map<string, typeof Node>();
 
-  const traverse = (node: Node) => {
+  const traverse = (node: typeof Node) => {
     if (node.type === "enum_definition") {
-      const exportNode = node.children.find((n) => n.text === "export");
+      const exportNode = node.children.find((n: typeof Node) =>
+        n.text === "export"
+      );
       if (exportNode) {
         const nameNode = node.childForFieldName("name");
         if (nameNode) enums.set(nameNode.text, node);
       }
     } else if (node.type === "function_definition") {
-      const exportNode = node.children.find((n) => n.text === "export");
+      const exportNode = node.children.find((n: typeof Node) =>
+        n.text === "export"
+      );
       if (exportNode) {
         const nameNode = node.childForFieldName("name");
         if (nameNode) functions.set(nameNode.text, node);
       }
     } else if (node.type === "variable_declaration") {
-      const exportNode = node.children.find((n) => n.text === "export");
+      const exportNode = node.children.find((n: typeof Node) =>
+        n.text === "export"
+      );
       if (exportNode) {
         const nameNode = node.childForFieldName("name");
         if (nameNode) variables.set(nameNode.text, node);
@@ -120,21 +126,21 @@ function findExportedSymbols(tree: Tree): {
 }
 
 function collectAllSymbols(
-  tree: Tree,
+  tree: typeof Tree,
   docUri: string,
   visited = new Set<string>(),
 ): {
-  enums: Map<string, { node: Node; file: string }>;
-  functions: Map<string, { node: Node; file: string }>;
-  variables: Map<string, { node: Node; file: string }>;
+  enums: Map<string, { node: typeof Node; file: string }>;
+  functions: Map<string, { node: typeof Node; file: string }>;
+  variables: Map<string, { node: typeof Node; file: string }>;
 } {
-  const enums = new Map<string, { node: Node; file: string }>();
-  const functions = new Map<string, { node: Node; file: string }>();
-  const variables = new Map<string, { node: Node; file: string }>();
+  const enums = new Map<string, { node: typeof Node; file: string }>();
+  const functions = new Map<string, { node: typeof Node; file: string }>();
+  const variables = new Map<string, { node: typeof Node; file: string }>();
 
   const sourceDir = path.dirname(docUri.replace("file://", ""));
 
-  const traverse = (node: Node) => {
+  const traverse = (node: typeof Node) => {
     if (node.type === "enum_definition") {
       const nameNode = node.childForFieldName("name");
       if (nameNode) enums.set(nameNode.text, { node, file: docUri });
@@ -184,7 +190,17 @@ function collectAllSymbols(
 
 connection.onInitialize(
   async (params: InitializeParams): Promise<InitializeResult> => {
-    await Parser.init();
+    await Parser.init({
+      locateFile(scriptName: string) {
+        if (
+          scriptName === "web-tree-sitter.wasm" &&
+          params.initializationOptions && params.initializationOptions.coreWasm
+        ) {
+          return params.initializationOptions.coreWasm;
+        }
+        return scriptName;
+      },
+    });
     parser = new Parser();
 
     const LoomLanguage = await Language.load(WASM_PATH);
@@ -217,7 +233,7 @@ documents.onDidChangeContent((change) => {
 
   const diagnostics: Diagnostic[] = [];
 
-  const traverse = (node: Node) => {
+  const traverse = (node: typeof Node) => {
     if (node.type === "ERROR" || node.isMissing) {
       diagnostics.push({
         severity: DiagnosticSeverity.Error,
@@ -309,9 +325,12 @@ documents.onDidChangeContent((change) => {
   });
 });
 
-const findGlobalEnum = (root: Node, targetName: string): Node | null => {
-  let found: Node | null = null;
-  const traverse = (node: Node) => {
+const findGlobalEnum = (
+  root: typeof Node,
+  targetName: string,
+): typeof Node | null => {
+  let found: typeof Node | null = null;
+  const traverse = (node: typeof Node) => {
     if (found) return;
     if (node.type === "enum_definition") {
       const nameNode = node.childForFieldName("name");
@@ -326,9 +345,12 @@ const findGlobalEnum = (root: Node, targetName: string): Node | null => {
   return found;
 };
 
-const findEnumVariant = (enumNode: Node, variantName: string): Node | null => {
-  let found: Node | null = null;
-  const traverse = (node: Node) => {
+const findEnumVariant = (
+  enumNode: typeof Node,
+  variantName: string,
+): typeof Node | null => {
+  let found: typeof Node | null = null;
+  const traverse = (node: typeof Node) => {
     if (found) return;
     if (node.type === "enum_variant") {
       const nameNode = node.childForFieldName("name");
@@ -343,20 +365,20 @@ const findEnumVariant = (enumNode: Node, variantName: string): Node | null => {
   return found;
 };
 
-const getEnumVariantValueText = (variantNode: Node): string => {
+const getEnumVariantValueText = (variantNode: typeof Node): string => {
   const valueNode = variantNode.childForFieldName("value");
   if (valueNode) return valueNode.text;
 
-  let enumNode: Node | null = variantNode.parent;
+  let enumNode: typeof Node | null = variantNode.parent;
   while (enumNode && enumNode.type !== "enum_definition") {
     enumNode = enumNode.parent;
   }
   if (!enumNode) return "unknown";
 
   let isStringEnum = false;
-  const variants: Node[] = [];
+  const variants: typeof Node[] = [];
 
-  const traverse = (n: Node) => {
+  const traverse = (n: typeof Node) => {
     if (n.type === "enum_variant") {
       variants.push(n);
       const vNode = n.childForFieldName("value");
@@ -387,11 +409,11 @@ const getEnumVariantValueText = (variantNode: Node): string => {
 };
 
 function getDeclarationNode(
-  cursorNode: Node,
+  cursorNode: typeof Node,
   targetName: string,
   docUri?: string,
-): { node: Node; file: string } | null {
-  let curr: Node | null = cursorNode;
+): { node: typeof Node; file: string } | null {
+  let curr: typeof Node | null = cursorNode;
 
   while (curr) {
     if (curr.type === "for") {
@@ -424,8 +446,8 @@ function getDeclarationNode(
 
       const paramsNode = curr.childForFieldName("parameters");
       if (paramsNode) {
-        let foundParam: Node | null = null;
-        const checkParam = (n: Node) => {
+        let foundParam: typeof Node | null = null;
+        const checkParam = (n: typeof Node) => {
           if (n.type === "parameter") {
             const pName = n.childForFieldName("name");
             if (pName && pName.text === targetName) {
@@ -448,8 +470,8 @@ function getDeclarationNode(
   const globalEnum = findGlobalEnum(root, targetName);
   if (globalEnum) return { node: globalEnum, file: docUri || "" };
 
-  let globalFunc: Node | null = null;
-  const findGlobalFunc = (node: Node) => {
+  let globalFunc: typeof Node | null = null;
+  const findGlobalFunc = (node: typeof Node) => {
     if (globalFunc) return;
     if (node.type === "function_definition") {
       const nameNode = node.childForFieldName("name");
@@ -494,12 +516,12 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
     row: params.position.line,
     column: params.position.character,
   };
-  const cursorNode: Node = tree.rootNode.namedDescendantForPosition(
+  const cursorNode: typeof Node = tree.rootNode.namedDescendantForPosition(
     cursorPoint,
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
-  let targetNode: { node: Node; file: string } | null = null;
+  let targetNode: { node: typeof Node; file: string } | null = null;
 
   if (cursorNode.parent && cursorNode.parent.type === "member_expression") {
     const objNode = cursorNode.parent.childForFieldName("object");
@@ -578,7 +600,7 @@ connection.onHover((params: HoverParams): Hover | null => {
     row: params.position.line,
     column: params.position.character,
   };
-  const cursorNode: Node = tree.rootNode.namedDescendantForPosition(
+  const cursorNode: typeof Node = tree.rootNode.namedDescendantForPosition(
     cursorPoint,
   );
   if (!cursorNode || cursorNode.type !== "identifier") return null;
@@ -629,7 +651,7 @@ connection.onHover((params: HoverParams): Hover | null => {
           "unknown";
         hoverText = `\`\`\`loom\nenum ${name}\n\`\`\``;
       } else if (declarationNode.type === "enum_variant") {
-        let p: Node | null = declarationNode.parent;
+        let p: typeof Node | null = declarationNode.parent;
         while (p && p.type !== "enum_definition") p = p.parent;
         const enumName = p
           ? (p.childForFieldName("name")?.text || "enum")
@@ -701,7 +723,7 @@ connection.onCompletion(
       const enumNode = findGlobalEnum(tree.rootNode, enumName);
       if (enumNode) {
         const enumVariants: CompletionItem[] = [];
-        const collectVariants = (node: Node) => {
+        const collectVariants = (node: typeof Node) => {
           if (node.type === "enum_variant") {
             const nameNode = node.childForFieldName("name");
             if (nameNode) {
@@ -724,7 +746,7 @@ connection.onCompletion(
         if (allSymbols.enums.has(enumName)) {
           const importedEnum = allSymbols.enums.get(enumName)!;
           const enumVariants: CompletionItem[] = [];
-          const collectVariants = (node: Node) => {
+          const collectVariants = (node: typeof Node) => {
             if (node.type === "enum_variant") {
               const nameNode = node.childForFieldName("name");
               if (nameNode) {
@@ -833,7 +855,7 @@ connection.onCompletion(
     findFunctions(tree.rootNode);
 
     const enumsSet = new Set<{ name: string }>();
-    const findEnums = (node: Node) => {
+    const findEnums = (node: typeof Node) => {
       if (node.type === "enum_definition") {
         const nameNode = node.childForFieldName("name");
         if (nameNode) {

@@ -1,0 +1,160 @@
+{
+  "version": "1.0.0",
+  "author": "Grady Link",
+  "snippets": {
+    "Function definition": {
+      "prefix": "func",
+      "body": [
+        "func ${1:name}(${2:params}): ${3:type} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Define a Loom function"
+    },
+    "Function definition void": {
+      "prefix": "funcv",
+      "body": [
+        "func ${1:name}(${2:params}) {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Define a void Loom function"
+    },
+    "Export function": {
+      "prefix": "efunc",
+      "body": [
+        "export func ${1:name}(${2:params}): ${3:type} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Define an exported Loom function"
+    },
+    "Load function": {
+      "prefix": "load",
+      "body": [
+        "#load func load() {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Define a #load function"
+    },
+    "Tick function": {
+      "prefix": "tick",
+      "body": [
+        "#tick func tick() {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Define a #tick function"
+    },
+    "Let variable": {
+      "prefix": "let",
+      "body": "let ${1:name}: ${2:type} = ${3:value}",
+      "description": "Declare a mutable variable"
+    },
+    "Const variable": {
+      "prefix": "const",
+      "body": "const ${1:name}: ${2:type} = ${3:value}",
+      "description": "Declare a constant variable"
+    },
+    "Enum definition": {
+      "prefix": "enum",
+      "body": [
+        "enum ${1:Name} {",
+        "\t${2:Variant1},",
+        "\t${3:Variant2}",
+        "}"
+      ],
+      "description": "Define an enum"
+    },
+    "If statement": {
+      "prefix": "if",
+      "body": [
+        "if ${1:condition} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "If statement"
+    },
+    "If-else statement": {
+      "prefix": "ife",
+      "body": [
+        "if ${1:condition} {",
+        "\t$2",
+        "} else {",
+        "\t$0",
+        "}"
+      ],
+      "description": "If-else statement"
+    },
+    "While loop": {
+      "prefix": "while",
+      "body": [
+        "while ${1:condition} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "While loop"
+    },
+    "For loop": {
+      "prefix": "for",
+      "body": [
+        "for ${1:i} in ${2:0}..${3:10} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "For range loop"
+    },
+    "Do-while loop": {
+      "prefix": "do",
+      "body": [
+        "do {",
+        "\t$1",
+        "} while ${0:condition}"
+      ],
+      "description": "Do-while loop"
+    },
+    "Import statement": {
+      "prefix": "import",
+      "body": "import ./${1:file}.loom",
+      "description": "Import another Loom file"
+    },
+    "Context as": {
+      "prefix": "as",
+      "body": [
+        "as ${1:@s} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Execute as a selector"
+    },
+    "Context at": {
+      "prefix": "at",
+      "body": [
+        "at ${1:@s} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Execute at a selector's position"
+    },
+    "Context as+at": {
+      "prefix": "asat",
+      "body": [
+        "as ${1:@a} at ${2:@s} {",
+        "\t$0",
+        "}"
+      ],
+      "description": "Execute as and at a selector"
+    },
+    "Ternary expression": {
+      "prefix": "ternary",
+      "body": "${1:condition} ? ${2:true_value} : ${3:false_value}",
+      "description": "Ternary expression"
+    },
+    "String interpolation": {
+      "prefix": "interp",
+      "body": "\\${${1:expression}}",
+      "description": "Expression interpolation"
+    }
+  }
+}

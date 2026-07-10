@@ -1,0 +1,111 @@
+{
+  "name": "loom-language",
+  "displayName": "Loom",
+  "description": "Language support for the Loom programming language (for Minecraft datapacks)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gradylink/loom"
+  },
+  "version": "0.1.0",
+  "publisher": "grady-link",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "loom",
+    "minecraft",
+    "datapack"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "loom",
+        "aliases": [
+          "Loom",
+          "loom"
+        ],
+        "extensions": [
+          ".loom"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "loom",
+        "scopeName": "source.loom",
+        "path": "./syntaxes/loom.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Loom",
+      "properties": {
+        "loom.executablePath": {
+          "type": "string",
+          "default": "loom",
+          "description": "Path to the Loom compiler executable. Defaults to 'loom' (assumes it is on PATH)."
+        },
+        "loom.lspEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Loom Language Server for diagnostics, hover, completions, and go-to-definition."
+        },
+        "loom.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Loom Language Server."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "loom.restartServer",
+        "title": "Loom: Restart Language Server"
+      },
+      {
+        "command": "loom.showOutput",
+        "title": "Loom: Show Language Server Output"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "loom",
+        "path": "./snippets/loom.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "bun run compile && bun run copy-wasm",
+    "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node && esbuild ../loom-ls/src/server.ts --bundle --outfile=out/server.js --format=cjs --platform=node",
+    "watch": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "copy-wasm": "mkdir -p ./out && cp ../tree-sitter-loom/tree-sitter-loom.wasm ./out/tree-sitter-loom.wasm && cp node_modules/web-tree-sitter/web-tree-sitter.wasm ./out/web-tree-sitter.wasm",
+    "package": "bun run compile && bun run copy-wasm && bunx vsce package --no-dependencies",
+    "lint": "eslint src --ext ts"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "web-tree-sitter": "^0.26.9"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.0.0",
+    "esbuild": "^0.19.0"
+  }
+}
