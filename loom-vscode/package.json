@@ -6,9 +6,9 @@
     "type": "git",
     "url": "https://github.com/gradylink/loom"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "grady-link",
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "engines": {
     "vscode": "^1.85.0"
   },
