@@ -21,6 +21,8 @@ import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
 import { exec } from "child_process";
+import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -190,16 +192,13 @@ function collectAllSymbols(
 
 connection.onInitialize(
   async (params: InitializeParams): Promise<InitializeResult> => {
+    let locateFile: ((scriptName: string) => string) | null = null;
+    if (params.initializationOptions && params.initializationOptions.coreWasm) {
+      locateFile = () => params.initializationOptions.coreWasm;
+    }
+
     await Parser.init({
-      locateFile(scriptName: string) {
-        if (
-          scriptName === "web-tree-sitter.wasm" &&
-          params.initializationOptions && params.initializationOptions.coreWasm
-        ) {
-          return params.initializationOptions.coreWasm;
-        }
-        return scriptName;
-      },
+      locateFile,
     });
     parser = new Parser();
 
@@ -233,8 +232,12 @@ documents.onDidChangeContent((change) => {
 
   const diagnostics: Diagnostic[] = [];
 
-  const traverse = (node: typeof Node) => {
+  const traverse = (node: any) => {
     if (node.type === "ERROR" || node.isMissing) {
+      const endChar = node.isMissing
+        ? node.endPosition.column + 1
+        : node.endPosition.column;
+
       diagnostics.push({
         severity: DiagnosticSeverity.Error,
         range: {
@@ -242,10 +245,7 @@ documents.onDidChangeContent((change) => {
             line: node.startPosition.row,
             character: node.startPosition.column,
           },
-          end: {
-            line: node.endPosition.row,
-            character: node.endPosition.column,
-          },
+          end: { line: node.endPosition.row, character: endChar },
         },
         message: node.type === "ERROR"
           ? "Syntax error: unexpected token"
@@ -261,28 +261,53 @@ documents.onDidChangeContent((change) => {
 
   traverse(tree.rootNode);
 
-  const tempDir = path.join(os.tmpdir(), "loom-lsp");
-  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+  let actualDir = process.cwd();
+  if (document.uri.startsWith("file://")) {
+    actualDir = path.dirname(fileURLToPath(document.uri));
+  }
 
-  const tempSourceFile = path.join(
-    tempDir,
-    `check-${path.basename(document.uri)}.loom`,
+  const tempOutDir = path.join(os.tmpdir(), "loom-lsp-out");
+  if (!fs.existsSync(tempOutDir)) fs.mkdirSync(tempOutDir, { recursive: true });
+
+  connection.console.info(
+    `[LSP] Spawning compiler: ${COMPILER_PATH} --stdin --base-dir "${actualDir}"`,
   );
-  const tempOutDir = path.join(tempDir, "out");
 
-  fs.writeFileSync(tempSourceFile, text, "utf8");
+  const child = spawn(
+    COMPILER_PATH,
+    ["--stdin", "--base-dir", actualDir, "-o", tempOutDir],
+    { cwd: actualDir },
+  );
 
-  const compileCmd =
-    `"${COMPILER_PATH}" "${tempSourceFile}" -o "${tempOutDir}"`;
+  let stdout = "";
+  let stderr = "";
 
-  exec(compileCmd, (error, stdout, stderr) => {
+  child.stdout.on("data", (data) => {
+    stdout += data;
+  });
+  child.stderr.on("data", (data) => {
+    stderr += data;
+  });
+
+  child.on("error", (error) => {
+    connection.console.error(`[LSP] Spawn error: ${error.message}`);
+    connection.sendDiagnostics({ uri: document.uri, diagnostics });
+  });
+
+  child.on("close", (code) => {
+    connection.console.info(`[LSP] Exited with code ${code}`);
+    if (stdout) connection.console.info(`[LSP] STDOUT: ${stdout.trim()}`);
+    if (stderr) connection.console.info(`[LSP] STDERR: ${stderr.trim()}`);
+
     const errorStream = stderr || stdout || "";
 
     if (errorStream) {
-      const errorRegex = /line\s+(\d+),\s+col\s+(\d+):\s+(.*)/g;
+      const errorRegex = /line\s+(\d+),\s+col\s+(\d+):\s+(.*)/gi;
       let match;
+      let foundLineMatch = false;
 
       while ((match = errorRegex.exec(errorStream)) !== null) {
+        foundLineMatch = true;
         const cppLine = parseInt(match[1]!, 10) - 1;
         const cppCol = parseInt(match[2]!, 10) - 1;
         const message = match[3]!.trim();
@@ -315,14 +340,25 @@ documents.onDidChangeContent((change) => {
           source: "loom-compiler",
         });
       }
-    }
 
-    try {
-      fs.unlinkSync(tempSourceFile);
-    } catch {}
+      if (!foundLineMatch && errorStream.toLowerCase().includes("error")) {
+        diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: 0, character: 50 },
+          },
+          message: errorStream.trim(),
+          source: "loom-compiler",
+        });
+      }
+    }
 
     connection.sendDiagnostics({ uri: document.uri, diagnostics });
   });
+
+  child.stdin.write(text);
+  child.stdin.end();
 });
 
 const findGlobalEnum = (

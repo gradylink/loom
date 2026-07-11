@@ -18,20 +18,9 @@ struct Config {
   std::string descriptionStr;
 };
 
-bool runCompilation(const std::string &inputPath, const std::string &outputPath, Config config) {
-  std::ifstream f(inputPath);
-  if (!f.is_open()) {
-    std::cerr << "Error: Could not open input file: " << inputPath << "\n";
-    return false;
-  }
-
-  std::ostringstream buf;
-  buf << f.rdbuf();
-  const std::string source = buf.str();
-  f.close();
-
+bool runCompilation(const std::string &source, const std::filesystem::path &baseDir, const std::string &outputPath, Config config) {
   try {
-    Compiler compiler(source, config.namespaceStr, std::filesystem::path(inputPath).parent_path());
+    Compiler compiler(source, config.namespaceStr, baseDir);
     const auto &compiledFunctions = compiler.compile();
 
     if (std::filesystem::exists(outputPath)) {
@@ -132,6 +121,22 @@ bool runCompilation(const std::string &inputPath, const std::string &outputPath,
   }
 }
 
+bool compileFromFile(const std::string &inputPath, const std::string &baseDirOverride, const std::string &outputPath, Config config) {
+  std::ifstream f(inputPath);
+  if (!f.is_open()) {
+    std::cerr << "Error: Could not open input file: " << inputPath << "\n";
+    return false;
+  }
+
+  std::ostringstream buf;
+  buf << f.rdbuf();
+  f.close();
+
+  std::filesystem::path resolvedBaseDir = baseDirOverride.empty() ? std::filesystem::path(inputPath).parent_path() : std::filesystem::path(baseDirOverride);
+
+  return runCompilation(buf.str(), resolvedBaseDir, outputPath, config);
+}
+
 int main(int argc, char *argv[]) {
   Config config = {.namespaceStr = "loom", .descriptionStr = "Loom Generated Datapack"};
 
@@ -149,14 +154,16 @@ int main(int argc, char *argv[]) {
   }
 
   std::string inputPath;
+  std::string baseDir;
   bool help = false;
   std::string outputPath = config.namespaceStr;
   bool watch = false;
-  bool optimize = true;
+  bool useStdin = false;
 
-  auto cli = lyra::help(help) | lyra::arg(inputPath, "source file")("Path to a .loom file to compile.").required() |
-             lyra::opt(outputPath, "output")["-o"]["--output"]("Folder to output the datapack into.") |
-             lyra::opt(watch)["-w"]["--watch"]("Watch the input file for changes, and recompile.");
+  auto cli = lyra::help(help) | lyra::opt(outputPath, "output")["-o"]["--output"]("Folder to output the datapack into.") |
+             lyra::opt(baseDir, "base directory")["-b"]["--base-dir"]("Base directory for resolving imports.") |
+             lyra::opt(useStdin)["--stdin"]("Read source from standard input.") | lyra::opt(watch)["-w"]["--watch"]("Watch the input file for changes, and recompile.") |
+             lyra::arg(inputPath, "source file")("Path to a .loom file to compile.");
 
   auto res = cli.parse({argc, argv});
   if (!res.is_ok()) {
@@ -168,12 +175,27 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  if (useStdin) {
+    std::ostringstream buf;
+    buf << std::cin.rdbuf();
+
+    std::filesystem::path resolvedBaseDir = baseDir.empty() ? std::filesystem::current_path() : std::filesystem::path(baseDir);
+
+    runCompilation(buf.str(), resolvedBaseDir, outputPath, config);
+    return 0;
+  }
+
+  if (inputPath.empty()) {
+    std::cerr << "Error: Must provide an input file or use --stdin\n\n" << cli << '\n';
+    return 1;
+  }
+
   if (!std::filesystem::exists(inputPath)) {
     std::cerr << "Error: Source file does not exist: " << inputPath << "\n";
     return 1;
   }
 
-  runCompilation(inputPath, outputPath, config);
+  compileFromFile(inputPath, baseDir, outputPath, config);
 
   if (watch) {
     std::cout << "Watching " << inputPath << " for changes... Press Ctrl+C to stop.\n";
@@ -187,7 +209,7 @@ int main(int argc, char *argv[]) {
         if (currentWrite != lastWrite) {
           lastWrite = currentWrite;
           std::cout << "Change detected! Recompiling...\n";
-          runCompilation(inputPath, outputPath, config);
+          compileFromFile(inputPath, baseDir, outputPath, config);
         }
       }
     }
