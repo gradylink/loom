@@ -23,6 +23,17 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     return {.data = std::format("scoreboard players set expr_output{} temp {}", id, getNodeText(node)), .precomputed = false, .type = Type::IntegerType()};
   }
 
+  if (type == "float") {
+    if (precompute) {
+      return {.data = std::string(getNodeText(node)), .precomputed = true, .type = Type::FloatType()};
+    }
+    return {
+      .data = std::format("data modify storage {}:global expr_float{} set value {}f", datapackNamespace, id, getNodeText(node)),
+      .precomputed = false,
+      .type = Type::FloatType()
+    };
+  }
+
   if (type == "boolean") {
     const std::string &numericVal = (getNodeText(node) == "true") ? "1" : "0";
     if (precompute) {
@@ -174,6 +185,15 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
               .precomputed = false,
               .type = Type::EnumTypeOf(&enumIt->second)
             };
+          } else if constexpr (std::is_same_v<T, float>) {
+            if (precompute) {
+              return {.data = std::to_string(arg), .precomputed = true, .type = Type::EnumTypeOf(&enumIt->second)};
+            }
+            return {
+              .data = std::format("data modify storage {}:global expr_float{} set value {}", datapackNamespace, id, arg),
+              .precomputed = false,
+              .type = Type::EnumTypeOf(&enumIt->second)
+            };
           }
         },
         var.value
@@ -251,8 +271,10 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, argExpr.data);
       } else {
         argPushData += argExpr.data + "\n";
-        if (argExpr.type.isString()) {
+        if (argExpr.type.isString() || argExpr.type.isList()) {
           argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
+        } else if (argExpr.type.isFloat()) {
+          argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_float{}\n", datapackNamespace, datapackNamespace, id);
         } else {
           argPushData += std::format(
             "execute store result storage {0}:global stack_temp int 1 run scoreboard players get expr_output1 temp\ndata modify storage {0}:stack regs append from storage "
@@ -300,6 +322,15 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       return {
         .data =
           std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
+        .precomputed = false,
+        .type = vars[targetVar].type
+      };
+    }
+
+    if (vars[targetVar].type.isFloat()) {
+      return {
+        .data =
+          std::format("data modify storage {}:global expr_float{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
         .precomputed = false,
         .type = vars[targetVar].type
       };
@@ -460,9 +491,6 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     const std::string_view op = getFieldText(node, "operator");
 
-    ExpressionData left;
-    ExpressionData right;
-
     if (op == "at") { // TODO: optimize in "!" unary operation
       return {
         .data = std::format(
@@ -475,9 +503,31 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         .precomputed = false,
         .type = Type::BooleanType()
       };
-    } else {
-      left = compileExpression(leftNode, id, true);
-      right = compileExpression(rightNode, id + 1, true);
+    }
+
+    ExpressionData left = compileExpression(leftNode, id, true);
+    ExpressionData right = compileExpression(rightNode, id + 1, true);
+
+    if (left.type.isInteger() && right.type.isFloat()) {
+      if (left.precomputed) {
+        left.data = std::to_string(static_cast<float>(std::stoi(left.data)));
+        left.type = Type::FloatType();
+      } else {
+        std::string promoteCmd = left.data + "\n";
+        promoteCmd += std::format("execute store result storage {0}:global expr_float{1} float 1 run scoreboard players get expr_output{1} temp", datapackNamespace, id);
+        left.data = promoteCmd;
+        left.type = Type::FloatType();
+      }
+    } else if (left.type.isFloat() && right.type.isInteger()) {
+      if (right.precomputed) {
+        right.data = std::to_string(static_cast<float>(std::stoi(right.data)));
+        right.type = Type::FloatType();
+      } else {
+        std::string promoteCmd = right.data + "\n";
+        promoteCmd += std::format("execute store result storage {0}:global expr_float{1} float 1 run scoreboard players get expr_output{1} temp", datapackNamespace, id + 1);
+        right.data = promoteCmd;
+        right.type = Type::FloatType();
+      }
     }
 
     if (TypeHandler *handler = getHandler(left.type)) {

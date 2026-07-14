@@ -74,7 +74,12 @@ module.exports = grammar({
     enum_variant: ($) =>
       seq(
         field("name", $.identifier),
-        optional(seq("=", field("value", choice($.integer, $.string_literal)))),
+        optional(
+          seq(
+            "=",
+            field("value", choice($.integer, $.string_literal, $.float)),
+          ),
+        ),
       ),
 
     variable_declaration: ($) =>
@@ -219,7 +224,9 @@ module.exports = grammar({
         -1,
         seq(
           alias($.identifier, $.command_name),
-          repeat(choice($.command_arg, $.interpolation, $.integer, "$")),
+          repeat(
+            choice($.command_arg, $.interpolation, $.integer, $.float, "$"),
+          ),
         ),
       ),
 
@@ -241,6 +248,7 @@ module.exports = grammar({
         $.function_call,
         $.variable_ref,
         $.integer,
+        $.float,
         $.boolean,
         $.string_literal,
         $.parenthesized_expression,
@@ -476,6 +484,8 @@ module.exports = grammar({
       /([~^]-?([0-9]+(\.[0-9]+)?)?|-?[0-9]+(\.[0-9]+)?)/,
 
     integer: () => /\d+/,
+
+    float: () => /\d+\.\d+/,
 
     boolean: () => choice("true", "false"),
 

@@ -433,8 +433,10 @@ const getEnumVariantValueText = (variantNode: typeof Node): string => {
   let currentVal = 0;
   for (const v of variants) {
     const vNode = v.childForFieldName("value");
-    if (vNode && (vNode.type === "integer" || vNode.type === "number")) {
-      currentVal = parseInt(vNode.text, 10);
+    if (vNode && (vNode.type === "integer" || vNode.type === "float")) {
+      currentVal = vNode.type == "integer"
+        ? parseInt(vNode.text, 10)
+        : parseFloat(vNode.text);
     }
     if (v.id === variantNode.id) {
       return currentVal.toString();
@@ -813,7 +815,7 @@ connection.onCompletion(
     const variables = new Set<{ name: string; type: string; const: boolean }>();
     let inBlock = false;
     let inEnum = false;
-    let curr: Node | null = cursorNode;
+    let curr: typeof Node | null = cursorNode;
 
     while (curr) {
       if (curr.type === "block") {
@@ -970,6 +972,7 @@ connection.onCompletion(
       return [
         ...items,
         { label: "int", kind: CompletionItemKind.TypeParameter },
+        { label: "float", kind: CompletionItemKind.TypeParameter },
         { label: "bool", kind: CompletionItemKind.TypeParameter },
         { label: "string", kind: CompletionItemKind.TypeParameter },
         { label: "void", kind: CompletionItemKind.TypeParameter },

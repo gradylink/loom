@@ -29,14 +29,21 @@ public:
 
   std::vector<CompiledFunction> compile();
 
-  std::string globalInit = setupScoreboards;
+  // The abritrary numbers here are "loom" obfuscated in different ways.
+  // X coord: Math.floor(Math.pow(asciiSum("loom"), 2.75))
+  // Z coord: Math.floor(asciiProduct("loom") / 10) // asciiProduct starts with 1
+  // UUID: first section is "loom" in ASCII
+  std::string globalInit = std::string(setupScoreboards) +
+                           "forceload add 18483211 14504281\n"
+                           "execute unless entity 6c6f6f6d-0-0-0-ffff run summon item_display 18483211 0 14504281 {UUID:[I;1819242349,0,0,65535]}\n"
+                           "setblock 18483211 -64 14504281 chest{Items:[{id:stick}]} replace";
 
 public:
-  enum class EnumType { Integer, String };
+  enum class EnumType { Integer, String, Float };
 
   struct EnumVariant {
     std::string name;
-    std::variant<int32_t, std::string> value;
+    std::variant<int32_t, std::string, float> value;
   };
 
   struct EnumData {
@@ -48,7 +55,7 @@ public:
   };
 
   struct Type {
-    enum Kind { Integer, Boolean, String, Enum, List } kind = Integer;
+    enum Kind { Integer, Boolean, String, Enum, List, Float } kind = Integer;
     const EnumData *enumRef = nullptr;
 
     std::unique_ptr<Type> baseType = nullptr;
@@ -58,6 +65,7 @@ public:
     Type(Kind k, const EnumData *ref, std::unique_ptr<Type> base) : kind(k), enumRef(ref), baseType(std::move(base)) {}
 
     static Type IntegerType() { return {Integer, nullptr, nullptr}; }
+    static Type FloatType() { return {Float, nullptr, nullptr}; }
     static Type BooleanType() { return {Boolean, nullptr, nullptr}; }
     static Type StringType() { return {String, nullptr, nullptr}; }
     static Type EnumTypeOf(const EnumData *ref) { return {Enum, ref, nullptr}; }
@@ -87,6 +95,11 @@ public:
     bool isInteger() const {
       if (kind == Integer) return true;
       if (kind == Enum && enumRef) return enumRef->type == EnumType::Integer;
+      return false;
+    }
+    bool isFloat() const {
+      if (kind == Float) return true;
+      if (kind == Enum && enumRef) return enumRef->type == EnumType::Float;
       return false;
     }
     bool isBoolean() const { return kind == Boolean; }

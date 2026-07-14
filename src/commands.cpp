@@ -25,10 +25,13 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
       if (argType == "interpolation") {
         TSNode expNode = ts_node_child_by_field_name(arg, "expression", 10);
         if (std::string(ts_node_type(expNode)) == "variable_ref") {
-          const std::string mangledName = vars[std::string(getFieldText(expNode, "name"))].mangledName;
-          out += std::format(R"({{"score":{{"name":"{}","objective":"vars"}},"color":"white"}})", mangledName);
+          const auto &var = vars[std::string(getFieldText(expNode, "name"))];
+          if (!var.type.isInteger() && !var.type.isBoolean()) return "";
+          out += std::format(R"({{"score":{{"name":"{}","objective":"vars"}},"color":"white"}})", var.mangledName);
         } else {
-          setup += compileExpression(expNode, 1, false).data + "\n";
+          const auto expr = compileExpression(expNode, 1, false);
+          if (!expr.type.isInteger() && !expr.type.isBoolean()) return "";
+          setup += expr.data + "\n";
           out += R"({{"score":{{"name":"expr_output1","objective":"temp"}},"color":"white"}})";
         }
       } else {

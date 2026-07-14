@@ -20,6 +20,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -88,6 +92,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -149,6 +157,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -273,6 +285,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -405,6 +421,10 @@
         },
         {
           "type": "command_name",
+          "named": true
+        },
+        {
+          "type": "float",
           "named": true
         },
         {
@@ -605,6 +625,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -669,6 +693,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -724,6 +752,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -815,6 +847,10 @@
         "required": false,
         "types": [
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "integer",
             "named": true
           },
@@ -854,6 +890,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -925,6 +965,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -990,6 +1034,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -1137,6 +1185,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -1231,6 +1283,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -1292,6 +1348,10 @@
         },
         {
           "type": "element_expression",
+          "named": true
+        },
+        {
+          "type": "float",
           "named": true
         },
         {
@@ -1440,6 +1500,10 @@
           "named": true
         },
         {
+          "type": "float",
+          "named": true
+        },
+        {
           "type": "function_call",
           "named": true
         },
@@ -1500,6 +1564,10 @@
         },
         {
           "type": "element_expression",
+          "named": true
+        },
+        {
+          "type": "float",
           "named": true
         },
         {
@@ -1600,6 +1668,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -1658,6 +1730,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -1713,6 +1789,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -1849,6 +1929,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -1907,6 +1991,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -1962,6 +2050,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -2041,6 +2133,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -2164,6 +2260,10 @@
             "named": true
           },
           {
+            "type": "float",
+            "named": true
+          },
+          {
             "type": "function_call",
             "named": true
           },
@@ -2261,6 +2361,10 @@
           },
           {
             "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
             "named": true
           },
           {
@@ -2531,6 +2635,10 @@
   {
     "type": "feet",
     "named": false
+  },
+  {
+    "type": "float",
+    "named": true
   },
   {
     "type": "for",

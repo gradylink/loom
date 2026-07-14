@@ -43,6 +43,7 @@
 (type) @type
 (swizzle) @type
 (integer) @number
+(float) @number
 (boolean) @boolean
 (vec2) @number
 (vec3) @number

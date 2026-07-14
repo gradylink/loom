@@ -44,12 +44,11 @@ A programming language that compiles to Minecraft datapacks.
   - [x] Returns
   - [x] Arguments
   - [x] Tags (`#init` on previous line would set init function for example)
-  - [ ] Macro Functions
   - [x] `extern` and `export`
 - [x] Integers
 - [x] Strings
 - [x] Booleans
-- [ ] Floats
+- [x] Floats
 - [ ] Dictionaries
 - [ ] `vec3` and `vec2`
 - [x] Lists
@@ -66,6 +65,7 @@ A programming language that compiles to Minecraft datapacks.
   - [x] `do while`
   - [x] `for`
   - [ ] `foreach` (no lists yet)
+- `comptime`
 - [ ] Inline datapack features
   - [ ] Recipes
   - [ ] Enchantments
@@ -73,3 +73,8 @@ A programming language that compiles to Minecraft datapacks.
   - [ ] Dialogs
   - [ ] Tags
   - [ ] Loot Tables
+
+## Credits
+
+- @oligomc for the float addition and subtraction techniques
+- @gibbsly for the float multiplication, division, and modulo techniques

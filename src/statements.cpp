@@ -318,13 +318,13 @@ std::string Compiler::compileBlock(TSNode node) {
       }
 
       if (expr.precomputed) {
-        if (vars[name].type.isString()) {
+        if (vars[name].type.isString() || vars[name].type.isFloat() || vars[name].type.isList()) {
           ret += std::format("data modify storage {0}:global vars.{1} set value {2}\n", datapackNamespace, vars[name].mangledName, expr.data);
         } else {
           ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
         }
       } else {
-        if (std::string(ts_node_type(expNode)) == "binary_expression" && !vars[name].type.isString()) {
+        if (std::string(ts_node_type(expNode)) == "binary_expression" && (vars[name].type.isInteger() || vars[name].type.isBoolean())) {
           const std::string_view op = getFieldText(expNode, "operator");
 
           if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
@@ -344,8 +344,10 @@ std::string Compiler::compileBlock(TSNode node) {
           }
         }
 
-        if (vars[name].type.isString()) {
+        if (vars[name].type.isString() || vars[name].type.isList()) {
           ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, vars[name].mangledName);
+        } else if (vars[name].type.isFloat()) {
+          ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_float1\n", expr.data, datapackNamespace, vars[name].mangledName);
         } else {
           ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, vars[name].mangledName);
         }
@@ -452,6 +454,8 @@ std::string Compiler::compileBlock(TSNode node) {
 
             if (expr.type.isString() || expr.type.isList()) {
               macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_str1\n", datapackNamespace, macroVarId);
+            } else if (expr.type.isFloat()) {
+              macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_float1\n", datapackNamespace, macroVarId);
             } else {
               macroSetup +=
                 std::format("execute store result storage {0}:function_input var_{1} int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace, macroVarId);

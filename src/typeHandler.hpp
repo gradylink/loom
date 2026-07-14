@@ -3,7 +3,6 @@
 #include "compiler.hpp"
 #include <memory>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -54,3 +53,4 @@ std::unique_ptr<TypeHandler> createBooleanHandler();
 std::unique_ptr<TypeHandler> createStringHandler();
 std::unique_ptr<TypeHandler> createListHandler();
 std::unique_ptr<TypeHandler> createEnumHandler();
+std::unique_ptr<TypeHandler> createFloatHandler();

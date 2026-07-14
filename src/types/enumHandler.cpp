@@ -24,7 +24,6 @@ public:
 
     const Compiler::Type retType = Compiler::Type::BooleanType();
 
-    // Integer-backed enums use scoreboard score comparisons.
     if (left.type.isInteger()) {
       if (left.precomputed && right.precomputed) {
         const int32_t lVal = std::stoi(left.data);
@@ -54,7 +53,6 @@ public:
       return Compiler::ExpressionData{.data = runtimeCmds, .precomputed = false, .type = retType};
     }
 
-    // String-backed enums: compare NBT storage strings.
     if (left.type.isString()) {
       if (left.precomputed && right.precomputed) {
         bool equal = (left.data == right.data);
@@ -68,9 +66,6 @@ public:
       if (left.precomputed) leftData = std::format("data modify storage {}:global expr_str{} set value {}", compiler.getDatapackNamespace(), id, left.data);
       if (right.precomputed) rightData = std::format("data modify storage {}:global expr_str{} set value {}", compiler.getDatapackNamespace(), id + 1, right.data);
 
-      // Use NBT string path copy trick: copy left into a scratch key, then attempt to
-      // set a temporary key from storage only if both paths match (MC 1.20.5+ data predicates
-      // aren't available in all targets, so we fall back to the macro approach via internal_string_eq).
       std::string condType = (op == "==") ? "if" : "unless";
       std::string runtimeCmds = leftData + "\n" + rightData + "\n";
       runtimeCmds += std::format(
@@ -82,6 +77,47 @@ public:
         id,
         id + 1
       );
+
+      return Compiler::ExpressionData{.data = runtimeCmds, .precomputed = false, .type = retType};
+    }
+
+    if (left.type.isFloat()) {
+      if (left.precomputed && right.precomputed) {
+        const float lVal = std::stof(left.data);
+        const float rVal = std::stof(right.data);
+        std::string result = ((op == "==") ? (lVal == rVal) : (lVal != rVal)) ? "1" : "0";
+        if (precompute) return Compiler::ExpressionData{.data = result, .precomputed = true, .type = retType};
+        return Compiler::ExpressionData{.data = std::format("scoreboard players set expr_output{} temp {}", id, result), .precomputed = false, .type = retType};
+      }
+
+      std::string leftData =
+        left.precomputed ? std::format("data modify storage {}:global expr_float{} set value {}f", compiler.getDatapackNamespace(), id, left.data) : left.data;
+      std::string rightData =
+        right.precomputed ? std::format("data modify storage {}:global expr_float{} set value {}f", compiler.getDatapackNamespace(), id + 1, right.data) : right.data;
+
+      std::string runtimeCmds = leftData + "\n" + rightData + "\n";
+
+      runtimeCmds += std::format(
+        "data modify storage {0}:global _temp_cmp set from storage {0}:global expr_float{1}\n"
+        "execute store success score internal1 temp run data modify storage {0}:global _temp_cmp set from storage {0}:global expr_float{2}\n",
+        compiler.getDatapackNamespace(),
+        id,
+        id + 1
+      );
+
+      if (op == "==") {
+        runtimeCmds += std::format(
+          "scoreboard players set expr_output{0} temp 1\n"
+          "execute if score internal1 temp matches 1 run scoreboard players set expr_output{0} temp 0",
+          id
+        );
+      } else {
+        runtimeCmds += std::format(
+          "scoreboard players set expr_output{0} temp 0\n"
+          "execute if score internal1 temp matches 1 run scoreboard players set expr_output{0} temp 1",
+          id
+        );
+      }
 
       return Compiler::ExpressionData{.data = runtimeCmds, .precomputed = false, .type = retType};
     }

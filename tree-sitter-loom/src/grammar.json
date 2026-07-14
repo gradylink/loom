@@ -258,6 +258,10 @@
                       {
                         "type": "SYMBOL",
                         "name": "string_literal"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "float"
                       }
                     ]
                   }
@@ -1133,6 +1137,10 @@
                   "name": "integer"
                 },
                 {
+                  "type": "SYMBOL",
+                  "name": "float"
+                },
+                {
                   "type": "STRING",
                   "value": "$"
                 }
@@ -1201,6 +1209,10 @@
         {
           "type": "SYMBOL",
           "name": "integer"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "float"
         },
         {
           "type": "SYMBOL",
@@ -2302,6 +2314,10 @@
     "integer": {
       "type": "PATTERN",
       "value": "\\d+"
+    },
+    "float": {
+      "type": "PATTERN",
+      "value": "\\d+\\.\\d+"
     },
     "boolean": {
       "type": "CHOICE",

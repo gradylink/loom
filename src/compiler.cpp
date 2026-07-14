@@ -38,6 +38,7 @@ Compiler::~Compiler() {
 
 void Compiler::registerDefaultTypeHandlers() {
   typeRegistry->registerHandler(createIntegerHandler());
+  typeRegistry->registerHandler(createFloatHandler());
   typeRegistry->registerHandler(createBooleanHandler());
   typeRegistry->registerHandler(createStringHandler());
   typeRegistry->registerHandler(createListHandler());
@@ -63,6 +64,7 @@ Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const 
   if (typeText == "int") return Type::IntegerType();
   if (typeText == "bool") return Type::BooleanType();
   if (typeText == "string") return Type::StringType();
+  if (typeText == "float") return Type::FloatType();
   const auto &it = enums.find(typeText);
   if (it == enums.end()) throw std::runtime_error(std::format("Unknown type: {}", typeText));
   return Type::EnumTypeOf(&it->second);
@@ -111,7 +113,7 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   std::string ret = "";
   if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
     if (expr.precomputed) {
-      if (varType.isString() || varType.isList()) {
+      if (varType.isString() || varType.isList() || varType.isFloat()) {
         ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);
       } else {
         ret += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
@@ -119,6 +121,8 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
     } else {
       if (varType.isString() || varType.isList()) {
         ret += std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
+      } else if (varType.isFloat()) {
+        ret += std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_float1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
       } else {
         ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, mangled);
       }
@@ -261,6 +265,14 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     {.name = "internal_list_nested_set_primitive",
      .data = std::format("$execute store result storage {0}:global vars.$(var_name)$(path) int 1 run scoreboard players get expr_output1 temp", datapackNamespace)}
   );
+  compiledFunctions.push_back(
+    {.name = "internal_float_sub_macro",
+     .data = "$item modify block 18483211 -64 14504281 container.0 {function:set_custom_model_data,floats:{values:[{type:sum,summands:[{type:storage,storage:\"" +
+             datapackNamespace +
+             ":global\",path:\"macro_args.a\"},{type:score,target:{type:fixed,name:\"#-1\"},score:\"math\",scale:$(text)}],mode:replace_all}]}\n"
+             "data modify storage " +
+             datapackNamespace + ":global macro_args.out set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]"}
+  );
 
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
     TSNode child = ts_node_named_child(root, i);
@@ -352,7 +364,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           const std::string &rawText = std::string(getNodeText(valueNode));
 
           if (valType == "string_literal") {
-            if (typeKnown && enumData.type == EnumType::Integer) {
+            if (typeKnown && enumData.type != EnumType::String) {
               throw std::runtime_error(formatError(valueNode, "Cannot mix enum types."));
             }
 
@@ -360,7 +372,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
             enumData.type = EnumType::String;
             variant.value = rawText;
           } else if (valType == "integer") {
-            if (typeKnown && enumData.type == EnumType::String) {
+            if (typeKnown && enumData.type != EnumType::Integer) {
               throw std::runtime_error(formatError(valueNode, "Cannot mix enum types."));
             }
 
@@ -369,10 +381,18 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
             const int32_t parsedInt = std::stoi(rawText);
             variant.value = parsedInt;
             nextValue = parsedInt + 1;
+          } else if (valType == "float") {
+            if (typeKnown && enumData.type != EnumType::Float) {
+              throw std::runtime_error(formatError(valueNode, "Cannot mix enum types."));
+            }
+
+            typeKnown = true;
+            enumData.type = EnumType::Float;
+            variant.value = std::stof(rawText);
           }
         } else {
-          if (typeKnown && enumData.type == EnumType::String) {
-            throw std::runtime_error(formatError(variantNode, "Enum variants must be explicit for string enums."));
+          if (typeKnown && enumData.type != EnumType::Integer) {
+            throw std::runtime_error(formatError(variantNode, "Enum variants must be explicit for non-integer enums."));
           }
           typeKnown = true;
           enumData.type = EnumType::Integer;
@@ -488,7 +508,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
           }
         );
 
-        if (pType.isString() || pType.isList()) {
+        if (pType.isString() || pType.isList() || pType.isFloat()) {
           paramSetup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
         } else {
           paramSetup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
