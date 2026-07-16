@@ -29,6 +29,7 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
 
     std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / config.namespaceStr / "function";
     std::filesystem::create_directories(functionalDir);
+    std::filesystem::path internalFunctionalDir = functionalDir / "internal" / "loom";
 
     std::filesystem::path metaPath = std::filesystem::path(outputPath) / "pack.mcmeta";
     if (!std::filesystem::exists(metaPath)) {
@@ -66,6 +67,21 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
       }
 
       std::filesystem::path funcPath = functionalDir / (func.name + ".mcfunction");
+      std::ofstream outFile(funcPath);
+      if (outFile.is_open()) {
+        outFile << func.data;
+        outFile.close();
+      } else {
+        std::cerr << "Error: Failed to write output file: " << funcPath.string() << "\n";
+        return false;
+      }
+    }
+
+    for (const auto &func : compiler.internalFunctions) {
+      if (!func.used) continue;
+      std::filesystem::create_directories(internalFunctionalDir);
+
+      std::filesystem::path funcPath = internalFunctionalDir / (func.name + ".mcfunction");
       std::ofstream outFile(funcPath);
       if (outFile.is_open()) {
         outFile << func.data;

@@ -137,6 +137,21 @@ public:
     Type type;
   };
 
+  struct InternalFunction {
+    std::string name;
+    std::string data;
+    bool used = false;
+  };
+  std::vector<InternalFunction> internalFunctions;
+  inline void useInternalFunction(const std::string &name) {
+    for (auto &func : internalFunctions) {
+      if (func.name == name) {
+        func.used = true;
+        break;
+      }
+    }
+  }
+
 private:
   const std::string datapackNamespace;
   const std::string source;

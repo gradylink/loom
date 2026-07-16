@@ -39,11 +39,12 @@ public:
     if (right.precomputed) rightData = std::format("data modify storage {}:global expr_str{} set value {}", compiler.getDatapackNamespace(), id + 1, right.data);
 
     std::string runtimeCmds = leftData + "\n" + rightData + "\n";
+    compiler.useInternalFunction("internal_string_concat");
     runtimeCmds += std::format(
       "data modify storage {}:global macro_args set value {{out_id: {}}}\n"
       "data modify storage {}:global macro_args.left set from storage {}:global expr_str{}\n"
       "data modify storage {}:global macro_args.right set from storage {}:global expr_str{}\n"
-      "function {}:internal_string_concat with storage {}:global macro_args",
+      "function {}:internal/loom/internal_string_concat with storage {}:global macro_args",
       compiler.getDatapackNamespace(),
       id,
       compiler.getDatapackNamespace(),
@@ -98,17 +99,19 @@ public:
         if (!elemExpr.type.isString()) throw std::runtime_error(formatError(argNodes[1], "Type mismatch: cannot append non-string to a string."));
         cmds += elemExpr.data + "\n";
         if (elemExpr.precomputed) {
+          compiler.useInternalFunction("internal_string_append");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, value: {2}}}\n"
-            "function {0}:internal_string_append with storage {0}:global macro_args\n",
+            "function {0}:internal/loom/internal_string_append with storage {0}:global macro_args\n",
             compiler.getDatapackNamespace(),
             id,
             elemExpr.data
           );
         } else {
+          compiler.useInternalFunction("internal_string_append_str");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
-            "function {0}:internal_string_append_str with storage {0}:global macro_args\n",
+            "function {0}:internal/loom/internal_string_append_str with storage {0}:global macro_args\n",
             compiler.getDatapackNamespace(),
             id,
             id + 1
@@ -120,22 +123,24 @@ public:
         cmds += idxExpr.data + "\n";
         if (idxExpr.precomputed) {
           int idxVal = std::stoi(idxExpr.data);
+          compiler.useInternalFunction("internal_string_remove");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, index_plus_one: {3}}}\n"
-            "function {0}:internal_string_remove with storage {0}:global macro_args\n",
+            "function {0}:internal/loom/internal_string_remove with storage {0}:global macro_args\n",
             compiler.getDatapackNamespace(),
             id,
             idxVal,
             idxVal + 1
           );
         } else {
+          compiler.useInternalFunction("internal_string_remove");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}}}\n"
             "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{2} temp\n"
             "scoreboard players operation expr_output3 temp = expr_output{2} temp\n"
             "scoreboard players add expr_output3 temp 1\n"
             "execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get expr_output3 temp\n"
-            "function {0}:internal_string_remove with storage {0}:global macro_args\n",
+            "function {0}:internal/loom/internal_string_remove with storage {0}:global macro_args\n",
             compiler.getDatapackNamespace(),
             id,
             id + 1
@@ -150,18 +155,20 @@ public:
 
         if (idxExpr.precomputed) {
           if (elemExpr.precomputed) {
+            compiler.useInternalFunction("internal_string_insert_value");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, value: {3}}}\n"
-              "function {0}:internal_string_insert_value with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_string_insert_value with storage {0}:global macro_args\n",
               compiler.getDatapackNamespace(),
               id,
               idxExpr.data,
               elemExpr.data
             );
           } else {
+            compiler.useInternalFunction("internal_string_insert_str");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, elem_id: {3}}}\n"
-              "function {0}:internal_string_insert_str with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_string_insert_str with storage {0}:global macro_args\n",
               compiler.getDatapackNamespace(),
               id,
               idxExpr.data,
@@ -178,14 +185,16 @@ public:
             id + 1
           );
           if (elemExpr.precomputed) {
+            compiler.useInternalFunction("internal_string_insert_value");
             cmds += std::format(
               "data modify storage {0}:global macro_args.value set value {1}\n"
-              "function {0}:internal_string_insert_value with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_string_insert_value with storage {0}:global macro_args\n",
               compiler.getDatapackNamespace(),
               elemExpr.data
             );
           } else {
-            cmds += std::format("function {0}:internal_string_insert_str with storage {0}:global macro_args\n", compiler.getDatapackNamespace());
+            compiler.useInternalFunction("internal_string_insert_str");
+            cmds += std::format("function {0}:internal/loom/internal_string_insert_str with storage {0}:global macro_args\n", compiler.getDatapackNamespace());
           }
         }
       }

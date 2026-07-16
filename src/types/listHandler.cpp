@@ -64,10 +64,11 @@ public:
         if (idxExpr.precomputed) {
           cmds += std::format("data remove storage {0}:global expr_str{1}[{2}]\n", compiler.getDatapackNamespace(), id, idxExpr.data);
         } else {
+          compiler.useInternalFunction("internal_list_remove");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}}}\n"
             "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{2} temp\n"
-            "function {0}:internal_list_remove with storage {0}:global macro_args\n",
+            "function {0}:internal/loom/internal_list_remove with storage {0}:global macro_args\n",
             compiler.getDatapackNamespace(),
             id,
             id + 1
@@ -102,30 +103,33 @@ public:
           }
         } else {
           if (elemExpr.precomputed) {
+            compiler.useInternalFunction("internal_list_insert_value");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, value: {2}}}\n"
               "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n"
-              "function {0}:internal_list_insert_value with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_list_insert_value with storage {0}:global macro_args\n",
               compiler.getDatapackNamespace(),
               id,
               elemExpr.data,
               id + 1
             );
           } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+            compiler.useInternalFunction("internal_list_insert_object");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
               "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n"
-              "function {0}:internal_list_insert_object with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_list_insert_object with storage {0}:global macro_args\n",
               compiler.getDatapackNamespace(),
               id,
               id + 2,
               id + 1
             );
           } else {
+            compiler.useInternalFunction("internal_list_insert_primitive");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
               "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n"
-              "function {0}:internal_list_insert_primitive with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_list_insert_primitive with storage {0}:global macro_args\n",
               compiler.getDatapackNamespace(),
               id,
               id + 2,

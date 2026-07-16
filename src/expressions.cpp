@@ -398,9 +398,11 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     );
 
     if (target.type.isString()) {
-      runtimeCmds += std::format("function {}:internal_string_slice with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+      useInternalFunction("internal_string_slice");
+      runtimeCmds += std::format("function {}:internal/loom/internal_string_slice with storage {}:global macro_args", datapackNamespace, datapackNamespace);
     } else {
-      runtimeCmds += std::format("function {}:internal_list_slice with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+      useInternalFunction("internal_list_slice");
+      runtimeCmds += std::format("function {}:internal/loom/internal_list_slice with storage {}:global macro_args", datapackNamespace, datapackNamespace);
     }
 
     return {.data = runtimeCmds, .precomputed = false, .type = target.type};
@@ -444,13 +446,14 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     std::string runtimeCmds = target.data + "\n" + index.data + "\n";
 
     if (target.type.isString()) {
+      useInternalFunction("internal_string_slice");
       runtimeCmds += std::format(
         "scoreboard players operation expr_output{} temp = expr_output{} temp\n"
         "scoreboard players add expr_output{} temp 1\n"
         "data modify storage {}:global macro_args set value {{out_id: {}, target_id: {}}}\n"
         "execute store result storage {}:global macro_args.start int 1 run scoreboard players get expr_output{} temp\n"
         "execute store result storage {}:global macro_args.end int 1 run scoreboard players get expr_output{} temp\n"
-        "function {}:internal_string_slice with storage {}:global macro_args",
+        "function {}:internal/loom/internal_string_slice with storage {}:global macro_args",
         id + 2,
         id + 1,
         id + 2,
@@ -476,9 +479,11 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       );
 
       if (resultType.isString() || resultType.isList()) {
-        runtimeCmds += std::format("function {}:internal_list_get_object with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+        useInternalFunction("internal_list_slice");
+        runtimeCmds += std::format("function {}:internal/loom/internal_list_get_object with storage {}:global macro_args", datapackNamespace, datapackNamespace);
       } else {
-        runtimeCmds += std::format("function {}:internal_list_get_primitive with storage {}:global macro_args", datapackNamespace, datapackNamespace);
+        useInternalFunction("internal_list_get_primitive");
+        runtimeCmds += std::format("function {}:internal/loom/internal_list_get_primitive with storage {}:global macro_args", datapackNamespace, datapackNamespace);
       }
     }
 

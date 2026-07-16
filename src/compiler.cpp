@@ -133,15 +133,16 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
 
 std::vector<Compiler::CompiledFunction> Compiler::compile() {
   compiledFunctions.clear();
+  internalFunctions.clear();
 
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_concat", .data = std::format("$data modify storage {}:global expr_str$(out_id) set value \"$(left)$(right)\"", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_slice",
      .data = std::format("$data modify storage {0}:global expr_str$(out_id) set string storage {0}:global expr_str$(target_id) $(start) $(end)", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_mutate_static",
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global vars.$(var_name)$(path) 0 $(index)\n"
@@ -150,7 +151,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_mutate_dynamic",
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global vars.$(var_name)$(path) 0 $(index)\n"
@@ -159,7 +160,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_append",
      .data = std::format(
        "$data modify storage {0}:global macro_args.left set from storage {0}:global expr_str$(target_id)\n"
@@ -167,7 +168,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_append_str",
      .data = std::format(
        "$data modify storage {0}:global macro_args.left set from storage {0}:global expr_str$(target_id)\n"
@@ -176,7 +177,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_remove",
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
@@ -185,7 +186,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_insert_value",
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
@@ -194,7 +195,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_string_insert_str",
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
@@ -205,24 +206,24 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      )}
   );
 
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_get_primitive",
      .data = std::format("$execute store result score expr_output$(out_id) temp run data get storage {}:global expr_str$(target_id)[$(index)]", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_get_object",
      .data = std::format("$data modify storage {0}:global expr_str$(out_id) set from storage {0}:global expr_str$(target_id)[$(index)]", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_slice",
      .data = std::format(
        "$data modify storage {0}:global expr_str$(out_id) set value []\n"
        "$data modify storage {0}:global macro_args.current int $(start)\n"
-       "function {0}:internal_list_slice_loop with storage {0}:global macro_args",
+       "function {0}:internal/loom/internal_list_slice_loop with storage {0}:global macro_args",
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_slice_loop",
      .data = std::format(
        "execute store result score internal_current temp run data get storage {0}:global macro_args.current\n"
@@ -231,41 +232,41 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "expr_str$(target_id)[$(current)]\n"
        "execute if score internal_current temp < internal_end temp run scoreboard players add internal_current temp 1\n"
        "execute if score internal_current temp < internal_end temp store result storage {0}:global macro_args.current int 1 run scoreboard players get internal_current temp\n"
-       "execute if score internal_current temp < internal_end temp run function {0}:internal_list_slice_loop with storage {0}:global macro_args",
+       "execute if score internal_current temp < internal_end temp run function {0}:internal/loom/internal_list_slice_loop with storage {0}:global macro_args",
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back({.name = "internal_list_remove", .data = std::format("$data remove storage {0}:global expr_str$(target_id)[$(index)]", datapackNamespace)});
-  compiledFunctions.push_back(
+  internalFunctions.push_back({.name = "internal_list_remove", .data = std::format("$data remove storage {0}:global expr_str$(target_id)[$(index)]", datapackNamespace)});
+  internalFunctions.push_back(
     {.name = "internal_list_insert_value", .data = std::format("$data modify storage {0}:global expr_str$(target_id) insert $(index) value $(value)", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_insert_object",
      .data = std::format("$data modify storage {0}:global expr_str$(target_id) insert $(index) from storage {0}:global expr_str$(elem_id)", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_insert_primitive",
      .data = std::format(
        "$execute store result storage {0}:global expr_str$(target_id) insert $(index) int 1 run scoreboard players get expr_output$(elem_id) temp",
        datapackNamespace
      )}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_path_append",
      .data = std::format("$data modify storage {0}:global macro_args.path set value \"$(string_before)[$(index_to_append)]\"", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_nested_set_value", .data = std::format("$data modify storage {0}:global vars.$(var_name)$(path) set value $(value)", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_nested_set_object",
      .data = std::format("$data modify storage {0}:global vars.$(var_name)$(path) set from storage {0}:global expr_str1", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_list_nested_set_primitive",
      .data = std::format("$execute store result storage {0}:global vars.$(var_name)$(path) int 1 run scoreboard players get expr_output1 temp", datapackNamespace)}
   );
-  compiledFunctions.push_back(
+  internalFunctions.push_back(
     {.name = "internal_float_sub_macro",
      .data = "$item modify block 18483211 -64 14504281 container.0 {function:set_custom_model_data,floats:{values:[{type:sum,summands:[{type:storage,storage:\"" +
              datapackNamespace +
@@ -326,9 +327,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       }
 
       for (const auto &func : importedFuncs) {
-        if (func.name != "internal_string_concat" && func.name != "internal_string_slice") {
-          compiledFunctions.push_back(func);
-        }
+        compiledFunctions.push_back(func);
       }
 
       std::string importedInit = importCompiler.globalInit;

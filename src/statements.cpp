@@ -232,28 +232,31 @@ std::string Compiler::compileBlock(TSNode node) {
                 ret +=
                   std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
               }
-              ret += std::format("function {0}:internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
+              useInternalFunction("internal_path_append");
+              ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
             }
           }
 
           if (stringCharIdx.precomputed) {
             int idxVal = std::stoi(stringCharIdx.data);
+            useInternalFunction("internal_string_mutate_static");
             ret += std::format(
               "data modify storage {0}:global macro_args.index set value {1}\n"
               "data modify storage {0}:global macro_args.index_plus_one set value {2}\n"
-              "function {0}:internal_string_mutate_static with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_string_mutate_static with storage {0}:global macro_args\n",
               datapackNamespace,
               idxVal,
               idxVal + 1
             );
           } else {
             ret += stringCharIdx.data + "\n";
+            useInternalFunction("internal_string_mutate_dynamic");
             ret += std::format(
               "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output2 temp\n"
               "scoreboard players operation expr_output3 temp = expr_output2 temp\n"
               "scoreboard players add expr_output3 temp 1\n"
               "execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get expr_output3 temp\n"
-              "function {0}:internal_string_mutate_dynamic with storage {0}:global macro_args\n",
+              "function {0}:internal/loom/internal_string_mutate_dynamic with storage {0}:global macro_args\n",
               datapackNamespace
             );
           }
@@ -283,20 +286,24 @@ std::string Compiler::compileBlock(TSNode node) {
             } else {
               ret += std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
             }
-            ret += std::format("function {0}:internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
+            useInternalFunction("internal_path_append");
+            ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
           }
 
           ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, vars[name].mangledName);
           if (expr.precomputed) {
+            useInternalFunction("internal_list_nested_set_value");
             ret += std::format(
-              "data modify storage {0}:global macro_args.value set value {1}\nfunction {0}:internal_list_nested_set_value with storage {0}:global macro_args\n",
+              "data modify storage {0}:global macro_args.value set value {1}\nfunction {0}:internal/loom/internal_list_nested_set_value with storage {0}:global macro_args\n",
               datapackNamespace,
               expr.data
             );
           } else if (expr.type.isString() || expr.type.isList()) {
-            ret += std::format("function {0}:internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
+            useInternalFunction("internal_list_nested_set_object");
+            ret += std::format("function {0}:internal/loom/internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
           } else {
-            ret += std::format("function {0}:internal_list_nested_set_primitive with storage {0}:global macro_args\n", datapackNamespace);
+            useInternalFunction("internal_list_nested_set_primitive");
+            ret += std::format("function {0}:internal/loom/internal_list_nested_set_primitive with storage {0}:global macro_args\n", datapackNamespace);
           }
         }
         continue;

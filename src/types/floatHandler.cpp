@@ -100,11 +100,12 @@ public:
           id + 1
         );
       } else if (op == "-") {
+        compiler.useInternalFunction("internal_float_sub_macro");
         runtimeCommands += std::format(
           "data modify storage {0}:global macro_args.a set from storage {0}:global expr_float{1}\n"
           "data modify storage {0}:global macro_args.b set from storage {0}:global expr_float{2}\n"
           "item modify block 18483211 -64 14504281 container.0 {{function:set_name,entity:this,name:{{storage:\"{0}:global\",nbt:\"macro_args.b\"}}}}\n"
-          "function {0}:internal_float_sub_macro with block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_name\".extra[0]\n"
+          "function {0}:internal/loom/internal_float_sub_macro with block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_name\".extra[0]\n"
           "data modify storage {0}:global expr_float{1} set from storage {0}:global macro_args.out",
           compiler.getDatapackNamespace(),
           id,
@@ -136,6 +137,7 @@ public:
           id + 1
         );
       } else if (op == "%") {
+        compiler.useInternalFunction("internal_float_sub_macro");
         runtimeCommands += std::format(
           "data modify storage {0}:global _temp_div set value [1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
           "data modify storage {0}:global _temp_div[3] set from storage {0}:global expr_float{1}\n"
@@ -152,7 +154,7 @@ public:
           "data modify storage {0}:global macro_args.a set from storage {0}:global expr_float{1}\n"
           "data modify storage {0}:global macro_args.b set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
           "item modify block 18483211 -64 14504281 container.0 {{function:set_name,entity:this,name:{{storage:\"{0}:global\",nbt:\"macro_args.b\"}}}}\n"
-          "function {0}:internal_float_sub_macro with block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_name\".extra[0]\n"
+          "function {0}:internal/loom/internal_float_sub_macro with block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_name\".extra[0]\n"
           "data modify storage {0}:global expr_float{1} set from storage {0}:global macro_args.out",
           compiler.getDatapackNamespace(),
           id,
