@@ -303,9 +303,15 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     std::string callCommand;
     if (!funcs[targetFunc].returnType.has_value()) {
-      callCommand = std::format("function {}:{}", datapackNamespace, funcs[targetFunc].mangledName);
+      callCommand = std::format("function {}:{}{}", datapackNamespace, funcs[targetFunc].internal ? "internal/" : "", funcs[targetFunc].mangledName);
     } else {
-      callCommand = std::format("execute store result score expr_output{} temp run function {}:{}", id, datapackNamespace, funcs[targetFunc].mangledName);
+      callCommand = std::format(
+        "execute store result score expr_output{} temp run function {}:{}{}",
+        id,
+        datapackNamespace,
+        funcs[targetFunc].internal ? "internal/" : "",
+        funcs[targetFunc].mangledName
+      );
     }
 
     return {.data = std::format("{}{}{}{}", push, argPushData, callCommand, pop), .precomputed = false, .type = funcType};

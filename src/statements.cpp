@@ -479,7 +479,7 @@ std::string Compiler::compileBlock(TSNode node) {
       compiledFunctions.push_back({.name = macroFuncName, .data = macroBody + "\n"});
 
       ret += macroSetup;
-      ret += std::format("function {}:{} with storage {}:function_input\n", datapackNamespace, macroFuncName, datapackNamespace);
+      ret += std::format("function {}:internal/{} with storage {}:function_input\n", datapackNamespace, macroFuncName, datapackNamespace);
       continue;
     }
 

@@ -334,8 +334,14 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       if (importedInit.starts_with(setupScoreboards)) {
         importedInit = importedInit.substr(std::strlen(setupScoreboards));
       }
-      globalInit += importedInit;
 
+      std::istringstream stream(importedInit);
+      std::string line;
+      while (std::getline(stream, line)) {
+        if (line.starts_with("scoreboard") || line.starts_with("data")) {
+          globalInit += line + "\n";
+        }
+      }
       continue;
     }
 
@@ -459,7 +465,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       std::string mangledName = name;
       if (!isExtern) mangledName += "_" + randomFunctionMangleString();
 
-      funcs[name] = {.name = name, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport};
+      funcs[name] = {.name = name, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern};
     }
   }
 
@@ -516,7 +522,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
       }
 
-      compiledFunctions.push_back({.name = funcs[name].mangledName, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag});
+      compiledFunctions.push_back({.name = funcs[name].mangledName, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag, .internal = funcs[name].internal});
       continue;
     }
 

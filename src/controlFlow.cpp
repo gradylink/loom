@@ -47,7 +47,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
       ret += std::format("execute if score {} temp matches 1 run {}", condScore, trueData);
     } else {
       compiledFunctions.push_back({.name = name + "_true", .data = trueData});
-      ret += std::format("execute if score {} temp matches 1 run function {}:{}_true\n", condScore, datapackNamespace, name);
+      ret += std::format("execute if score {} temp matches 1 run function {}:internal/{}_true\n", condScore, datapackNamespace, name);
     }
   }
 
@@ -68,7 +68,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
         ret += std::format("execute unless score {} temp matches 1 run {}", condScore, altData);
       } else {
         compiledFunctions.push_back({.name = name + "_false", .data = altData});
-        ret += std::format("execute unless score {} temp matches 1 run function {}:{}_false\n", condScore, datapackNamespace, name);
+        ret += std::format("execute unless score {} temp matches 1 run function {}:internal/{}_false\n", condScore, datapackNamespace, name);
       }
     }
   }
@@ -101,10 +101,10 @@ std::string Compiler::compileWhile(TSNode whileNode) {
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
   if (condExpr.precomputed) {
-    ret += std::format("function {}:{}\n", datapackNamespace, loopName);
+    ret += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
   } else {
     ret += condExpr.data + "\n";
-    ret += std::format("execute if score expr_output1 temp matches 1 run function {}:{}\n", datapackNamespace, loopName);
+    ret += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
   }
 
   return ret;
@@ -132,7 +132,7 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
-  ret += std::format("function {}:{}\n", datapackNamespace, loopName);
+  ret += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
   return ret;
 }
 
@@ -184,6 +184,6 @@ std::string Compiler::compileFor(TSNode forNode) {
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
-  ret += std::format("execute if score {} vars < {} vars run function {}:{}\n", iterMangled, endMangled, datapackNamespace, loopName);
+  ret += std::format("execute if score {} vars < {} vars run function {}:internal/{}\n", iterMangled, endMangled, datapackNamespace, loopName);
   return ret;
 }

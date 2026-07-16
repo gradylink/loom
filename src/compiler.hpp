@@ -25,6 +25,7 @@ public:
     std::string name;
     std::string data;
     std::optional<std::string> tag;
+    bool internal = true;
   };
 
   std::vector<CompiledFunction> compile();
@@ -36,7 +37,7 @@ public:
   std::string globalInit = std::string(setupScoreboards) +
                            "forceload add 18483211 14504281\n"
                            "execute unless entity 6c6f6f6d-0-0-0-ffff run summon item_display 18483211 0 14504281 {UUID:[I;1819242349,0,0,65535]}\n"
-                           "setblock 18483211 -64 14504281 chest{Items:[{id:stick}]} replace";
+                           "setblock 18483211 -64 14504281 chest{Items:[{id:stick}]} replace\n";
 
 public:
   enum class EnumType { Integer, String, Float };
@@ -118,6 +119,7 @@ public:
     std::optional<std::string> tag;
 
     bool exported = false;
+    bool internal = true;
   };
 
   struct VariableData {

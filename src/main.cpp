@@ -29,7 +29,8 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
 
     std::filesystem::path functionalDir = std::filesystem::path(outputPath) / "data" / config.namespaceStr / "function";
     std::filesystem::create_directories(functionalDir);
-    std::filesystem::path internalFunctionalDir = functionalDir / "internal" / "loom";
+    std::filesystem::path internalFunctionalDir = functionalDir / "internal";
+    std::filesystem::create_directories(internalFunctionalDir);
 
     std::filesystem::path metaPath = std::filesystem::path(outputPath) / "pack.mcmeta";
     if (!std::filesystem::exists(metaPath)) {
@@ -63,10 +64,10 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
           tagName = fullTag.substr(colonPos + 1);
         }
 
-        functionTags[tagNamespace][tagName].push_back(func.name);
+        functionTags[tagNamespace][tagName].push_back(func.internal ? "internal/" + func.name : func.name);
       }
 
-      std::filesystem::path funcPath = functionalDir / (func.name + ".mcfunction");
+      std::filesystem::path funcPath = (func.internal ? internalFunctionalDir : functionalDir) / (func.name + ".mcfunction");
       std::ofstream outFile(funcPath);
       if (outFile.is_open()) {
         outFile << func.data;
@@ -79,9 +80,9 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
 
     for (const auto &func : compiler.internalFunctions) {
       if (!func.used) continue;
-      std::filesystem::create_directories(internalFunctionalDir);
+      std::filesystem::create_directories(internalFunctionalDir / "loom");
 
-      std::filesystem::path funcPath = internalFunctionalDir / (func.name + ".mcfunction");
+      std::filesystem::path funcPath = internalFunctionalDir / "loom" / (func.name + ".mcfunction");
       std::ofstream outFile(funcPath);
       if (outFile.is_open()) {
         outFile << func.data;
@@ -92,7 +93,7 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
       }
     }
 
-    std::filesystem::path globalInitPath = functionalDir / "global_init.mcfunction";
+    std::filesystem::path globalInitPath = internalFunctionalDir / "global_init.mcfunction";
     std::ofstream outFile(globalInitPath);
     if (outFile.is_open()) {
       outFile << compiler.globalInit;
@@ -101,7 +102,7 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
       std::cerr << "Error: Failed to write output file: " << globalInitPath.string() << "\n";
       return false;
     }
-    functionTags["minecraft"]["load"].insert(functionTags["minecraft"]["load"].begin(), "global_init");
+    functionTags["minecraft"]["load"].insert(functionTags["minecraft"]["load"].begin(), "internal/global_init");
 
     for (const auto &[ns, tags] : functionTags) {
       std::filesystem::path nsTagsDir = std::filesystem::path(outputPath) / "data" / ns / "tags" / "function";
