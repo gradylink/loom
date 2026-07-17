@@ -324,6 +324,27 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       throw std::runtime_error(formatError(node, "Unknown variable used in expression: " + targetVar));
     }
 
+    if (vars[targetVar].value.has_value()) {
+      if (precompute) {
+        return {.data = vars[targetVar].value.value(), .precomputed = true, .type = vars[targetVar].type};
+      }
+      if (vars[targetVar].type.isString() || vars[targetVar].type.isList()) {
+        return {
+          .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, vars[targetVar].value.value()),
+          .precomputed = false,
+          .type = vars[targetVar].type
+        };
+      }
+      if (vars[targetVar].type.isFloat()) {
+        return {
+          .data = std::format("data modify storage {}:global expr_float{} set value {}f", datapackNamespace, id, vars[targetVar].value.value()),
+          .precomputed = false,
+          .type = vars[targetVar].type
+        };
+      }
+      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, vars[targetVar].value.value()), .precomputed = false, .type = vars[targetVar].type};
+    }
+
     if (vars[targetVar].type.isString() || vars[targetVar].type.isList()) {
       return {
         .data =
@@ -340,13 +361,6 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
         .precomputed = false,
         .type = vars[targetVar].type
       };
-    }
-
-    if (vars[targetVar].value.has_value()) {
-      if (precompute) {
-        return {.data = std::to_string(vars[targetVar].value.value()), .precomputed = true, .type = vars[targetVar].type};
-      }
-      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, vars[targetVar].value.value()), .precomputed = false, .type = vars[targetVar].type};
     }
 
     return {

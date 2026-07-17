@@ -26,13 +26,25 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
         TSNode expNode = ts_node_child_by_field_name(arg, "expression", 10);
         if (std::string(ts_node_type(expNode)) == "variable_ref") {
           const auto &var = vars[std::string(getFieldText(expNode, "name"))];
-          if (!var.type.isInteger() && !var.type.isBoolean()) return "";
-          out += std::format(R"({{"score":{{"name":"{}","objective":"vars"}},"color":"white"}})", var.mangledName);
+          if (var.value.has_value()) {
+            std::string inlined = var.value.value();
+            if (var.type.isString() && inlined.length() >= 2) inlined = inlined.substr(1, inlined.length() - 2);
+            out += std::format(R"({{"text":"{}","color":"white"}})", inlined);
+          } else {
+            if (!var.type.isInteger() && !var.type.isBoolean()) return "";
+            out += std::format(R"({{"score":{{"name":"{}","objective":"vars"}},"color":"white"}})", var.mangledName);
+          }
         } else {
-          const auto expr = compileExpression(expNode, 1, false);
-          if (!expr.type.isInteger() && !expr.type.isBoolean()) return "";
-          setup += expr.data + "\n";
-          out += R"({{"score":{{"name":"expr_output1","objective":"temp"}},"color":"white"}})";
+          const auto expr = compileExpression(expNode, 1, true);
+          if (expr.precomputed) {
+            std::string inlined = expr.data;
+            if (expr.type.isString() && inlined.length() >= 2) inlined = inlined.substr(1, inlined.length() - 2);
+            out += std::format(R"({{"text":"{}","color":"white"}})", inlined);
+          } else {
+            if (!expr.type.isInteger() && !expr.type.isBoolean()) return "";
+            setup += expr.data + "\n";
+            out += R"({{"score":{{"name":"expr_output1","objective":"temp"}},"color":"white"}})";
+          }
         }
       } else {
         std::string val = std::string(getNodeText(arg));

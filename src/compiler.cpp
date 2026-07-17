@@ -81,7 +81,7 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   const bool constant = getFieldText(child, "keyword") == "const";
   TSNode varTypeNode = ts_node_child_by_field_name(child, "type", 4);
   Type varType;
-  std::optional<int32_t> value = std::nullopt;
+  std::optional<std::string> value = std::nullopt;
   if (!ts_node_is_null(varTypeNode)) {
     const auto &typeText = getNodeText(varTypeNode);
     varType = parseTypeFromString(std::string(typeText));
@@ -89,8 +89,8 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
     varType = expr.type;
   }
 
-  if (constant && expr.precomputed && (expr.type.isInteger() || expr.type.isBoolean())) {
-    value = std::stoi(expr.data);
+  if (constant && expr.precomputed) {
+    value = expr.data;
   }
 
   bool isExport = false;
@@ -115,7 +115,7 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   vars.emplace(name, VariableData{.name = name, .mangledName = mangled, .type = varType, .scope = scope, .value = value, .constant = constant, .exported = isExport});
 
   std::string ret = "";
-  if (!value.has_value() || !constant || true /* temp, const vars aren't inlined yet */) {
+  if (!value.has_value() || !constant || isExport) {
     if (expr.precomputed) {
       if (varType.isString() || varType.isList() || varType.isFloat()) {
         ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);

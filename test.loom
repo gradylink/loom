@@ -30,6 +30,9 @@ enum TestEnum {
   const myEnumTestVar = TestEnum.Value2;
   say ${myEnumTestVar}
 
+  const myConstStr = "Loom is great!";
+  say ${myConstStr}
+
   let myStrVar1 = "hello";
   myStrVar1 = myStrVar1 + ", world!"
   myStrVar1 = myStrVar1[0..3] -- turn into "hell"

@@ -8,7 +8,7 @@ A programming language that compiles to Minecraft datapacks.
 ## Roadmap (rough order)
 
 - [x] Implicit variable types
-- [ ] Inlining const literals
+- [x] Inlining const literals
 - [ ] Structs
 - [ ] Casting
 - [ ] Function overloading

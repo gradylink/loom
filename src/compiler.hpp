@@ -127,7 +127,7 @@ public:
     std::string mangledName;
     Type type;
     TSNode scope;
-    std::optional<int32_t> value;
+    std::optional<std::string> value;
 
     bool constant = false;
     bool exported = false;
