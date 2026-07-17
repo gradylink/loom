@@ -80,10 +80,14 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   const ExpressionData expr = compileExpression(ts_node_child_by_field_name(child, "value", 5));
   const bool constant = getFieldText(child, "keyword") == "const";
   TSNode varTypeNode = ts_node_child_by_field_name(child, "type", 4);
-  const auto &typeText = getNodeText(varTypeNode);
+  Type varType;
   std::optional<int32_t> value = std::nullopt;
-
-  Type varType = parseTypeFromString(std::string(typeText));
+  if (!ts_node_is_null(varTypeNode)) {
+    const auto &typeText = getNodeText(varTypeNode);
+    varType = parseTypeFromString(std::string(typeText));
+  } else {
+    varType = expr.type;
+  }
 
   if (constant && expr.precomputed && (expr.type.isInteger() || expr.type.isBoolean())) {
     value = std::stoi(expr.data);

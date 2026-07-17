@@ -1,7 +1,7 @@
 import ./test2.loom
 
-let myVar: int = 10; -- Semicolons are optional
-const myVar2: int = -(-8);
+let myVar = 10; -- Semicolons are optional
+const myVar2 = -(-8);
 
 func getValue(): int {
   say ${myExportedVar}
@@ -27,10 +27,10 @@ enum TestEnum {
   let myListTest: string[] = ["swizzle magic", "swizzle magic but index 1"];
   myListTest = append(myListTest, "omg!!")
 
-  const myEnumTestVar: TestEnum = TestEnum.Value2;
+  const myEnumTestVar = TestEnum.Value2;
   say ${myEnumTestVar}
 
-  let myStrVar1: string = "hello";
+  let myStrVar1 = "hello";
   myStrVar1 = myStrVar1 + ", world!"
   myStrVar1 = myStrVar1[0..3] -- turn into "hell"
 
@@ -52,10 +52,10 @@ enum TestEnum {
  
   title @a subtitle "${myVar2}";
 
-  const myValue: int = getValue() + 3;
+  const myValue = getValue() + 3;
   say ${myValue};
 
-  let boolTest: bool = true || false;
+  let boolTest = true || false;
   say ${boolTest};
 
   if boolTest {
