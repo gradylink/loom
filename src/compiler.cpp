@@ -483,7 +483,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
       for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
         TSNode fieldNode = ts_node_named_child(child, j);
-        if (std::string(ts_node_type(fieldNode)) != "struct_field") throw std::runtime_error(formatError(fieldNode, "Unexpected node in struct definition."));
+        if (std::string(ts_node_type(fieldNode)) != "struct_field") continue;
 
         const std::string &fieldName = std::string(getFieldText(fieldNode, "name"));
         TSNode typeNode = ts_node_child_by_field_name(fieldNode, "type", 4);
