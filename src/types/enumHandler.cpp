@@ -124,6 +124,25 @@ public:
 
     return std::nullopt;
   }
+  std::optional<Compiler::ExpressionData>
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+    if (expr.type.isInteger() && targetType.isInteger()) {
+      Compiler::ExpressionData ret = expr;
+      ret.type = Compiler::Type::IntegerType();
+      return ret;
+    }
+    if (expr.type.isFloat() && targetType.isFloat()) {
+      Compiler::ExpressionData ret = expr;
+      ret.type = Compiler::Type::FloatType();
+      return ret;
+    }
+    if (expr.type.isString() && targetType.isString()) {
+      Compiler::ExpressionData ret = expr;
+      ret.type = Compiler::Type::StringType();
+      return ret;
+    }
+    throw std::runtime_error(formatError(node, "Invalid cast from enum to target type. Enums can only be cast to their underlying type."));
+  }
 };
 
 std::unique_ptr<TypeHandler> createEnumHandler() { return std::make_unique<EnumHandler>(); }

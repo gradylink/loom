@@ -2,7 +2,7 @@
 "return" @keyword.return
 "import" @keyword.import
 ["export" "extern"] @keyword.storage
-["let" "const" "enum"] @keyword.storage
+["let" "const" "enum" "struct"] @keyword.storage
 ["if" "else"] @keyword.conditional
 ["while" "do" "for"] @keyword.repeat
 (for "in" @keyword.repeat)
@@ -24,9 +24,19 @@
 (selector [ "@s" "@r" "@p" "@e" "@a" "@n" ]) @variable.builtin
 (selector) @variable.parameter
 
+(struct_definition name: (identifier) @type)
+(struct_field name: (identifier) @property)
 (enum_definition name: (identifier) @type)
 (enum_variant name: (identifier) @constant)
-(member_expression object: (identifier) @type property: (identifier) @contant)
+
+(property_access property: (identifier) @property)
+(member_expression property: (identifier) @property)
+
+(member_expression
+  object: (variable_ref name: (identifier) @type)
+  property: (identifier) @constant
+  (#match? @type "^[A-Z]")
+  (#match? @constant "^[A-Z]"))
 
 (function_definition name: (identifier) @function)
 (function_call name: (identifier) @function.call)
@@ -40,7 +50,7 @@
 (command_arg) @string
 (string_literal) @string
 
-(type) @type
+(type (identifier) @type)
 (swizzle) @type
 (integer) @number
 (float) @number
@@ -52,7 +62,9 @@
 "=" @operator
 (unary_expression operator: _ @operator)
 (binary_expression operator: _ @operator)
-[":" ";" "(" ")" "{" "}" "," "[" "]" "!" "."] @punctuation.delimiter
+(struct_expression name: (identifier) @type)
+(struct_expression_field name: (identifier) @property)
+[":" ";" "(" ")" "{" "}" "," "[" "]" "[]" "!" "."] @punctuation.delimiter
 
 (comment) @comment @spell
 

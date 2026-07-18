@@ -1,5 +1,6 @@
 #include "../typeHandler.hpp"
 #include "../utils.hpp"
+#include <cstdint>
 #include <format>
 #include <stdexcept>
 #include <string>
@@ -200,6 +201,125 @@ public:
       }
 
       return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = strExpr.type};
+    }
+
+    return std::nullopt;
+  }
+
+  std::optional<Compiler::ExpressionData>
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+
+    if (targetType.isInteger()) {
+      if (expr.precomputed) {
+        std::string raw = expr.data;
+        if (raw.size() >= 2 && (raw.front() == '"' || raw.front() == '\'')) raw = raw.substr(1, raw.size() - 2);
+        int32_t val = std::stoi(raw);
+        if (precompute) return Compiler::ExpressionData{.data = std::to_string(val), .precomputed = true, .type = Compiler::Type::IntegerType()};
+        return Compiler::ExpressionData{
+          .data = std::format("scoreboard players set expr_output{} temp {}", id, val),
+          .precomputed = false,
+          .type = Compiler::Type::IntegerType()
+        };
+      }
+      compiler.useInternalFunction("internal_string_to_int");
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "data modify storage {}:global macro_args.value set from storage {}:global expr_str{}\n"
+          "data modify storage {}:global macro_args.out_id set value {}\n"
+          "function {}:internal/loom/internal_string_to_int with storage {}:global macro_args",
+          expr.data,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace()
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::IntegerType()
+      };
+    }
+
+    if (targetType.isFloat()) {
+      if (expr.precomputed) {
+        std::string raw = expr.data;
+        if (raw.size() >= 2 && (raw.front() == '"' || raw.front() == '\'')) raw = raw.substr(1, raw.size() - 2);
+        float val = std::stof(raw);
+        if (precompute) return Compiler::ExpressionData{.data = std::to_string(val), .precomputed = true, .type = Compiler::Type::FloatType()};
+        return Compiler::ExpressionData{
+          .data = std::format("data modify storage {}:global expr_float{} set value {}f", compiler.getDatapackNamespace(), id, val),
+          .precomputed = false,
+          .type = Compiler::Type::FloatType()
+        };
+      }
+      compiler.useInternalFunction("internal_string_to_float");
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "data modify storage {}:global macro_args.value set from storage {}:global expr_str{}\n"
+          "data modify storage {}:global macro_args.out_id set value {}\n"
+          "function {}:internal/loom/internal_string_to_float with storage {}:global macro_args",
+          expr.data,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace()
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::FloatType()
+      };
+    }
+
+    if (targetType.isList() && targetType.baseType && targetType.baseType->isString()) {
+      if (expr.precomputed) {
+        std::string raw = expr.data;
+        if (raw.size() >= 2 && (raw.front() == '"' || raw.front() == '\'')) raw = raw.substr(1, raw.size() - 2);
+        std::string listLiteral = "[";
+        for (size_t i = 0; i < raw.size(); ++i) {
+          if (i > 0) listLiteral += ',';
+          char c = raw[i];
+          if (c == '"') listLiteral += "\\\"\"\\\"\"";
+          else if (c == '\\') listLiteral += "\"\\\\\\\\\"";
+          else listLiteral += '"', listLiteral += c, listLiteral += '"';
+        }
+        listLiteral += "]";
+        if (precompute) return Compiler::ExpressionData{.data = listLiteral, .precomputed = true, .type = targetType};
+        return Compiler::ExpressionData{
+          .data = std::format("data modify storage {}:global expr_str{} set value {}", compiler.getDatapackNamespace(), id, listLiteral),
+          .precomputed = false,
+          .type = targetType
+        };
+      }
+      compiler.useInternalFunction("internal_string_to_charlist");
+      compiler.useInternalFunction("internal_string_to_charlist_loop");
+      compiler.useInternalFunction("internal_string_to_charlist_step");
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "execute store result score expr_output{} temp run data get storage {}:global expr_str{}\n"
+          "data modify storage {}:global macro_args set value {{target_id: {}, out_id: {}, index: 0, index_plus_one: 1}}\n"
+          "execute store result storage {}:global macro_args.length int 1 run scoreboard players get expr_output{} temp\n"
+          "function {}:internal/loom/internal_string_to_charlist with storage {}:global macro_args",
+          expr.data,
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace()
+        ),
+        .precomputed = false,
+        .type = targetType
+      };
     }
 
     return std::nullopt;

@@ -55,29 +55,45 @@ public:
     bool exported = false;
   };
 
+  struct Type;
+
+  struct StructField {
+    std::string name;
+    std::unique_ptr<Type> type;
+  };
+
+  struct StructData {
+    std::string name;
+    std::vector<StructField> fields;
+    bool exported = false;
+  };
+
   struct Type {
-    enum Kind { Integer, Boolean, String, Enum, List, Float } kind = Integer;
+    enum Kind { Integer, Boolean, String, Enum, List, Float, Struct } kind = Integer;
     const EnumData *enumRef = nullptr;
+    const StructData *structRef = nullptr;
 
     std::unique_ptr<Type> baseType = nullptr;
 
     Type() = default;
 
-    Type(Kind k, const EnumData *ref, std::unique_ptr<Type> base) : kind(k), enumRef(ref), baseType(std::move(base)) {}
+    Type(Kind k, const EnumData *eRef, const StructData *sRef, std::unique_ptr<Type> base) : kind(k), enumRef(eRef), structRef(sRef), baseType(std::move(base)) {}
 
-    static Type IntegerType() { return {Integer, nullptr, nullptr}; }
-    static Type FloatType() { return {Float, nullptr, nullptr}; }
-    static Type BooleanType() { return {Boolean, nullptr, nullptr}; }
-    static Type StringType() { return {String, nullptr, nullptr}; }
-    static Type EnumTypeOf(const EnumData *ref) { return {Enum, ref, nullptr}; }
-    static Type ListTypeOf(Type type) { return {List, nullptr, std::make_unique<Type>(std::move(type))}; }
+    static Type IntegerType() { return {Integer, nullptr, nullptr, nullptr}; }
+    static Type FloatType() { return {Float, nullptr, nullptr, nullptr}; }
+    static Type BooleanType() { return {Boolean, nullptr, nullptr, nullptr}; }
+    static Type StringType() { return {String, nullptr, nullptr, nullptr}; }
+    static Type EnumTypeOf(const EnumData *ref) { return {Enum, ref, nullptr, nullptr}; }
+    static Type StructTypeOf(const StructData *ref) { return {Struct, nullptr, ref, nullptr}; }
+    static Type ListTypeOf(Type type) { return {List, nullptr, nullptr, std::make_unique<Type>(std::move(type))}; }
 
-    Type(const Type &o) : kind(o.kind), enumRef(o.enumRef), baseType(o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr) {}
+    Type(const Type &o) : kind(o.kind), enumRef(o.enumRef), structRef(o.structRef), baseType(o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr) {}
 
     Type &operator=(const Type &o) {
       if (this != &o) {
         kind = o.kind;
         enumRef = o.enumRef;
+        structRef = o.structRef;
         baseType = o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr;
       }
       return *this;
@@ -87,7 +103,7 @@ public:
     Type &operator=(Type &&) noexcept = default;
 
     bool operator==(const Type &o) const {
-      if (kind != o.kind || enumRef != o.enumRef) return false;
+      if (kind != o.kind || enumRef != o.enumRef || structRef != o.structRef) return false;
       if (baseType && o.baseType) return *baseType == *o.baseType;
       return baseType == o.baseType;
     }
@@ -110,6 +126,7 @@ public:
       return false;
     }
     bool isList() const { return kind == List; }
+    bool isStruct() const { return kind == Struct; }
   };
   struct FunctionData {
     std::string name;
@@ -137,6 +154,7 @@ public:
     std::string data;
     bool precomputed;
     Type type;
+    std::optional<std::string> branchCondition = std::nullopt;
   };
 
   struct InternalFunction {
@@ -166,6 +184,7 @@ private:
   std::unordered_map<std::string, FunctionData> funcs;
   std::unordered_map<std::string, VariableData> vars;
   std::unordered_map<std::string, EnumData> enums;
+  std::unordered_map<std::string, StructData> structs;
   std::vector<CompiledFunction> compiledFunctions;
 
   unsigned int currentExpressionId = 0;
@@ -177,6 +196,8 @@ public:
   TypeHandler *getHandler(const Type &type);
 
   const std::string &getDatapackNamespace() const { return datapackNamespace; }
+
+  void addCompiledFunction(const CompiledFunction &func) { compiledFunctions.push_back(func); }
 
   static constexpr const char *setupScoreboards = "scoreboard objectives add vars dummy\n"
                                                   "scoreboard objectives add temp dummy\n"

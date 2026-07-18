@@ -10,11 +10,13 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Implicit variable types
 - [x] Inlining const literals
 - [ ] Structs
-- [ ] Casting
+- [x] Casting
 - [ ] Function overloading
 - [ ] References
 - [ ] Maps
-- [ ] Boolean conditional optimizations
+- [ ] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
+      `sin`, `cos`, `tan`, `asin`, `acos`)
+- [x] Boolean conditional optimizations
 - [ ] Custom type definitions
 - [ ] Data access
 - [ ] Classes

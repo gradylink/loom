@@ -85,33 +85,121 @@ public:
     if (left.precomputed) leftData = std::format("scoreboard players set expr_output{} temp {}", id, left.data);
     if (right.precomputed) rightData = std::format("scoreboard players set expr_output{} temp {}", id + 1, right.data);
 
-    std::string runtimeCommands = leftData + "\n" + rightData + "\n";
+    std::string runtimeCommands = leftData + "\n" + rightData;
 
     if (isMath) {
-      runtimeCommands += std::format("scoreboard players operation expr_output{} temp {}= expr_output{} temp", id, op, id + 1);
-    } else {
-      std::string mcOp = std::string(op);
-      std::string condType = "if";
-      if (op == "==") {
-        mcOp = "=";
-      } else if (op == "!=") {
-        mcOp = "=";
-        condType = "unless";
-      }
-
-      runtimeCommands += std::format(
-        "scoreboard players set internal1 temp 0\n"
-        "execute {} score expr_output{} temp {} expr_output{} temp run scoreboard players set internal1 temp 1\n"
-        "scoreboard players operation expr_output{} temp = internal1 temp",
-        condType,
-        id,
-        mcOp,
-        id + 1,
-        id
-      );
+      runtimeCommands += std::format("\nscoreboard players operation expr_output{} temp {}= expr_output{} temp", id, op, id + 1);
+      return Compiler::ExpressionData{.data = runtimeCommands, .precomputed = false, .type = retType};
     }
 
-    return Compiler::ExpressionData{.data = runtimeCommands, .precomputed = false, .type = retType};
+    std::string mcOp = std::string(op);
+    std::string condType = "if";
+    if (op == "==") {
+      mcOp = "=";
+    } else if (op == "!=") {
+      mcOp = "=";
+      condType = "unless";
+    }
+    std::string branchCond = std::format("{} score expr_output{} temp {} expr_output{} temp", condType, id, mcOp, id + 1);
+    std::string matCommands = runtimeCommands + "\n" +
+                              std::format(
+                                "scoreboard players set internal1 temp 0\n"
+                                "execute {} score expr_output{} temp {} expr_output{} temp run scoreboard players set internal1 temp 1\n"
+                                "scoreboard players operation expr_output{} temp = internal1 temp",
+                                condType,
+                                id,
+                                mcOp,
+                                id + 1,
+                                id
+                              );
+    return Compiler::ExpressionData{
+      .data = matCommands,
+      .precomputed = false,
+      .type = retType,
+      .branchCondition = runtimeCommands.empty() ? branchCond : (runtimeCommands + "\n" + branchCond)
+    };
+  }
+  std::optional<Compiler::ExpressionData>
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+    if (targetType.isFloat()) {
+      if (expr.precomputed) {
+        std::string floatStr = std::to_string(static_cast<float>(std::stoi(expr.data)));
+        if (precompute) return Compiler::ExpressionData{.data = floatStr, .precomputed = true, .type = Compiler::Type::FloatType()};
+        return Compiler::ExpressionData{
+          .data = std::format("data modify storage {}:global expr_float{} set value {}f", compiler.getDatapackNamespace(), id, floatStr),
+          .precomputed = false,
+          .type = Compiler::Type::FloatType()
+        };
+      }
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\nexecute store result storage {}:global expr_float{} float 1 run scoreboard players get expr_output{} temp",
+          expr.data,
+          compiler.getDatapackNamespace(),
+          id,
+          id
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::FloatType()
+      };
+    }
+
+    if (targetType.isBoolean()) {
+      if (expr.precomputed) {
+        std::string finalVal = (std::stoi(expr.data) != 0) ? "1" : "0";
+        if (precompute) return Compiler::ExpressionData{.data = finalVal, .precomputed = true, .type = Compiler::Type::BooleanType()};
+        return Compiler::ExpressionData{
+          .data = std::format("scoreboard players set expr_output{} temp {}", id, finalVal),
+          .precomputed = false,
+          .type = Compiler::Type::BooleanType()
+        };
+      }
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "scoreboard players set internal1 temp 0\n"
+          "execute unless score expr_output{} temp matches 0 run scoreboard players set internal1 temp 1\n"
+          "scoreboard players operation expr_output{} temp = internal1 temp",
+          expr.data,
+          id,
+          id
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::BooleanType()
+      };
+    }
+
+    if (targetType.isString()) {
+      if (expr.precomputed) {
+        std::string strVal = "\"" + expr.data + "\"";
+        if (precompute) return Compiler::ExpressionData{.data = strVal, .precomputed = true, .type = Compiler::Type::StringType()};
+        return Compiler::ExpressionData{
+          .data = std::format("data modify storage {}:global expr_str{} set value {}", compiler.getDatapackNamespace(), id, strVal),
+          .precomputed = false,
+          .type = Compiler::Type::StringType()
+        };
+      }
+      compiler.useInternalFunction("internal_int_to_string");
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "execute store result storage {}:global macro_args.value int 1 run scoreboard players get expr_output{} temp\n"
+          "data modify storage {}:global macro_args.out_id set value {}\n"
+          "function {}:internal/loom/internal_int_to_string with storage {}:global macro_args",
+          expr.data,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace()
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::StringType()
+      };
+    }
+
+    return std::nullopt;
   }
 };
 

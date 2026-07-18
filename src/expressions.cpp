@@ -111,6 +111,92 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     return {.data = runtimeCmds, .precomputed = false, .type = listType};
   }
 
+  if (type == "struct_expression") {
+    TSNode nameNode = ts_node_child_by_field_name(node, "name", 4);
+    std::string structName = std::string(getNodeText(nameNode));
+
+    auto it = structs.find(structName);
+    if (it == structs.end()) {
+      throw std::runtime_error(formatError(nameNode, "Unknown struct type: " + structName));
+    }
+    const StructData &structData = it->second;
+    Type targetType = Type::StructTypeOf(&structData);
+
+    uint32_t childCount = ts_node_named_child_count(node);
+
+    bool allPrecomputed = true;
+    std::vector<std::pair<std::string, ExpressionData>> compiledFields;
+
+    for (uint32_t i = 0; i < childCount; ++i) {
+      TSNode child = ts_node_named_child(node, i);
+      if (std::string(ts_node_type(child)) != "struct_expression_field") continue;
+
+      std::string fieldName = std::string(getFieldText(child, "name"));
+      TSNode valueNode = ts_node_child_by_field_name(child, "value", 5);
+      ExpressionData elemData = compileExpression(valueNode, id + 1, true);
+
+      bool found = false;
+      for (const auto &field : structData.fields) {
+        if (field.name == fieldName) {
+          found = true;
+          if (*field.type != elemData.type) {
+            throw std::runtime_error(formatError(child, "Type mismatch for field '" + fieldName + "'"));
+          }
+          break;
+        }
+      }
+      if (!found) {
+        throw std::runtime_error(formatError(child, "Unknown field '" + fieldName + "' in struct " + structName));
+      }
+
+      if (!elemData.precomputed) allPrecomputed = false;
+      compiledFields.push_back({fieldName, elemData});
+    }
+
+    if (allPrecomputed) {
+      std::string jsonObj = "{";
+      for (size_t i = 0; i < compiledFields.size(); ++i) {
+        jsonObj += compiledFields[i].first + ":" + compiledFields[i].second.data;
+        if (i + 1 < compiledFields.size()) jsonObj += ",";
+      }
+      jsonObj += "}";
+
+      if (precompute) {
+        return {.data = jsonObj, .precomputed = true, .type = targetType};
+      }
+      return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, jsonObj), .precomputed = false, .type = targetType};
+    }
+
+    std::string runtimeCmds = std::format("data modify storage {}:global expr_str{} set value {{}}\n", datapackNamespace, id);
+
+    for (const auto &pair : compiledFields) {
+      const auto &fieldName = pair.first;
+      const auto &elemData = pair.second;
+      if (elemData.precomputed) {
+        runtimeCmds += std::format("data modify storage {}:global expr_str{}.{} set value {}\n", datapackNamespace, id, fieldName, elemData.data);
+      } else {
+        runtimeCmds += elemData.data + "\n";
+        if (elemData.type.isString() || elemData.type.isList() || elemData.type.isStruct()) {
+          runtimeCmds +=
+            std::format("data modify storage {}:global expr_str{}.{} set from storage {}:global expr_str{}\n", datapackNamespace, id, fieldName, datapackNamespace, id + 1);
+        } else if (elemData.type.isFloat()) {
+          runtimeCmds +=
+            std::format("data modify storage {}:global expr_str{}.{} set from storage {}:global expr_float{}\n", datapackNamespace, id, fieldName, datapackNamespace, id + 1);
+        } else {
+          runtimeCmds += std::format(
+            "execute store result storage {}:global expr_str{}.{} int 1 run scoreboard players get expr_output{} temp\n",
+            datapackNamespace,
+            id,
+            fieldName,
+            id + 1
+          );
+        }
+      }
+    }
+
+    return {.data = runtimeCmds, .precomputed = false, .type = targetType};
+  }
+
   if (type == "ternary_expression") {
     TSNode conditionNode = ts_node_child_by_field_name(node, "condition", 9);
     TSNode leftNode = ts_node_child_by_field_name(node, "left", 4);
@@ -328,7 +414,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       if (precompute) {
         return {.data = vars[targetVar].value.value(), .precomputed = true, .type = vars[targetVar].type};
       }
-      if (vars[targetVar].type.isString() || vars[targetVar].type.isList()) {
+      if (vars[targetVar].type.isString() || vars[targetVar].type.isList() || vars[targetVar].type.isStruct()) {
         return {
           .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, vars[targetVar].value.value()),
           .precomputed = false,
@@ -345,7 +431,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       return {.data = std::format("scoreboard players set expr_output{} temp {}", id, vars[targetVar].value.value()), .precomputed = false, .type = vars[targetVar].type};
     }
 
-    if (vars[targetVar].type.isString() || vars[targetVar].type.isList()) {
+    if (vars[targetVar].type.isString() || vars[targetVar].type.isList() || vars[targetVar].type.isStruct()) {
       return {
         .data =
           std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
@@ -363,10 +449,16 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       };
     }
 
+    const auto &varData = vars[targetVar];
+    std::string branchCond;
+    if (varData.type.isBoolean() || varData.type.isInteger()) {
+      branchCond = std::format("if score {} vars matches 1..", varData.mangledName);
+    }
     return {
-      .data = std::format("scoreboard players operation expr_output{} temp = {} vars", id, vars[targetVar].mangledName),
+      .data = std::format("scoreboard players operation expr_output{} temp = {} vars", id, varData.mangledName),
       .precomputed = false,
-      .type = vars[targetVar].type
+      .type = varData.type,
+      .branchCondition = branchCond.empty() ? std::optional<std::string>{} : branchCond
     };
   }
 
@@ -508,6 +600,24 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     }
 
     return {.data = runtimeCmds, .precomputed = false, .type = resultType};
+  }
+
+  if (type == "cast_expression") {
+    TSNode exprNode = ts_node_child_by_field_name(node, "expression", 10);
+    TSNode typeNode = ts_node_child_by_field_name(node, "type", 4);
+
+    ExpressionData subExpr = compileExpression(exprNode, id, true);
+    Type targetType = parseTypeFromString(std::string(getNodeText(typeNode)));
+
+    if (subExpr.type == targetType) return subExpr;
+
+    if (TypeHandler *handler = getHandler(subExpr.type)) {
+      if (auto optResult = handler->compileCast(*this, subExpr, targetType, id, precompute, node)) {
+        return optResult.value();
+      }
+    }
+
+    throw std::runtime_error(formatError(node, "Cannot cast from given type to target type."));
   }
 
   if (type == "binary_expression") {

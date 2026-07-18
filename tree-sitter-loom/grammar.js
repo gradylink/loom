@@ -38,6 +38,7 @@ module.exports = grammar({
         choice(
           $.import_statement,
           $.enum_definition,
+          $.struct_definition,
           $.variable_declaration,
           $.assignment,
           $.function_definition,
@@ -82,6 +83,42 @@ module.exports = grammar({
         ),
       ),
 
+    struct_definition: ($) =>
+      seq(
+        optional("export"),
+        "struct",
+        field("name", $.identifier),
+        "{",
+        optional($._newline),
+        multilineCommaSep($.struct_field),
+        optional($._newline),
+        "}",
+      ),
+
+    struct_field: ($) =>
+      seq(
+        field("name", $.identifier),
+        ":",
+        field("type", $.type),
+      ),
+
+    struct_expression: ($) =>
+      seq(
+        field("name", $.identifier),
+        "{",
+        optional($._newline),
+        multilineCommaSep($.struct_expression_field),
+        optional($._newline),
+        "}",
+      ),
+
+    struct_expression_field: ($) =>
+      seq(
+        field("name", $.identifier),
+        ":",
+        field("value", $._expression),
+      ),
+
     variable_declaration: ($) =>
       seq(
         repeat($._modifier),
@@ -92,10 +129,13 @@ module.exports = grammar({
         field("value", $._expression),
       ),
 
+    index_access: ($) => seq("[", field("index", $._expression), "]"),
+    property_access: ($) => seq(".", field("property", $.identifier)),
+
     assignment: ($) =>
       seq(
         field("name", $.identifier),
-        repeat(seq("[", field("index", $._expression), "]")),
+        repeat(choice($.index_access, $.property_access)),
         "=",
         field("value", $._expression),
       ),
@@ -252,6 +292,8 @@ module.exports = grammar({
         $.string_literal,
         $.parenthesized_expression,
         $.list_expression,
+        $.cast_expression,
+        $.struct_expression,
       ),
 
     ternary_expression: ($) =>
@@ -267,10 +309,10 @@ module.exports = grammar({
       ),
 
     member_expression: ($) =>
-      prec(
+      prec.left(
         9,
         seq(
-          field("object", $.identifier),
+          field("object", $._expression),
           ".",
           field("property", $.identifier),
         ),
@@ -290,13 +332,23 @@ module.exports = grammar({
       ),
 
     element_expression: ($) =>
-      prec(
+      prec.left(
         8,
         seq(
           field("target", $._expression),
           "[",
           field("index", $._expression),
           "]",
+        ),
+      ),
+
+    cast_expression: ($) =>
+      prec.left(
+        8,
+        seq(
+          field("expression", $._expression),
+          "as",
+          field("type", $.type),
         ),
       ),
 
@@ -435,7 +487,7 @@ module.exports = grammar({
 
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
-    type: ($) => choice(/[a-z]+/i, $.list_type),
+    type: ($) => choice($.identifier, $.list_type),
     list_type: ($) => seq($.type, "[]"),
 
     string_literal: ($) =>

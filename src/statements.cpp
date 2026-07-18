@@ -144,40 +144,57 @@ std::string Compiler::compileBlock(TSNode node) {
 
       TSNode expNode = ts_node_child_by_field_name(child, "value", 5);
 
-      std::vector<TSNode> indexNodes;
+      std::vector<TSNode> pathNodes;
       uint32_t namedCount = ts_node_named_child_count(child);
       for (uint32_t i = 1; i < namedCount - 1; i++) {
-        indexNodes.push_back(ts_node_named_child(child, i));
+        pathNodes.push_back(ts_node_named_child(child, i));
       }
-      const bool &isIndexed = !indexNodes.empty();
+      const bool isPathAssignment = !pathNodes.empty();
 
-      if (isIndexed) {
-        if (!vars[name].type.isList() && !vars[name].type.isString()) {
-          throw std::runtime_error(formatError(child, "Cannot use index assignment on non-container variable: " + name));
+      if (isPathAssignment) {
+        Compiler::Type expectedType = vars[name].type;
+        bool endsInStringSubscript = false;
+
+        for (size_t i = 0; i < pathNodes.size(); i++) {
+          TSNode pathNode = pathNodes[i];
+          std::string nodeType = std::string(ts_node_type(pathNode));
+
+          if (nodeType == "index_access") {
+            if (!expectedType.isList() && !expectedType.isString()) {
+              throw std::runtime_error(formatError(pathNode, "Cannot use index assignment on non-container type."));
+            }
+            if (expectedType.isString()) {
+              if (i != pathNodes.size() - 1) {
+                throw std::runtime_error(formatError(pathNode, "String character index must be at the end of the assignment path."));
+              }
+              endsInStringSubscript = true;
+            } else {
+              expectedType = *expectedType.baseType;
+              if (expectedType.isString() && i == pathNodes.size() - 1) {
+                endsInStringSubscript = true;
+              }
+            }
+          } else if (nodeType == "property_access") {
+            if (expectedType.kind != Compiler::Type::Struct) {
+              throw std::runtime_error(formatError(pathNode, "Cannot access property on non-struct type."));
+            }
+            std::string propName = std::string(getFieldText(pathNode, "property"));
+            bool found = false;
+            for (const auto &field : expectedType.structRef->fields) {
+              if (field.name == propName) {
+                expectedType = *field.type;
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              throw std::runtime_error(formatError(pathNode, "Unknown field '" + propName + "' in struct."));
+            }
+          }
         }
 
         const ExpressionData expr = compileExpression(expNode, 1, true);
         ret += expr.data + "\n";
-
-        Compiler::Type expectedType = vars[name].type;
-        bool endsInStringSubscript = false;
-
-        if (expectedType.isString()) {
-          if (indexNodes.size() != 1) {
-            throw std::runtime_error(formatError(child, "Flat strings can only take a single index descriptor."));
-          }
-          endsInStringSubscript = true;
-        } else {
-          for (size_t i = 0; i < indexNodes.size(); i++) {
-            if (!expectedType.isList()) {
-              throw std::runtime_error(formatError(indexNodes[i], "Too many indices provided for this list depth."));
-            }
-            expectedType = *expectedType.baseType;
-          }
-          if (expectedType.isString()) {
-            endsInStringSubscript = true;
-          }
-        }
 
         if (endsInStringSubscript) {
           if (!expr.type.isString()) {
@@ -185,31 +202,45 @@ std::string Compiler::compileBlock(TSNode node) {
           }
         } else {
           if (expr.type != expectedType) {
-            throw std::runtime_error(formatError(expNode, "Type mismatch: cannot assign value to this nested list element type."));
+            throw std::runtime_error(formatError(expNode, "Type mismatch in assignment."));
           }
         }
 
-        std::vector<ExpressionData> compiledIndices;
+        struct PathComponent {
+          bool isProperty;
+          std::string propName;
+          ExpressionData indexExpr;
+        };
+        std::vector<PathComponent> compiledPath;
         bool allIndicesPrecomputed = true;
-        for (size_t i = 0; i < indexNodes.size(); i++) {
-          ExpressionData idxExpr = compileExpression(indexNodes[i], 2, true);
-          if (!idxExpr.type.isInteger()) {
-            throw std::runtime_error(formatError(indexNodes[i], "Indices must evaluate to integers."));
+
+        for (size_t i = 0; i < pathNodes.size(); i++) {
+          if (std::string(ts_node_type(pathNodes[i])) == "index_access") {
+            TSNode idxNode = ts_node_child_by_field_name(pathNodes[i], "index", 5);
+            ExpressionData idxExpr = compileExpression(idxNode, 2, true);
+            if (!idxExpr.type.isInteger()) {
+              throw std::runtime_error(formatError(pathNodes[i], "Indices must evaluate to integers."));
+            }
+            if (!idxExpr.precomputed) allIndicesPrecomputed = false;
+            compiledPath.push_back({false, "", idxExpr});
+          } else {
+            std::string propName = std::string(getFieldText(pathNodes[i], "property"));
+            compiledPath.push_back({true, propName, {}});
           }
-          if (!idxExpr.precomputed) {
-            allIndicesPrecomputed = false;
-          }
-          compiledIndices.push_back(idxExpr);
         }
 
         std::string pathSuffix = "";
-        size_t listDimensions = endsInStringSubscript ? indexNodes.size() - 1 : indexNodes.size();
+        size_t listDimensions = endsInStringSubscript ? compiledPath.size() - 1 : compiledPath.size();
         for (size_t i = 0; i < listDimensions; i++) {
-          pathSuffix += "[" + compiledIndices[i].data + "]";
+          if (compiledPath[i].isProperty) {
+            pathSuffix += "." + compiledPath[i].propName;
+          } else {
+            pathSuffix += "[" + compiledPath[i].indexExpr.data + "]";
+          }
         }
 
         if (endsInStringSubscript) {
-          ExpressionData stringCharIdx = compiledIndices.back();
+          ExpressionData stringCharIdx = compiledPath.back().indexExpr;
 
           ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, vars[name].mangledName);
 
@@ -224,16 +255,23 @@ std::string Compiler::compileBlock(TSNode node) {
           } else {
             ret += std::format("data modify storage {0}:global macro_args.path set value \"\"\n", datapackNamespace);
             for (size_t i = 0; i < listDimensions; i++) {
-              if (!compiledIndices[i].precomputed) ret += compiledIndices[i].data + "\n";
+              if (!compiledPath[i].isProperty && !compiledPath[i].indexExpr.precomputed) ret += compiledPath[i].indexExpr.data + "\n";
               ret += std::format("data modify storage {0}:global macro_args.string_before set from storage {0}:global macro_args.path\n", datapackNamespace);
-              if (compiledIndices[i].precomputed) {
-                ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledIndices[i].data);
+
+              if (compiledPath[i].isProperty) {
+                ret += std::format("data modify storage {0}:global macro_args.prop_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].propName);
+                useInternalFunction("internal_path_append_prop");
+                ret += std::format("function {0}:internal/loom/internal_path_append_prop with storage {0}:global macro_args\n", datapackNamespace);
               } else {
-                ret +=
-                  std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+                if (compiledPath[i].indexExpr.precomputed) {
+                  ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].indexExpr.data);
+                } else {
+                  ret +=
+                    std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+                }
+                useInternalFunction("internal_path_append");
+                ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
               }
-              useInternalFunction("internal_path_append");
-              ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
             }
           }
 
@@ -266,8 +304,10 @@ std::string Compiler::compileBlock(TSNode node) {
         if (allIndicesPrecomputed) {
           if (expr.precomputed) {
             ret += std::format("data modify storage {0}:global vars.{1}{2} set value {3}\n", datapackNamespace, vars[name].mangledName, pathSuffix, expr.data);
-          } else if (expr.type.isString() || expr.type.isList()) {
+          } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
             ret += std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_str1\n", datapackNamespace, vars[name].mangledName, pathSuffix);
+          } else if (expr.type.isFloat()) {
+            ret += std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_float1\n", datapackNamespace, vars[name].mangledName, pathSuffix);
           } else {
             ret += std::format(
               "execute store result storage {0}:global vars.{1}{2} int 1 run scoreboard players get expr_output1 temp\n",
@@ -278,16 +318,24 @@ std::string Compiler::compileBlock(TSNode node) {
           }
         } else {
           ret += std::format("data modify storage {0}:global macro_args.path set value \"\"\n", datapackNamespace);
-          for (size_t i = 0; i < indexNodes.size(); i++) {
-            if (!compiledIndices[i].precomputed) ret += compiledIndices[i].data + "\n";
+          for (size_t i = 0; i < compiledPath.size(); i++) {
+            if (!compiledPath[i].isProperty && !compiledPath[i].indexExpr.precomputed) ret += compiledPath[i].indexExpr.data + "\n";
             ret += std::format("data modify storage {0}:global macro_args.string_before set from storage {0}:global macro_args.path\n", datapackNamespace);
-            if (compiledIndices[i].precomputed) {
-              ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledIndices[i].data);
+
+            if (compiledPath[i].isProperty) {
+              ret += std::format("data modify storage {0}:global macro_args.prop_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].propName);
+              useInternalFunction("internal_path_append_prop");
+              ret += std::format("function {0}:internal/loom/internal_path_append_prop with storage {0}:global macro_args\n", datapackNamespace);
             } else {
-              ret += std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+              if (compiledPath[i].indexExpr.precomputed) {
+                ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].indexExpr.data);
+              } else {
+                ret +=
+                  std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+              }
+              useInternalFunction("internal_path_append");
+              ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
             }
-            useInternalFunction("internal_path_append");
-            ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
           }
 
           ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, vars[name].mangledName);
@@ -298,7 +346,7 @@ std::string Compiler::compileBlock(TSNode node) {
               datapackNamespace,
               expr.data
             );
-          } else if (expr.type.isString() || expr.type.isList()) {
+          } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
             useInternalFunction("internal_list_nested_set_object");
             ret += std::format("function {0}:internal/loom/internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
           } else {
@@ -325,7 +373,7 @@ std::string Compiler::compileBlock(TSNode node) {
       }
 
       if (expr.precomputed) {
-        if (vars[name].type.isString() || vars[name].type.isFloat() || vars[name].type.isList()) {
+        if (vars[name].type.isString() || vars[name].type.isFloat() || vars[name].type.isList() || vars[name].type.isStruct()) {
           ret += std::format("data modify storage {0}:global vars.{1} set value {2}\n", datapackNamespace, vars[name].mangledName, expr.data);
         } else {
           ret += std::format("scoreboard players set {} vars {}\n", vars[name].mangledName, expr.data);
@@ -351,7 +399,7 @@ std::string Compiler::compileBlock(TSNode node) {
           }
         }
 
-        if (vars[name].type.isString() || vars[name].type.isList()) {
+        if (vars[name].type.isString() || vars[name].type.isList() || vars[name].type.isStruct()) {
           ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, vars[name].mangledName);
         } else if (vars[name].type.isFloat()) {
           ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_float1\n", expr.data, datapackNamespace, vars[name].mangledName);

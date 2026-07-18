@@ -32,6 +32,11 @@ public:
   compileMemberExpression(Compiler &compiler, const Compiler::ExpressionData &object, std::string_view property, unsigned int id, bool precompute, TSNode node) const {
     return std::nullopt;
   }
+
+  virtual std::optional<Compiler::ExpressionData>
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const {
+    return std::nullopt;
+  }
 };
 
 class TypeRegistry {
@@ -54,3 +59,4 @@ std::unique_ptr<TypeHandler> createStringHandler();
 std::unique_ptr<TypeHandler> createListHandler();
 std::unique_ptr<TypeHandler> createEnumHandler();
 std::unique_ptr<TypeHandler> createFloatHandler();
+std::unique_ptr<TypeHandler> createStructHandler();

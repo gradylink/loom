@@ -31,6 +31,53 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     return ret;
   }
 
+  if (expr.branchCondition.has_value()) {
+    const std::string &bc = expr.branchCondition.value();
+    auto invertBranch = [](const std::string &cond) -> std::string {
+      if (cond.starts_with("if ")) return "unless " + cond.substr(3);
+      if (cond.starts_with("unless ")) return "if " + cond.substr(7);
+      return cond;
+    };
+    std::string setup;
+    std::string bcLine = bc;
+    auto lastNl = bc.rfind('\n');
+    if (lastNl != std::string::npos) {
+      setup = bc.substr(0, lastNl + 1);
+      bcLine = bc.substr(lastNl + 1);
+    }
+    ret += setup;
+
+    const std::string &trueData = compileBlock(blockNode);
+    const size_t trueLineCount = std::count(trueData.begin(), trueData.end(), '\n');
+
+    if (trueLineCount > 0) {
+      if (trueLineCount == 1) {
+        ret += std::format("execute {} run {}", bcLine, trueData);
+      } else {
+        compiledFunctions.push_back({.name = name + "_true", .data = trueData});
+        ret += std::format("execute {} run function {}:internal/{}_true\n", bcLine, datapackNamespace, name);
+      }
+    }
+
+    if (hasElse) {
+      std::string altData;
+      std::string altType = ts_node_type(altNode);
+      if (altType == "block") altData = compileBlock(altNode);
+      else if (altType == "if") altData = compileIf(altNode);
+
+      const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
+      if (altLineCount > 0) {
+        if (altLineCount == 1) {
+          ret += std::format("execute {} run {}", invertBranch(bcLine), altData);
+        } else {
+          compiledFunctions.push_back({.name = name + "_false", .data = altData});
+          ret += std::format("execute {} run function {}:internal/{}_false\n", invertBranch(bcLine), datapackNamespace, name);
+        }
+      }
+    }
+    return ret;
+  }
+
   ret += expr.data + "\n";
 
   std::string condScore = "expr_output1";
@@ -54,15 +101,10 @@ std::string Compiler::compileIf(TSNode ifRoot) {
   if (hasElse) {
     std::string altData;
     std::string altType = ts_node_type(altNode);
-
-    if (altType == "block") {
-      altData = compileBlock(altNode);
-    } else if (altType == "if") {
-      altData = compileIf(altNode);
-    }
+    if (altType == "block") altData = compileBlock(altNode);
+    else if (altType == "if") altData = compileIf(altNode);
 
     const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
-
     if (altLineCount > 0) {
       if (altLineCount == 1) {
         ret += std::format("execute unless score {} temp matches 1 run {}", condScore, altData);
@@ -92,19 +134,32 @@ std::string Compiler::compileWhile(TSNode whileNode) {
 
   std::string loopFuncBody = compileBlock(blockNode);
   if (!condExpr.precomputed) {
-    loopFuncBody += condExpr.data + "\n";
-    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:{}\n", datapackNamespace, loopName);
+    if (condExpr.branchCondition.has_value()) {
+      const std::string &bc = condExpr.branchCondition.value();
+      auto lastNl = bc.rfind('\n');
+      std::string setup, bcLine = bc;
+      if (lastNl != std::string::npos) {
+        setup = bc.substr(0, lastNl + 1);
+        bcLine = bc.substr(lastNl + 1);
+      }
+      loopFuncBody += setup;
+      loopFuncBody += std::format("execute {} run function {}:internal/{}\n", bcLine, datapackNamespace, loopName);
+      ret += setup;
+      ret += std::format("execute {} run function {}:internal/{}\n", bcLine, datapackNamespace, loopName);
+    } else {
+      loopFuncBody += condExpr.data + "\n";
+      loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
+      ret += condExpr.data + "\n";
+      ret += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
+    }
   } else if (condExpr.data == "1") {
-    loopFuncBody += std::format("function {}:{}\n", datapackNamespace, loopName);
+    loopFuncBody += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
   }
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
   if (condExpr.precomputed) {
     ret += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
-  } else {
-    ret += condExpr.data + "\n";
-    ret += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
   }
 
   return ret;
@@ -124,10 +179,22 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
 
   std::string loopFuncBody = compileBlock(blockNode);
   if (!condExpr.precomputed) {
-    loopFuncBody += condExpr.data + "\n";
-    loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:{}\n", datapackNamespace, loopName);
+    if (condExpr.branchCondition.has_value()) {
+      const std::string &bc = condExpr.branchCondition.value();
+      auto lastNl = bc.rfind('\n');
+      std::string setup, bcLine = bc;
+      if (lastNl != std::string::npos) {
+        setup = bc.substr(0, lastNl + 1);
+        bcLine = bc.substr(lastNl + 1);
+      }
+      loopFuncBody += setup;
+      loopFuncBody += std::format("execute {} run function {}:internal/{}\n", bcLine, datapackNamespace, loopName);
+    } else {
+      loopFuncBody += condExpr.data + "\n";
+      loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
+    }
   } else if (condExpr.data == "1") {
-    loopFuncBody += std::format("function {}:{}\n", datapackNamespace, loopName);
+    loopFuncBody += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
   }
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});

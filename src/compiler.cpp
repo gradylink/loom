@@ -43,6 +43,7 @@ void Compiler::registerDefaultTypeHandlers() {
   typeRegistry->registerHandler(createStringHandler());
   typeRegistry->registerHandler(createListHandler());
   typeRegistry->registerHandler(createEnumHandler());
+  typeRegistry->registerHandler(createStructHandler());
 }
 
 TypeHandler *Compiler::getHandler(const Type &type) { return const_cast<TypeHandler *>(typeRegistry->findHandler(type)); }
@@ -66,8 +67,10 @@ Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const 
   if (typeText == "string") return Type::StringType();
   if (typeText == "float") return Type::FloatType();
   const auto &it = enums.find(typeText);
-  if (it == enums.end()) throw std::runtime_error(std::format("Unknown type: {}", typeText));
-  return Type::EnumTypeOf(&it->second);
+  if (it != enums.end()) return Type::EnumTypeOf(&it->second);
+  const auto &itStruct = structs.find(typeText);
+  if (itStruct != structs.end()) return Type::StructTypeOf(&itStruct->second);
+  throw std::runtime_error(std::format("Unknown type: {}", typeText));
 }
 
 std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, bool isGlobal) {
@@ -117,13 +120,13 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   std::string ret = "";
   if (!value.has_value() || !constant || isExport) {
     if (expr.precomputed) {
-      if (varType.isString() || varType.isList() || varType.isFloat()) {
+      if (varType.isString() || varType.isList() || varType.isStruct() || varType.isFloat()) {
         ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);
       } else {
         ret += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
       }
     } else {
-      if (varType.isString() || varType.isList()) {
+      if (varType.isString() || varType.isList() || varType.isStruct()) {
         ret += std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
       } else if (varType.isFloat()) {
         ret += std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_float1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
@@ -260,6 +263,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      .data = std::format("$data modify storage {0}:global macro_args.path set value \"$(string_before)[$(index_to_append)]\"", datapackNamespace)}
   );
   internalFunctions.push_back(
+    {.name = "internal_path_append_prop",
+     .data = std::format("$data modify storage {0}:global macro_args.path set value \"$(string_before).$(prop_to_append)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back(
     {.name = "internal_list_nested_set_value", .data = std::format("$data modify storage {0}:global vars.$(var_name)$(path) set value $(value)", datapackNamespace)}
   );
   internalFunctions.push_back(
@@ -277,6 +284,49 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
              ":global\",path:\"macro_args.a\"},{type:score,target:{type:fixed,name:\"#-1\"},score:\"math\",scale:$(text)}],mode:replace_all}]}\n"
              "data modify storage " +
              datapackNamespace + ":global macro_args.out set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]"}
+  );
+
+  internalFunctions.push_back(
+    {.name = "internal_int_to_string", .data = std::format("$data modify storage {0}:global expr_str$(out_id) set value \"$(value)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_float_to_string", .data = std::format("$data modify storage {0}:global expr_str$(out_id) set value \"$(value)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back({.name = "internal_string_to_int", .data = std::format("$scoreboard players set expr_output$(out_id) temp $(value)", datapackNamespace)});
+  internalFunctions.push_back(
+    {.name = "internal_string_to_float", .data = std::format("$data modify storage {0}:global expr_float$(out_id) set value $(value)f", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_string_to_charlist",
+     .data = std::format(
+       "$data modify storage {0}:global expr_str$(out_id) set value []\n"
+       "$data modify storage {0}:global macro_args.index_plus_one set value 1\n"
+       "function {0}:internal/loom/internal_string_to_charlist_loop with storage {0}:global macro_args",
+       datapackNamespace
+     )}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_string_to_charlist_loop",
+     .data = std::format(
+       "execute store result score internal_charlist_idx temp run data get storage {0}:global macro_args.index\n"
+       "execute store result score internal_charlist_len temp run data get storage {0}:global macro_args.length\n"
+       "execute if score internal_charlist_idx temp < internal_charlist_len temp run "
+       "function {0}:internal/loom/internal_string_to_charlist_step with storage {0}:global macro_args",
+       datapackNamespace
+     )}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_string_to_charlist_step",
+     .data = std::format(
+       "$data modify storage {0}:global expr_str$(out_id) append string storage {0}:global expr_str$(target_id) $(index) $(index_plus_one)\n"
+       "scoreboard players add internal_charlist_idx temp 1\n"
+       "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get internal_charlist_idx temp\n"
+       "scoreboard players add internal_charlist_idx temp 1\n"
+       "execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get internal_charlist_idx temp\n"
+       "scoreboard players remove internal_charlist_idx temp 1\n"
+       "function {0}:internal/loom/internal_string_to_charlist_loop with storage {0}:global macro_args",
+       datapackNamespace
+     )}
   );
 
   for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
@@ -424,6 +474,38 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       continue;
     }
 
+    if (type == "struct_definition") {
+      TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
+      const std::string &structName = std::string(getNodeText(nameNode));
+      if (structName == "append" || structName == "remove" || structName == "insert" || structName == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
+
+      StructData structData = {.name = structName};
+
+      for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
+        TSNode fieldNode = ts_node_named_child(child, j);
+        if (std::string(ts_node_type(fieldNode)) != "struct_field") throw std::runtime_error(formatError(fieldNode, "Unexpected node in struct definition."));
+
+        const std::string &fieldName = std::string(getFieldText(fieldNode, "name"));
+        TSNode typeNode = ts_node_child_by_field_name(fieldNode, "type", 4);
+
+        Type fieldType = parseTypeFromString(std::string(getNodeText(typeNode)));
+
+        structData.fields.push_back({.name = fieldName, .type = std::make_unique<Type>(std::move(fieldType))});
+      }
+
+      for (uint32_t j = 0; j < ts_node_child_count(child); j++) {
+        TSNode node = ts_node_child(child, j);
+        const std::string &nodeType = std::string(ts_node_type(node));
+        if (nodeType == "export") {
+          if (structData.exported) throw std::runtime_error(formatError(node, "Cannot use 'export' twice."));
+          structData.exported = true;
+        }
+      }
+
+      structs[structName] = std::move(structData);
+      continue;
+    }
+
     if (type == "function_definition") {
       TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
       std::string name = std::string(getNodeText(nameNode));
@@ -530,7 +612,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       continue;
     }
 
-    if (type != "comment" && type != "enum_definition" && type != "import_statement") throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
+    if (type != "comment" && type != "enum_definition" && type != "struct_definition" && type != "import_statement")
+      throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
   }
 
   return compiledFunctions;

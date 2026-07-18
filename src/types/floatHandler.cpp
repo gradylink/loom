@@ -226,6 +226,87 @@ public:
 
     return Compiler::ExpressionData{.data = runtimeCommands, .precomputed = false, .type = retType};
   }
+  std::optional<Compiler::ExpressionData>
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+    if (targetType.isInteger()) {
+      if (expr.precomputed) {
+        std::string intStr = std::to_string(static_cast<int32_t>(std::stof(expr.data)));
+        if (precompute) return Compiler::ExpressionData{.data = intStr, .precomputed = true, .type = Compiler::Type::IntegerType()};
+        return Compiler::ExpressionData{
+          .data = std::format("scoreboard players set expr_output{} temp {}", id, intStr),
+          .precomputed = false,
+          .type = Compiler::Type::IntegerType()
+        };
+      }
+      return Compiler::ExpressionData{
+        .data =
+          std::format("{}\nexecute store result score expr_output{} temp run data get storage {}:global expr_float{}", expr.data, id, compiler.getDatapackNamespace(), id),
+        .precomputed = false,
+        .type = Compiler::Type::IntegerType()
+      };
+    }
+
+    if (targetType.isBoolean()) {
+      if (expr.precomputed) {
+        std::string finalVal = (std::stof(expr.data) != 0.0f) ? "1" : "0";
+        if (precompute) return Compiler::ExpressionData{.data = finalVal, .precomputed = true, .type = Compiler::Type::BooleanType()};
+        return Compiler::ExpressionData{
+          .data = std::format("scoreboard players set expr_output{} temp {}", id, finalVal),
+          .precomputed = false,
+          .type = Compiler::Type::BooleanType()
+        };
+      }
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "scoreboard players set internal1 temp 0\n"
+          "execute store result score internal1 temp run data get storage {}:global expr_float{}\n"
+          "scoreboard players set internal2 temp 0\n"
+          "execute unless score internal1 temp matches 0 run scoreboard players set internal2 temp 1\n"
+          "scoreboard players operation expr_output{} temp = internal2 temp",
+          expr.data,
+          compiler.getDatapackNamespace(),
+          id,
+          id
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::BooleanType()
+      };
+    }
+
+    if (targetType.isString()) {
+      if (expr.precomputed) {
+        std::string strVal = "\"" + expr.data + "\"";
+        if (precompute) return Compiler::ExpressionData{.data = strVal, .precomputed = true, .type = Compiler::Type::StringType()};
+        return Compiler::ExpressionData{
+          .data = std::format("data modify storage {}:global expr_str{} set value {}", compiler.getDatapackNamespace(), id, strVal),
+          .precomputed = false,
+          .type = Compiler::Type::StringType()
+        };
+      }
+      compiler.useInternalFunction("internal_float_to_string");
+      return Compiler::ExpressionData{
+        .data = std::format(
+          "{}\n"
+          "data modify storage {}:global macro_args.value set from storage {}:global expr_float{}\n"
+          "data modify storage {}:global macro_args.out_id set value {}\n"
+          "function {}:internal/loom/internal_float_to_string with storage {}:global macro_args",
+          expr.data,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          id,
+          compiler.getDatapackNamespace(),
+          compiler.getDatapackNamespace()
+        ),
+        .precomputed = false,
+        .type = Compiler::Type::StringType()
+      };
+    }
+
+    return std::nullopt;
+  }
 };
 
 std::unique_ptr<TypeHandler> createFloatHandler() { return std::make_unique<FloatHandler>(); }

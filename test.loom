@@ -23,12 +23,38 @@ enum TestEnum {
   Value2
 }
 
+struct SickStruct {
+  item1: int,
+  item2: string
+}
+
+struct SwizzleStruct {
+  item1: SickStruct,
+  item2: string[]
+}
+
 #load func load() {
+  const testStruct = SwizzleStruct{ item1: SickStruct{ item1: 1, item2: "hello" }, item2: ["sick", "string", "list"] };
+
   let myListTest: string[] = ["swizzle magic", "swizzle magic but index 1"];
   myListTest = append(myListTest, "omg!!")
 
   const myEnumTestVar = TestEnum.Value2;
   say ${myEnumTestVar}
+
+  const myCastTest1 = 15 as float;
+  const myCastTest2 = myCastTest1 as int;
+  say ${myCastTest1} ${myCastTest2}
+
+  let myDynInt = 15;
+  let myDynFloat = myDynInt as float;
+  let myDynInt2 = myDynFloat as int;
+  let myDynBool = myDynInt2 as bool;
+  say ${myDynFloat} ${myDynInt2} ${myDynBool}
+
+  let testShortCircuit = false && (myDynInt == 10);
+  let testShortCircuit2 = true || (myDynInt == 15);
+  say ${testShortCircuit} ${testShortCircuit2}
 
   const myConstStr = "Loom is great!";
   say ${myConstStr}

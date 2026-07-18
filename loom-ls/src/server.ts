@@ -82,14 +82,18 @@ function getImports(tree: typeof Tree): string[] {
   return imports;
 }
 
-function findExportedSymbols(tree: typeof Tree): {
+interface ExportedSymbols {
   enums: Map<string, typeof Node>;
   functions: Map<string, typeof Node>;
   variables: Map<string, typeof Node>;
-} {
+  structs: Map<string, typeof Node>;
+}
+
+const findExportedSymbols = (tree: typeof Tree): ExportedSymbols => {
   const enums = new Map<string, typeof Node>();
   const functions = new Map<string, typeof Node>();
   const variables = new Map<string, typeof Node>();
+  const structs = new Map<string, typeof Node>();
 
   const traverse = (node: typeof Node) => {
     if (node.type === "enum_definition") {
@@ -99,6 +103,14 @@ function findExportedSymbols(tree: typeof Tree): {
       if (exportNode) {
         const nameNode = node.childForFieldName("name");
         if (nameNode) enums.set(nameNode.text, node);
+      }
+    } else if (node.type === "struct_definition") {
+      const exportNode = node.children.find((n: typeof Node) =>
+        n.text === "export"
+      );
+      if (exportNode) {
+        const nameNode = node.childForFieldName("name");
+        if (nameNode) structs.set(nameNode.text, node);
       }
     } else if (node.type === "function_definition") {
       const exportNode = node.children.find((n: typeof Node) =>
@@ -124,10 +136,10 @@ function findExportedSymbols(tree: typeof Tree): {
   };
 
   traverse(tree.rootNode);
-  return { enums, functions, variables };
-}
+  return { enums, functions, variables, structs };
+};
 
-function collectAllSymbols(
+const collectAllSymbols = (
   tree: typeof Tree,
   docUri: string,
   visited = new Set<string>(),
@@ -135,10 +147,12 @@ function collectAllSymbols(
   enums: Map<string, { node: typeof Node; file: string }>;
   functions: Map<string, { node: typeof Node; file: string }>;
   variables: Map<string, { node: typeof Node; file: string }>;
-} {
+  structs: Map<string, { node: typeof Node; file: string }>;
+} => {
   const enums = new Map<string, { node: typeof Node; file: string }>();
   const functions = new Map<string, { node: typeof Node; file: string }>();
   const variables = new Map<string, { node: typeof Node; file: string }>();
+  const structs = new Map<string, { node: typeof Node; file: string }>();
 
   const sourceDir = path.dirname(docUri.replace("file://", ""));
 
@@ -146,6 +160,9 @@ function collectAllSymbols(
     if (node.type === "enum_definition") {
       const nameNode = node.childForFieldName("name");
       if (nameNode) enums.set(nameNode.text, { node, file: docUri });
+    } else if (node.type === "struct_definition") {
+      const nameNode = node.childForFieldName("name");
+      if (nameNode) structs.set(nameNode.text, { node, file: docUri });
     } else if (node.type === "function_definition") {
       const nameNode = node.childForFieldName("name");
       if (nameNode) functions.set(nameNode.text, { node, file: docUri });
@@ -168,17 +185,22 @@ function collectAllSymbols(
       const importedTree = getOrParseFile(importPath, sourceDir);
       if (importedTree) {
         const exported = findExportedSymbols(importedTree);
-        exported.enums.forEach((node, name) => {
+        exported.enums?.forEach((node: typeof Node, name: string) => {
           if (!enums.has(name)) {
             enums.set(name, { node, file: `file://${resolved}` });
           }
         });
-        exported.functions.forEach((node, name) => {
+        exported.structs?.forEach((node: typeof Node, name: string) => {
+          if (!structs.has(name)) {
+            structs.set(name, { node, file: `file://${resolved}` });
+          }
+        });
+        exported.functions?.forEach((node: typeof Node, name: string) => {
           if (!functions.has(name)) {
             functions.set(name, { node, file: `file://${resolved}` });
           }
         });
-        exported.variables.forEach((node, name) => {
+        exported.variables?.forEach((node: typeof Node, name: string) => {
           if (!variables.has(name)) {
             variables.set(name, { node, file: `file://${resolved}` });
           }
@@ -187,8 +209,8 @@ function collectAllSymbols(
     }
   }
 
-  return { enums, functions, variables };
-}
+  return { enums, functions, variables, structs };
+};
 
 connection.onInitialize(
   async (params: InitializeParams): Promise<InitializeResult> => {
@@ -560,6 +582,7 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
   let targetNode: { node: typeof Node; file: string } | null = null;
+  const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
 
   if (cursorNode.parent && cursorNode.parent.type === "member_expression") {
     const objNode = cursorNode.parent.childForFieldName("object");
@@ -574,25 +597,107 @@ connection.onDefinition((params: DefinitionParams): Location | null => {
             file: params.textDocument.uri,
           };
         }
+      } else if (allSymbols.enums.has(objNode.text)) {
+        const importedEnum = allSymbols.enums.get(objNode.text)!;
+        const variantNode = findEnumVariant(importedEnum.node, propNode.text);
+        if (variantNode) {
+          targetNode = {
+            node: variantNode.childForFieldName("name") || variantNode,
+            file: importedEnum.file,
+          };
+        }
       } else {
-        const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
-        if (allSymbols.enums.has(objNode.text)) {
-          const importedEnum = allSymbols.enums.get(objNode.text)!;
-          const importedTree = trees.get(importedEnum.file);
-          if (importedTree) {
-            const variantNode = findEnumVariant(
-              importedEnum.node,
-              propNode.text,
-            );
-            if (variantNode) {
-              targetNode = {
-                node: variantNode.childForFieldName("name") || variantNode,
-                file: importedEnum.file,
+        const varDecl = getDeclarationNode(
+          objNode,
+          objNode.text,
+          params.textDocument.uri,
+        );
+        if (varDecl) {
+          const typeNode = varDecl.node.childForFieldName("type");
+          if (typeNode) {
+            const structData = allSymbols.structs.get(typeNode.text);
+            if (structData) {
+              let fieldNode: typeof Node | null = null;
+              const findField = (n: typeof Node) => {
+                if (
+                  n.type === "field_declaration" || n.type === "struct_field"
+                ) {
+                  const nName = n.childForFieldName("name");
+                  if (nName && nName.text === propNode.text) fieldNode = n;
+                }
+                if (!fieldNode) {
+                  for (let i = 0; i < n.childCount; i++) findField(n.child(i)!);
+                }
               };
+              findField(structData.node);
+
+              if (fieldNode) {
+                targetNode = {
+                  node: (fieldNode as typeof Node).childForFieldName("name") ||
+                    fieldNode,
+                  file: structData.file,
+                };
+              }
             }
           }
         }
       }
+    }
+  }
+
+  if (!targetNode) {
+    if (allSymbols.structs.has(cursorNode.text)) {
+      const structData = allSymbols.structs.get(cursorNode.text)!;
+      targetNode = {
+        node: structData.node.childForFieldName("name") || structData.node,
+        file: structData.file,
+      };
+    } else if (allSymbols.enums.has(cursorNode.text)) {
+      const enumData = allSymbols.enums.get(cursorNode.text)!;
+      targetNode = {
+        node: enumData.node.childForFieldName("name") || enumData.node,
+        file: enumData.file,
+      };
+    }
+  }
+
+  if (!targetNode) {
+    let p = cursorNode.parent;
+    while (
+      p && p.type !== "expression_statement" &&
+      p.type !== "variable_declaration" && !targetNode
+    ) {
+      for (let i = 0; i < p.childCount; i++) {
+        const child = p.child(i)!;
+        if (
+          (child.type === "identifier" || child.type === "type_identifier") &&
+          allSymbols.structs.has(child.text)
+        ) {
+          const structData = allSymbols.structs.get(child.text)!;
+          let fieldNode: typeof Node | null = null;
+
+          const findField = (n: typeof Node) => {
+            if (n.type === "field_declaration" || n.type === "struct_field") {
+              const nName = n.childForFieldName("name");
+              if (nName && nName.text === cursorNode.text) fieldNode = n;
+            }
+            if (!fieldNode) {
+              for (let j = 0; j < n.childCount; j++) findField(n.child(j)!);
+            }
+          };
+          findField(structData.node);
+
+          if (fieldNode) {
+            targetNode = {
+              node: (fieldNode as typeof Node).childForFieldName("name") ||
+                fieldNode,
+              file: structData.file,
+            };
+            break;
+          }
+        }
+      }
+      p = p.parent;
     }
   }
 
@@ -644,6 +749,7 @@ connection.onHover((params: HoverParams): Hover | null => {
   if (!cursorNode || cursorNode.type !== "identifier") return null;
 
   let hoverText = "";
+  const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
 
   if (cursorNode.parent && cursorNode.parent.type === "member_expression") {
     const objNode = cursorNode.parent.childForFieldName("object");
@@ -657,25 +763,102 @@ connection.onHover((params: HoverParams): Hover | null => {
           hoverText =
             `\`\`\`loom\n(enum variant) ${objNode.text}.${propNode.text} = ${valStr}\n\`\`\``;
         }
+      } else if (allSymbols.enums.has(objNode.text)) {
+        const importedEnum = allSymbols.enums.get(objNode.text)!;
+        const variantNode = findEnumVariant(importedEnum.node, propNode.text);
+        if (variantNode) {
+          const valStr = getEnumVariantValueText(variantNode);
+          hoverText =
+            `\`\`\`loom\n(enum variant) ${objNode.text}.${propNode.text} = ${valStr}\n\`\`\``;
+        }
       } else {
-        const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
-        if (allSymbols.enums.has(objNode.text)) {
-          const importedEnum = allSymbols.enums.get(objNode.text)!;
-          const variantNode = findEnumVariant(
-            importedEnum.node,
-            propNode.text,
-          );
-          if (variantNode) {
-            const valStr = getEnumVariantValueText(variantNode);
-            hoverText =
-              `\`\`\`loom\n(enum variant) ${objNode.text}.${propNode.text} = ${valStr}\n\`\`\``;
+        const varDecl = getDeclarationNode(
+          objNode,
+          objNode.text,
+          params.textDocument.uri,
+        );
+        if (varDecl) {
+          const typeNode = varDecl.node.childForFieldName("type");
+          if (typeNode) {
+            const structData = allSymbols.structs.get(typeNode.text);
+            if (structData) {
+              let fieldNode: typeof Node | null = null;
+              const findField = (n: typeof Node) => {
+                if (
+                  n.type === "field_declaration" || n.type === "struct_field"
+                ) {
+                  const nName = n.childForFieldName("name");
+                  if (nName && nName.text === propNode.text) fieldNode = n;
+                }
+                if (!fieldNode) {
+                  for (let i = 0; i < n.childCount; i++) findField(n.child(i)!);
+                }
+              };
+              findField(structData.node);
+
+              if (fieldNode) {
+                const fieldType =
+                  (fieldNode as typeof Node).childForFieldName("type")?.text ||
+                  "unknown";
+                hoverText =
+                  `\`\`\`loom\n(struct field) ${typeNode.text}.${propNode.text}: ${fieldType}\n\`\`\``;
+              }
+            }
           }
         }
       }
     }
   }
 
-  if (hoverText == "") {
+  if (hoverText === "") {
+    if (allSymbols.structs.has(cursorNode.text)) {
+      hoverText = `\`\`\`loom\nstruct ${cursorNode.text}\n\`\`\``;
+    } else if (allSymbols.enums.has(cursorNode.text)) {
+      hoverText = `\`\`\`loom\nenum ${cursorNode.text}\n\`\`\``;
+    }
+  }
+
+  if (hoverText === "") {
+    let p = cursorNode.parent;
+    while (
+      p && p.type !== "expression_statement" &&
+      p.type !== "variable_declaration" && hoverText === ""
+    ) {
+      for (let i = 0; i < p.childCount; i++) {
+        const child = p.child(i)!;
+        if (
+          (child.type === "identifier" || child.type === "type_identifier") &&
+          allSymbols.structs.has(child.text)
+        ) {
+          const structData = allSymbols.structs.get(child.text)!;
+          let fieldNode: typeof Node | null = null;
+
+          const findField = (n: typeof Node) => {
+            if (n.type === "field_declaration" || n.type === "struct_field") {
+              const nName = n.childForFieldName("name");
+              if (nName && nName.text === cursorNode.text) fieldNode = n;
+            }
+            if (!fieldNode) {
+              for (let j = 0; j < n.childCount; j++) findField(n.child(j)!);
+            }
+          };
+          findField(structData.node);
+
+          if (fieldNode) {
+            const typeStr =
+              (fieldNode as typeof Node).childForFieldName("type")?.text ||
+              "unknown";
+            hoverText =
+              `\`\`\`loom\n(struct field) ${child.text}.${cursorNode.text}: ${typeStr}\n\`\`\``;
+            break; // Break the child loop
+          }
+        }
+      }
+      p = p.parent;
+    }
+  }
+
+  if (hoverText === "") {
     const declarationData = getDeclarationNode(
       cursorNode,
       cursorNode.text,
@@ -688,6 +871,10 @@ connection.onHover((params: HoverParams): Hover | null => {
         const name = declarationNode.childForFieldName("name")?.text ||
           "unknown";
         hoverText = `\`\`\`loom\nenum ${name}\n\`\`\``;
+      } else if (declarationNode.type === "struct_definition") {
+        const name = declarationNode.childForFieldName("name")?.text ||
+          "unknown";
+        hoverText = `\`\`\`loom\nstruct ${name}\n\`\`\``;
       } else if (declarationNode.type === "enum_variant") {
         let p: typeof Node | null = declarationNode.parent;
         while (p && p.type !== "enum_definition") p = p.parent;
@@ -700,6 +887,21 @@ connection.onHover((params: HoverParams): Hover | null => {
         hoverText =
           `\`\`\`loom\n(enum variant) ${enumName}.${varName} = ${valStr}\n\`\`\``;
       } else if (
+        declarationNode.type === "struct_field" ||
+        declarationNode.type === "field_declaration"
+      ) {
+        let p: typeof Node | null = declarationNode.parent;
+        while (p && p.type !== "struct_definition") p = p.parent;
+        const structName = p
+          ? (p.childForFieldName("name")?.text || "struct")
+          : "struct";
+        const varName = declarationNode.childForFieldName("name")?.text ||
+          "unknown";
+        const typeStr = declarationNode.childForFieldName("type")?.text ||
+          "unknown";
+        hoverText =
+          `\`\`\`loom\n(struct field) ${structName}.${varName}: ${typeStr}\n\`\`\``;
+      } else if (
         declarationNode.type === "variable_declaration" ||
         declarationNode.type === "parameter"
       ) {
@@ -711,7 +913,6 @@ connection.onHover((params: HoverParams): Hover | null => {
         const keyword = isParam
           ? "(parameter)"
           : (declarationNode.childForFieldName("keyword")?.text || "let");
-
         hoverText = `\`\`\`loom\n${keyword} ${name}: ${type}\n\`\`\``;
       } else if (declarationNode.type === "for") {
         const iteratorName =
@@ -724,14 +925,13 @@ connection.onHover((params: HoverParams): Hover | null => {
           declarationNode.childForFieldName("parameters")?.text || "";
         const typeNode = declarationNode.childForFieldName("type");
         const returnType = typeNode ? `: ${typeNode.text}` : "";
-
         hoverText =
           `\`\`\`loom\nfunc ${name}(${paramsText})${returnType}\n\`\`\``;
       }
     }
   }
 
-  if (hoverText != "") {
+  if (hoverText !== "") {
     return { contents: { kind: "markdown", value: hoverText } };
   }
 
@@ -755,57 +955,6 @@ connection.onCompletion(
     if (lineText.match(/@[srpean]\[[^\]]*$/i)) return [];
     if (lineText.includes("--")) return [];
 
-    const memberMatch = lineText.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.$/);
-    if (memberMatch) {
-      const enumName = memberMatch[1]!;
-      const enumNode = findGlobalEnum(tree.rootNode, enumName);
-      if (enumNode) {
-        const enumVariants: CompletionItem[] = [];
-        const collectVariants = (node: typeof Node) => {
-          if (node.type === "enum_variant") {
-            const nameNode = node.childForFieldName("name");
-            if (nameNode) {
-              const valStr = getEnumVariantValueText(node);
-              enumVariants.push({
-                label: nameNode.text,
-                kind: CompletionItemKind.EnumMember,
-                detail: `= ${valStr}`,
-              });
-            }
-          }
-          for (let i = 0; i < node.childCount; i++) {
-            collectVariants(node.child(i)!);
-          }
-        };
-        collectVariants(enumNode);
-        return enumVariants;
-      } else {
-        const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
-        if (allSymbols.enums.has(enumName)) {
-          const importedEnum = allSymbols.enums.get(enumName)!;
-          const enumVariants: CompletionItem[] = [];
-          const collectVariants = (node: typeof Node) => {
-            if (node.type === "enum_variant") {
-              const nameNode = node.childForFieldName("name");
-              if (nameNode) {
-                const valStr = getEnumVariantValueText(node);
-                enumVariants.push({
-                  label: nameNode.text,
-                  kind: CompletionItemKind.EnumMember,
-                  detail: `= ${valStr}`,
-                });
-              }
-            }
-            for (let i = 0; i < node.childCount; i++) {
-              collectVariants(node.child(i)!);
-            }
-          };
-          collectVariants(importedEnum.node);
-          return enumVariants;
-        }
-      }
-    }
-
     const cursorPoint = {
       row: params.position.line,
       column: Math.max(0, params.position.character - 1),
@@ -815,6 +964,7 @@ connection.onCompletion(
     const variables = new Set<{ name: string; type: string; const: boolean }>();
     let inBlock = false;
     let inEnum = false;
+    let inStruct = false;
     let curr: typeof Node | null = cursorNode;
 
     while (curr) {
@@ -823,6 +973,9 @@ connection.onCompletion(
       }
       if (curr.type === "enum_definition") {
         inEnum = true;
+      }
+      if (curr.type === "struct_definition") {
+        inStruct = true;
       }
 
       if (curr.type === "for") {
@@ -855,12 +1008,12 @@ connection.onCompletion(
       curr = curr.parent;
     }
 
-    if (inEnum) return [];
+    if (inEnum || inStruct) return [];
 
     const functions = new Set<
       { name: string; type: string; params: { name: string; type: string }[] }
     >();
-    const findFunctions = (node: Node) => {
+    const findFunctions = (node: typeof Node) => {
       if (node.type === "function_definition") {
         const nameNode = node.childForFieldName("name");
         const typeNode = node.childForFieldName("type");
@@ -904,6 +1057,16 @@ connection.onCompletion(
     };
     findEnums(tree.rootNode);
 
+    const structsSet = new Set<{ name: string }>();
+    const findStructs = (node: typeof Node) => {
+      if (node.type === "struct_definition") {
+        const nameNode = node.childForFieldName("name");
+        if (nameNode) structsSet.add({ name: nameNode.text });
+      }
+      for (let i = 0; i < node.childCount; i++) findStructs(node.child(i)!);
+    };
+    findStructs(tree.rootNode);
+
     const allSymbols = collectAllSymbols(tree, params.textDocument.uri);
     for (const [varName, varData] of allSymbols.variables) {
       variables.add({
@@ -936,6 +1099,11 @@ connection.onCompletion(
     for (const [enumName] of allSymbols.enums) {
       enumsSet.add({ name: enumName });
     }
+    if (allSymbols.structs) {
+      for (const [structName] of allSymbols.structs) {
+        structsSet.add({ name: structName });
+      }
+    }
 
     const addVariables = () => {
       for (const v of variables) {
@@ -966,9 +1134,96 @@ connection.onCompletion(
         });
       }
     };
+    const addStructs = () => {
+      for (const s of structsSet) {
+        items.push({
+          label: s.name,
+          kind: CompletionItemKind.Struct,
+          detail: `struct ${s.name}`,
+        });
+      }
+    };
+
+    const memberMatch = lineText.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.$/);
+    if (memberMatch) {
+      const matchName = memberMatch[1]!;
+
+      // 1. Check if it's an enum (direct match)
+      const enumNode = findGlobalEnum(tree.rootNode, matchName) ??
+        allSymbols.enums?.get(matchName)?.node;
+      if (enumNode) {
+        const enumVariants: CompletionItem[] = [];
+        const collectVariants = (node: typeof Node) => {
+          if (node.type === "enum_variant") {
+            const nameNode = node.childForFieldName("name");
+            if (nameNode) {
+              const valStr = getEnumVariantValueText(node);
+              enumVariants.push({
+                label: nameNode.text,
+                kind: CompletionItemKind.EnumMember,
+                detail: `= ${valStr}`,
+              });
+            }
+          }
+          for (let i = 0; i < node.childCount; i++) {
+            collectVariants(node.child(i)!);
+          }
+        };
+        collectVariants(enumNode);
+        return enumVariants;
+      }
+
+      const variable = Array.from(variables).find((v) => v.name === matchName);
+      if (variable) {
+        const structName = variable.type;
+        let structNode: typeof Node | undefined;
+
+        const findNodeForStruct = (node: typeof Node) => {
+          if (node.type === "struct_definition") {
+            const n = node.childForFieldName("name");
+            if (n && n.text === structName) structNode = node;
+          }
+          if (!structNode) {
+            for (let i = 0; i < node.childCount; i++) {
+              findNodeForStruct(node.child(i)!);
+            }
+          }
+        };
+        findNodeForStruct(tree.rootNode);
+
+        if (!structNode && allSymbols.structs?.has(structName)) {
+          structNode = allSymbols.structs.get(structName)!.node;
+        }
+
+        if (structNode) {
+          const structFields: CompletionItem[] = [];
+          const collectFields = (node: typeof Node) => {
+            if (
+              node.type === "field_declaration" || node.type === "struct_field"
+            ) {
+              const nameNode = node.childForFieldName("name");
+              const typeNode = node.childForFieldName("type");
+              if (nameNode) {
+                structFields.push({
+                  label: nameNode.text,
+                  kind: CompletionItemKind.Field,
+                  detail: typeNode ? typeNode.text : "unknown",
+                });
+              }
+            }
+            for (let i = 0; i < node.childCount; i++) {
+              collectFields(node.child(i)!);
+            }
+          };
+          collectFields(structNode);
+          return structFields;
+        }
+      }
+    }
 
     if (lineText.match(/:\s*[a-zA-Z_]*$/)) {
       addEnums();
+      addStructs();
       return [
         ...items,
         { label: "int", kind: CompletionItemKind.TypeParameter },
@@ -978,7 +1233,9 @@ connection.onCompletion(
         { label: "void", kind: CompletionItemKind.TypeParameter },
       ];
     }
-    if (lineText.match(/(let|const|func|for|enum)\s+[a-z_0-9]*$/i)) return [];
+    if (lineText.match(/(let|const|func|for|enum|struct)\s+[a-z_0-9]*$/i)) {
+      return [];
+    }
     if (lineText.match(/func\s+[a-z_0-9]+\s*\([^)]*$/i)) return [];
 
     if (lineText.match(/@$/)) {
@@ -1006,6 +1263,7 @@ connection.onCompletion(
     ) {
       addVariables();
       addEnums();
+      addStructs();
 
       return [
         ...items,
@@ -1037,7 +1295,7 @@ connection.onCompletion(
     }
 
     if (lineText.match(/(?:export|extern)\s+$/)) {
-      return ["let", "const", "enum", "func"].map((keyword) => ({
+      return ["let", "const", "enum", "struct", "func"].map((keyword) => ({
         label: keyword,
         kind: CompletionItemKind.Keyword,
       }));
@@ -1067,6 +1325,7 @@ connection.onCompletion(
       "over",
       "rotated",
       "enum",
+      "struct",
       "import",
       "export",
       "extern",
