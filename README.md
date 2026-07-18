@@ -9,7 +9,7 @@ A programming language that compiles to Minecraft datapacks.
 
 - [x] Implicit variable types
 - [x] Inlining const literals
-- [ ] Structs
+- [x] Structs
 - [x] Casting
 - [ ] Function overloading
 - [ ] References
