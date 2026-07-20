@@ -4,4 +4,7 @@
   say ${test}
   say ${test} * 2: ${test * 2}
   say ${test} / 2: ${test / 2}
+
+  say sin(${test}): ${sin(test)}
+  say abs(${test}): ${abs(test)}, abs(${-test}): ${abs(-test)}
 }

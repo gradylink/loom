@@ -1291,6 +1291,66 @@ connection.onCompletion(
           kind: CompletionItemKind.Function,
           detail: "func len(list: string | any[]): int",
         },
+        {
+          label: "abs",
+          kind: CompletionItemKind.Function,
+          detail: "func abs(value: float): float",
+        },
+        {
+          label: "round",
+          kind: CompletionItemKind.Function,
+          detail: "func round(value: float): float",
+        },
+        {
+          label: "floor",
+          kind: CompletionItemKind.Function,
+          detail: "func floor(value: float): float",
+        },
+        {
+          label: "ceil",
+          kind: CompletionItemKind.Function,
+          detail: "func ceil(value: float): float",
+        },
+        {
+          label: "sqrt",
+          kind: CompletionItemKind.Function,
+          detail: "func sqrt(value: float): float",
+        },
+        {
+          label: "sin",
+          kind: CompletionItemKind.Function,
+          detail: "func sin(value: float): float",
+        },
+        {
+          label: "cos",
+          kind: CompletionItemKind.Function,
+          detail: "func cos(value: float): float",
+        },
+        {
+          label: "tan",
+          kind: CompletionItemKind.Function,
+          detail: "func tan(value: float): float",
+        },
+        {
+          label: "asin",
+          kind: CompletionItemKind.Function,
+          detail: "func asin(value: float): float",
+        },
+        {
+          label: "acos",
+          kind: CompletionItemKind.Function,
+          detail: "func acos(value: float): float",
+        },
+        {
+          label: "atan",
+          kind: CompletionItemKind.Function,
+          detail: "func atan(value: float): float",
+        },
+        {
+          label: "atan2",
+          kind: CompletionItemKind.Function,
+          detail: "func atan2(y: float, x: float): float",
+        },
       ];
     }
 

@@ -343,9 +343,23 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
 
     std::string argPushData = "";
     for (size_t i = 0; i < argNodes.size(); i++) {
-      const ExpressionData argExpr = compileExpression(argNodes[i]);
+      ExpressionData argExpr = compileExpression(argNodes[i]);
+
       if (argExpr.type != funcs[targetFunc].params[i]) {
-        throw std::runtime_error(formatError(argNodes[i], std::format("Argument {} type mismatch for function '{}'", i + 1, targetFunc)));
+        if (argExpr.type.isInteger() && funcs[targetFunc].params[i].isFloat()) {
+          std::optional<ExpressionData> casted = std::nullopt;
+          if (TypeHandler *handler = getHandler(argExpr.type)) {
+            casted = handler->compileCast(*this, argExpr, funcs[targetFunc].params[i], id + 1, false, argNodes[i]);
+          }
+
+          if (casted.has_value()) {
+            argExpr = casted.value();
+          } else {
+            throw std::runtime_error(formatError(argNodes[i], std::format("Argument {} type mismatch for function '{}'", i + 1, targetFunc)));
+          }
+        } else {
+          throw std::runtime_error(formatError(argNodes[i], std::format("Argument {} type mismatch for function '{}'", i + 1, targetFunc)));
+        }
       }
 
       if (argExpr.precomputed) {

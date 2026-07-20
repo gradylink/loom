@@ -307,6 +307,439 @@ public:
 
     return std::nullopt;
   }
+
+  void registerBuiltins(Compiler &compiler) const override {
+    compiler.registerBuiltin(
+      "abs",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        }
+
+        if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::abs(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_abs");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_abs with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "round",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        }
+
+        if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::round(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_round");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_round with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "floor",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        }
+
+        if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::floor(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_floor");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_floor with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "ceil",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        }
+
+        if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::ceil(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_ceil");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_ceil with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "sqrt",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          if (val < 0.0f) throw std::runtime_error(formatError(node, "Float square root of a negative number at compile-time."));
+          std::string res = std::to_string(std::sqrt(val));
+
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_sqrt");
+        c.useInternalFunction("internal_float_sqrt_loop");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_sqrt with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "sin",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::sin(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_sin");
+        c.useInternalFunction("internal_float_sin_tp");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_sin with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "cos",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::cos(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_cos");
+        c.useInternalFunction("internal_float_cos_tp");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_cos with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "tan",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::tan(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_tan");
+        c.useInternalFunction("internal_float_cos");
+        c.useInternalFunction("internal_float_cos_tp");
+        c.useInternalFunction("internal_float_sin");
+        c.useInternalFunction("internal_float_sin_tp");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_tan with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "asin",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          if (val < -1.0f || val > 1.0f) throw std::runtime_error(formatError(node, "Float arcsine domain error (must be between -1.0 and 1.0)."));
+          std::string res = std::to_string(std::asin(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_asin");
+        c.useInternalFunction("internal_float_atan2");
+        c.useInternalFunction("internal_float_sqrt");
+        c.useInternalFunction("internal_float_sqrt_loop");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_asin with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "acos",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          if (val < -1.0f || val > 1.0f) throw std::runtime_error(formatError(node, "Float arccosine domain error (must be between -1.0 and 1.0)."));
+          std::string res = std::to_string(std::acos(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_acos");
+        c.useInternalFunction("internal_float_atan2");
+        c.useInternalFunction("internal_float_sqrt");
+        c.useInternalFunction("internal_float_sqrt_loop");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_acos with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "atan",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+
+        if (expr.type.isInteger()) {
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!expr.type.isFloat()) return std::nullopt;
+
+        if (expr.precomputed) {
+          float val = std::stof(expr.data);
+          std::string res = std::to_string(std::atan(val));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = expr.data + "\n";
+        c.useInternalFunction("internal_float_atan");
+        c.useInternalFunction("internal_float_atan2");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.value set from storage {0}:global expr_float{1}\n"
+          "function {0}:internal/loom/internal_float_atan with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "atan2",
+      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData yExpr = c.compileExpression(args[0], id, true);
+
+        if (yExpr.type.isInteger()) {
+          yExpr = compileCast(c, yExpr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!yExpr.type.isFloat()) return std::nullopt;
+
+        Compiler::ExpressionData xExpr = c.compileExpression(args[1], id + 1, true);
+
+        if (xExpr.type.isInteger()) {
+          xExpr = compileCast(c, xExpr, Compiler::Type::FloatType(), id, precompute, node).value();
+        } else if (!xExpr.type.isFloat()) return std::nullopt;
+
+        if (yExpr.precomputed && xExpr.precomputed) {
+          float yVal = std::stof(yExpr.data);
+          float xVal = std::stof(xExpr.data);
+          std::string res = std::to_string(std::atan2(yVal, xVal));
+          if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
+          return Compiler::ExpressionData{
+            .data = std::format("data modify storage {}:global expr_float{} set value {}f", c.getDatapackNamespace(), id, res),
+            .precomputed = false,
+            .type = Compiler::Type::FloatType()
+          };
+        }
+
+        std::string cmds = yExpr.data + "\n" + xExpr.data + "\n";
+        c.useInternalFunction("internal_float_atan2");
+        cmds += std::format(
+          "data modify storage {0}:global macro_args set value {{out_id: {1}}}\n"
+          "data modify storage {0}:global macro_args.y set from storage {0}:global expr_float{1}\n"
+          "data modify storage {0}:global macro_args.x set from storage {0}:global expr_float{2}\n"
+          "function {0}:internal/loom/internal_float_atan2 with storage {0}:global macro_args",
+          c.getDatapackNamespace(),
+          id,
+          id + 1
+        );
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = Compiler::Type::FloatType()};
+      }
+    );
+  }
 };
 
 std::unique_ptr<TypeHandler> createFloatHandler() { return std::make_unique<FloatHandler>(); }

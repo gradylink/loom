@@ -17,7 +17,7 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] References
 - [ ] Struct methods (and constructor)
 - [ ] Maps
-- [ ] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
+- [x] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
       `sin`, `cos`, `tan`, `asin`, `acos`)
 - [x] Boolean conditional optimizations
 - [ ] Function references
@@ -35,6 +35,7 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] C++-based parser (allowing for improved error detection)
 - [ ] `any` type
 - [ ] Variant types
+- [ ] C++-based language server
 - [ ] `comptime` keyword
 
 ## Credits
