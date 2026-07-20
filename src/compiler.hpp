@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -172,6 +173,11 @@ public:
     }
   }
 
+  using BuiltinCompileCallback =
+    std::function<std::optional<ExpressionData>(Compiler &compiler, const std::vector<TSNode> &argNodes, unsigned int id, bool precompute, TSNode node)>;
+  void registerBuiltin(const std::string &name, BuiltinCompileCallback callback);
+  bool isBuiltin(const std::string &name) const { return builtins.count(name) > 0; }
+
 private:
   const std::string datapackNamespace;
   const std::string source;
@@ -186,6 +192,8 @@ private:
   std::unordered_map<std::string, EnumData> enums;
   std::unordered_map<std::string, StructData> structs;
   std::vector<CompiledFunction> compiledFunctions;
+
+  std::unordered_map<std::string, BuiltinCompileCallback> builtins;
 
   unsigned int currentExpressionId = 0;
   unsigned int currentGeneratedFunction = 0;

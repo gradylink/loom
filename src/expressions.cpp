@@ -328,13 +328,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       argNodes.push_back(ts_node_named_child(node, i));
     }
 
-    if (!argNodes.empty()) {
-      Compiler::ExpressionData firstArg = compileExpression(argNodes[0], id, true);
-      if (TypeHandler *handler = getHandler(firstArg.type)) {
-        if (auto optResult = handler->compileBuiltinFunction(*this, targetFunc, argNodes, id, precompute, node)) {
-          return optResult.value();
-        }
-      }
+    if (const auto &it = builtins.find(targetFunc); it != builtins.end()) {
+      if (auto optResult = it->second(*this, argNodes, id, precompute, node)) return optResult.value();
     }
 
     if (funcs.find(targetFunc) == funcs.end()) {

@@ -10,6 +10,8 @@ class TypeHandler {
 public:
   virtual ~TypeHandler() = default;
 
+  virtual void registerBuiltins(Compiler &compiler) const {}
+
   virtual bool handles(const Compiler::Type &type) const = 0;
 
   virtual std::optional<Compiler::ExpressionData> compileBinaryOp(
@@ -20,11 +22,6 @@ public:
 
   virtual std::optional<Compiler::ExpressionData>
   compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, TSNode node) const {
-    return std::nullopt;
-  }
-
-  virtual std::optional<Compiler::ExpressionData>
-  compileBuiltinFunction(Compiler &compiler, std::string_view funcName, const std::vector<TSNode> &argNodes, unsigned int id, bool precompute, TSNode node) const {
     return std::nullopt;
   }
 
@@ -43,7 +40,10 @@ class TypeRegistry {
   std::vector<std::unique_ptr<TypeHandler>> handlers;
 
 public:
-  void registerHandler(std::unique_ptr<TypeHandler> handler) { handlers.push_back(std::move(handler)); }
+  void registerHandler(Compiler &compiler, std::unique_ptr<TypeHandler> handler) {
+    handlers.push_back(std::move(handler));
+    handlers.back()->registerBuiltins(compiler);
+  }
 
   const TypeHandler *findHandler(const Compiler::Type &type) const {
     for (const auto &h : handlers) {

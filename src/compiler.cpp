@@ -37,13 +37,13 @@ Compiler::~Compiler() {
 }
 
 void Compiler::registerDefaultTypeHandlers() {
-  typeRegistry->registerHandler(createIntegerHandler());
-  typeRegistry->registerHandler(createFloatHandler());
-  typeRegistry->registerHandler(createBooleanHandler());
-  typeRegistry->registerHandler(createStringHandler());
-  typeRegistry->registerHandler(createListHandler());
-  typeRegistry->registerHandler(createEnumHandler());
-  typeRegistry->registerHandler(createStructHandler());
+  typeRegistry->registerHandler(*this, createIntegerHandler());
+  typeRegistry->registerHandler(*this, createFloatHandler());
+  typeRegistry->registerHandler(*this, createBooleanHandler());
+  typeRegistry->registerHandler(*this, createStringHandler());
+  typeRegistry->registerHandler(*this, createListHandler());
+  typeRegistry->registerHandler(*this, createEnumHandler());
+  typeRegistry->registerHandler(*this, createStructHandler());
 }
 
 TypeHandler *Compiler::getHandler(const Type &type) { return const_cast<TypeHandler *>(typeRegistry->findHandler(type)); }
@@ -76,7 +76,7 @@ Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const 
 std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, bool isGlobal) {
   TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
   const std::string name = std::string(getNodeText(nameNode));
-  if (name == "append" || name == "remove" || name == "insert" || name == "len") {
+  if (isBuiltin(name)) {
     throw std::runtime_error(formatError(nameNode, "Reserved name."));
   }
 
@@ -136,6 +136,18 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
     }
   }
   return ret;
+}
+
+void Compiler::registerBuiltin(const std::string &name, BuiltinCompileCallback callback) {
+  if (builtins.count(name)) {
+    auto existing = builtins[name];
+    builtins[name] = [existing, callback](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<ExpressionData> {
+      if (auto res = callback(c, args, id, precompute, node)) return res;
+      return existing(c, args, id, precompute, node);
+    };
+  } else {
+    builtins[name] = std::move(callback);
+  }
 }
 
 std::vector<Compiler::CompiledFunction> Compiler::compile() {
@@ -402,7 +414,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     if (type == "enum_definition") {
       TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
       const std::string &enumName = std::string(getNodeText(nameNode));
-      if (enumName == "append" || enumName == "remove" || enumName == "insert" || enumName == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
+      if (isBuiltin(enumName)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
       EnumData enumData = {.name = enumName};
 
@@ -477,7 +489,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     if (type == "struct_definition") {
       TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
       const std::string &structName = std::string(getNodeText(nameNode));
-      if (structName == "append" || structName == "remove" || structName == "insert" || structName == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
+      if (isBuiltin(structName)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
       StructData structData = {.name = structName};
 
@@ -511,7 +523,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       std::string name = std::string(getNodeText(nameNode));
       std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-      if (name == "append" || name == "remove" || name == "insert" || name == "len") throw std::runtime_error(formatError(nameNode, "Reserved name."));
+      if (isBuiltin(name)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
       std::optional<std::string> tag = std::nullopt;
       TSNode tagNode = ts_node_child_by_field_name(child, "tag", 3);

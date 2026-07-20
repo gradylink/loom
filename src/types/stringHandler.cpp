@@ -61,80 +61,96 @@ public:
     return Compiler::ExpressionData{.data = runtimeCmds, .precomputed = false, .type = Compiler::Type::StringType()};
   }
 
-  std::optional<Compiler::ExpressionData>
-  compileBuiltinFunction(Compiler &compiler, std::string_view funcName, const std::vector<TSNode> &argNodes, unsigned int id, bool precompute, TSNode node) const override {
+  void registerBuiltins(Compiler &compiler) const override {
+    compiler.registerBuiltin(
+      "len",
+      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData objExpr = c.compileExpression(args[0], id, true);
+        if (!objExpr.type.isString()) return std::nullopt; // Let next handler try
 
-    if (funcName == "len") {
-      Compiler::ExpressionData objExpr = compiler.compileExpression(argNodes[0], id, true);
-      if (!objExpr.type.isString()) return std::nullopt;
+        if (objExpr.precomputed) {
+          std::string rawStr = objExpr.data;
+          size_t length = (rawStr.size() >= 2 && rawStr.front() == '"' && rawStr.back() == '"') ? rawStr.size() - 2 : rawStr.size();
+          if (!precompute)
+            return Compiler::ExpressionData{
+              .data = std::format("scoreboard players set expr_output{} temp {}", id, length),
+              .precomputed = false,
+              .type = Compiler::Type::IntegerType()
+            };
+          return Compiler::ExpressionData{.data = std::to_string(length), .precomputed = true, .type = Compiler::Type::IntegerType()};
+        }
 
-      if (objExpr.precomputed) {
-        std::string rawStr = objExpr.data;
-        size_t length = (rawStr.size() >= 2 && rawStr.front() == '"' && rawStr.back() == '"') ? rawStr.size() - 2 : rawStr.size();
-        if (!precompute)
-          return Compiler::ExpressionData{
-            .data = std::format("scoreboard players set expr_output{} temp {}", id, length),
-            .precomputed = false,
-            .type = Compiler::Type::IntegerType()
-          };
-        return Compiler::ExpressionData{.data = std::to_string(length), .precomputed = true, .type = Compiler::Type::IntegerType()};
+        return Compiler::ExpressionData{
+          .data = std::format("{}\nexecute store result score expr_output{} temp run data get storage {}:global expr_str{}", objExpr.data, id, c.getDatapackNamespace(), id),
+          .precomputed = false,
+          .type = Compiler::Type::IntegerType()
+        };
       }
+    );
 
-      return Compiler::ExpressionData{
-        .data =
-          std::format("{}\nexecute store result score expr_output{} temp run data get storage {}:global expr_str{}", objExpr.data, id, compiler.getDatapackNamespace(), id),
-        .precomputed = false,
-        .type = Compiler::Type::IntegerType()
-      };
-    }
+    compiler.registerBuiltin(
+      "append",
+      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData strExpr = c.compileExpression(args[0], id, true);
+        if (!strExpr.type.isString()) return std::nullopt;
 
-    if (funcName == "append" || funcName == "remove" || funcName == "insert") {
-      Compiler::ExpressionData strExpr = compiler.compileExpression(argNodes[0], id, true);
-      if (!strExpr.type.isString()) return std::nullopt;
+        std::string cmds = strExpr.data + "\n";
+        if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, strExpr.data);
 
-      std::string cmds = strExpr.data + "\n";
-      if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", compiler.getDatapackNamespace(), id, strExpr.data);
+        Compiler::ExpressionData elemExpr = c.compileExpression(args[1], id + 1, true);
+        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append non-string to a string."));
 
-      if (funcName == "append") {
-        Compiler::ExpressionData elemExpr = compiler.compileExpression(argNodes[1], id + 1, true);
-        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(argNodes[1], "Type mismatch: cannot append non-string to a string."));
         cmds += elemExpr.data + "\n";
         if (elemExpr.precomputed) {
-          compiler.useInternalFunction("internal_string_append");
+          c.useInternalFunction("internal_string_append");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, value: {2}}}\n"
             "function {0}:internal/loom/internal_string_append with storage {0}:global macro_args\n",
-            compiler.getDatapackNamespace(),
+            c.getDatapackNamespace(),
             id,
             elemExpr.data
           );
         } else {
-          compiler.useInternalFunction("internal_string_append_str");
+          c.useInternalFunction("internal_string_append_str");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
             "function {0}:internal/loom/internal_string_append_str with storage {0}:global macro_args\n",
-            compiler.getDatapackNamespace(),
+            c.getDatapackNamespace(),
             id,
             id + 1
           );
         }
-      } else if (funcName == "remove") {
-        Compiler::ExpressionData idxExpr = compiler.compileExpression(argNodes[1], id + 1, true);
-        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(argNodes[1], "Index must evaluate to an integer."));
+
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = strExpr.type};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "remove",
+      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData strExpr = c.compileExpression(args[0], id, true);
+        if (!strExpr.type.isString()) return std::nullopt;
+
+        std::string cmds = strExpr.data + "\n";
+        if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, strExpr.data);
+
+        Compiler::ExpressionData idxExpr = c.compileExpression(args[1], id + 1, true);
+        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
+
         cmds += idxExpr.data + "\n";
         if (idxExpr.precomputed) {
           int idxVal = std::stoi(idxExpr.data);
-          compiler.useInternalFunction("internal_string_remove");
+          c.useInternalFunction("internal_string_remove");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, index_plus_one: {3}}}\n"
             "function {0}:internal/loom/internal_string_remove with storage {0}:global macro_args\n",
-            compiler.getDatapackNamespace(),
+            c.getDatapackNamespace(),
             id,
             idxVal,
             idxVal + 1
           );
         } else {
-          compiler.useInternalFunction("internal_string_remove");
+          c.useInternalFunction("internal_string_remove");
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}}}\n"
             "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{2} temp\n"
@@ -142,35 +158,50 @@ public:
             "scoreboard players add expr_output3 temp 1\n"
             "execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get expr_output3 temp\n"
             "function {0}:internal/loom/internal_string_remove with storage {0}:global macro_args\n",
-            compiler.getDatapackNamespace(),
+            c.getDatapackNamespace(),
             id,
             id + 1
           );
         }
-      } else { // insert
-        Compiler::ExpressionData idxExpr = compiler.compileExpression(argNodes[1], id + 1, true);
-        Compiler::ExpressionData elemExpr = compiler.compileExpression(argNodes[2], id + 2, true);
-        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(argNodes[1], "Index must evaluate to an integer."));
-        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(argNodes[2], "Type mismatch: cannot insert non-string into a string."));
+
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = strExpr.type};
+      }
+    );
+
+    compiler.registerBuiltin(
+      "insert",
+      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData strExpr = c.compileExpression(args[0], id, true);
+        if (!strExpr.type.isString()) return std::nullopt;
+
+        std::string cmds = strExpr.data + "\n";
+        if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, strExpr.data);
+
+        Compiler::ExpressionData idxExpr = c.compileExpression(args[1], id + 1, true);
+        Compiler::ExpressionData elemExpr = c.compileExpression(args[2], id + 2, true);
+
+        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
+        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert non-string into a string."));
+
         cmds += idxExpr.data + "\n" + elemExpr.data + "\n";
 
         if (idxExpr.precomputed) {
           if (elemExpr.precomputed) {
-            compiler.useInternalFunction("internal_string_insert_value");
+            c.useInternalFunction("internal_string_insert_value");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, value: {3}}}\n"
               "function {0}:internal/loom/internal_string_insert_value with storage {0}:global macro_args\n",
-              compiler.getDatapackNamespace(),
+              c.getDatapackNamespace(),
               id,
               idxExpr.data,
               elemExpr.data
             );
           } else {
-            compiler.useInternalFunction("internal_string_insert_str");
+            c.useInternalFunction("internal_string_insert_str");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, index: {2}, elem_id: {3}}}\n"
               "function {0}:internal/loom/internal_string_insert_str with storage {0}:global macro_args\n",
-              compiler.getDatapackNamespace(),
+              c.getDatapackNamespace(),
               id,
               idxExpr.data,
               id + 2
@@ -180,35 +211,32 @@ public:
           cmds += std::format(
             "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"
             "execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output{3} temp\n",
-            compiler.getDatapackNamespace(),
+            c.getDatapackNamespace(),
             id,
             id + 2,
             id + 1
           );
           if (elemExpr.precomputed) {
-            compiler.useInternalFunction("internal_string_insert_value");
+            c.useInternalFunction("internal_string_insert_value");
             cmds += std::format(
               "data modify storage {0}:global macro_args.value set value {1}\n"
               "function {0}:internal/loom/internal_string_insert_value with storage {0}:global macro_args\n",
-              compiler.getDatapackNamespace(),
+              c.getDatapackNamespace(),
               elemExpr.data
             );
           } else {
-            compiler.useInternalFunction("internal_string_insert_str");
-            cmds += std::format("function {0}:internal/loom/internal_string_insert_str with storage {0}:global macro_args\n", compiler.getDatapackNamespace());
+            c.useInternalFunction("internal_string_insert_str");
+            cmds += std::format("function {0}:internal/loom/internal_string_insert_str with storage {0}:global macro_args\n", c.getDatapackNamespace());
           }
         }
+
+        return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = strExpr.type};
       }
-
-      return Compiler::ExpressionData{.data = cmds, .precomputed = false, .type = strExpr.type};
-    }
-
-    return std::nullopt;
+    );
   }
 
   std::optional<Compiler::ExpressionData>
   compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
-
     if (targetType.isInteger()) {
       if (expr.precomputed) {
         std::string raw = expr.data;

@@ -34,7 +34,7 @@ struct SwizzleStruct {
 }
 
 #load func load() {
-  const testStruct = SwizzleStruct{ item1: SickStruct{ item1: 1, item2: "hello" }, item2: ["sick", "string", "list"] };
+  let testStruct = SwizzleStruct{ item1: SickStruct{ item1: 1, item2: "hello" }, item2: ["sick", "string", "list"] };
 
   let myListTest: string[] = ["swizzle magic", "swizzle magic but index 1"];
   myListTest = append(myListTest, "omg!!")
