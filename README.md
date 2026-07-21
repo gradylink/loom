@@ -11,8 +11,6 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Inlining const literals
 - [x] Structs
 - [x] Casting
-- [ ] Force casting (e.g. `int`/`string`/`float` -> `enum`, `string` ->
-      `&func<>`)
 - [ ] Function overloading
 - [ ] References
 - [ ] Struct methods (and constructor)
@@ -20,7 +18,10 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
       `sin`, `cos`, `tan`, `asin`, `acos`)
 - [x] Boolean conditional optimizations
+- [ ] Package Management
 - [ ] Function references
+- [ ] Force casting (e.g. `int`/`string`/`float` -> `enum`, `string` ->
+      `&func<>`)
 - [ ] Custom type definitions
 - [ ] Data access
 - [ ] Classes
@@ -29,7 +30,6 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] String-based functions
 - [ ] Lambda functions
 - [ ] Inline advancements and dialogs
-- [ ] Package Management
 - [ ] CLI Utils
 - [ ] Bitwise
 - [ ] C++-based parser (allowing for improved error detection)
