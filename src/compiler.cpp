@@ -66,9 +66,9 @@ Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const 
   if (typeText == "bool") return Type::BooleanType();
   if (typeText == "string") return Type::StringType();
   if (typeText == "float") return Type::FloatType();
-  const auto &it = enums.find(typeText);
+  const auto it = findInMap(enums, typeText);
   if (it != enums.end()) return Type::EnumTypeOf(&it->second);
-  const auto &itStruct = structs.find(typeText);
+  const auto itStruct = findInMap(structs, typeText);
   if (itStruct != structs.end()) return Type::StructTypeOf(&itStruct->second);
   throw std::runtime_error(std::format("Unknown type: {}", typeText));
 }
@@ -112,24 +112,25 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
     }
   }
 
+  const std::string fullVarName = isGlobal ? prefixName(name) : name;
   std::string mangled = name;
   if (!isExtern) mangled += "_" + randomMangleString();
 
-  if (vars.contains(name)) {
+  if (vars.contains(fullVarName)) {
     throw std::runtime_error(formatError(nameNode, "Variable '" + name + "' is already defined in this scope."));
   }
 
   if (isExtern) {
     static std::unordered_set<std::string> globalExternVars;
-    if (globalExternVars.contains(name)) {
+    if (globalExternVars.contains(fullVarName)) {
       throw std::runtime_error(
         formatError(nameNode, "Extern variable '" + name + "' is already defined elsewhere. Multiple definitions of the same extern variable are not allowed.")
       );
     }
-    globalExternVars.insert(name);
+    globalExternVars.insert(fullVarName);
   }
 
-  vars.emplace(name, VariableData{.name = name, .mangledName = mangled, .type = varType, .scope = scope, .value = value, .constant = constant, .exported = isExport});
+  vars.emplace(fullVarName, VariableData{.name = fullVarName, .mangledName = mangled, .type = varType, .scope = scope, .value = value, .constant = constant, .exported = isExport});
 
   std::string ret = "";
   if (!value.has_value() || !constant || isExport) {
@@ -601,9 +602,36 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      )}
   );
 
-  for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
-    TSNode child = ts_node_named_child(root, i);
+  currentNamespacePrefix = "";
+  processDeclarations(root);
+
+  currentNamespacePrefix = "";
+  processCompilation(root);
+
+  return compiledFunctions;
+}
+
+void Compiler::processDeclarations(TSNode parentNode) {
+  uint32_t startIdx = 0;
+  if (std::string(ts_node_type(parentNode)) == "namespace_definition") {
+    startIdx = 1;
+  }
+  for (uint32_t i = startIdx; i < ts_node_named_child_count(parentNode); i++) {
+    TSNode child = ts_node_named_child(parentNode, i);
     std::string type = ts_node_type(child);
+
+    if (type == "namespace_definition") {
+      std::string nsName = std::string(getFieldText(child, "name"));
+      std::string oldPrefix = currentNamespacePrefix;
+      if (currentNamespacePrefix.empty()) {
+        currentNamespacePrefix = nsName;
+      } else {
+        currentNamespacePrefix = currentNamespacePrefix + "::" + nsName;
+      }
+      processDeclarations(child);
+      currentNamespacePrefix = oldPrefix;
+      continue;
+    }
 
     if (type == "import_statement") {
       std::string importPathStr = std::string(getFieldText(child, "path"));
@@ -630,54 +658,69 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       Compiler importCompiler(importedSource, datapackNamespace, absPath.parent_path());
       std::vector<CompiledFunction> importedFuncs = importCompiler.compile();
 
+      TSNode aliasNode = ts_node_child_by_field_name(child, "alias", 5);
+      std::string aliasName = "";
+      if (!ts_node_is_null(aliasNode)) {
+        aliasName = std::string(getNodeText(aliasNode));
+      }
+
       for (const auto &[name, overloads] : importCompiler.funcs) {
+        std::string importedName = aliasName.empty() ? name : aliasName + "::" + name;
+        std::transform(importedName.begin(), importedName.end(), importedName.begin(), ::tolower);
         for (const auto &funcData : overloads) {
           if (funcData.exported) {
-            for (const auto &existingFunc : funcs[name]) {
+            for (const auto &existingFunc : funcs[importedName]) {
               if (existingFunc.params == funcData.params) {
-                throw std::runtime_error("Compilation Error: Imported function '" + name + "' collides with an existing function signature.");
+                throw std::runtime_error("Compilation Error: Imported function '" + importedName + "' collides with an existing function signature.");
               }
               if (!funcData.internal && !existingFunc.internal) {
-                throw std::runtime_error("Compilation Error: Imported extern function '" + name + "' collides with an existing extern function.");
+                throw std::runtime_error("Compilation Error: Imported extern function '" + importedName + "' collides with an existing extern function.");
               }
             }
 
             FunctionData localFunc = funcData;
+            localFunc.name = importedName;
             localFunc.exported = false;
-            funcs[name].push_back(localFunc);
+            funcs[importedName].push_back(localFunc);
           }
         }
       }
 
       for (const auto &[name, varData] : importCompiler.vars) {
         if (!varData.exported) continue;
-        if (vars.contains(name)) {
-          throw std::runtime_error("Compilation Error: Imported variable '" + name + "' collides with an existing variable.");
+        std::string importedName = aliasName.empty() ? name : aliasName + "::" + name;
+        if (vars.contains(importedName)) {
+          throw std::runtime_error("Compilation Error: Imported variable '" + importedName + "' collides with an existing variable.");
         }
 
-        vars[name] = varData;
-        vars[name].scope = root;
-        vars[name].exported = false;
+        vars[importedName] = varData;
+        vars[importedName].name = importedName;
+        vars[importedName].scope = root;
+        vars[importedName].exported = false;
       }
 
       for (const auto &[name, enumData] : importCompiler.enums) {
         if (!enumData.exported) continue;
-        if (enums.contains(name)) {
-          throw std::runtime_error("Compilation Error: Imported enum '" + name + "' collides with an existing enum.");
+        std::string importedName = aliasName.empty() ? name : aliasName + "::" + name;
+        if (enums.contains(importedName)) {
+          throw std::runtime_error("Compilation Error: Imported enum '" + importedName + "' collides with an existing enum.");
         }
 
-        enums[name] = enumData;
-        enums[name].exported = false;
+        enums[importedName] = enumData;
+        enums[importedName].name = importedName;
+        enums[importedName].exported = false;
       }
 
       for (const auto &[name, structData] : importCompiler.structs) {
         if (!structData.exported) continue;
-        if (structs.contains(name)) {
-          throw std::runtime_error("Compilation Error: Imported struct '" + name + "' collides with an existing struct.");
+        std::string importedName = aliasName.empty() ? name : aliasName + "::" + name;
+        if (structs.contains(importedName)) {
+          throw std::runtime_error("Compilation Error: Imported struct '" + importedName + "' collides with an existing struct.");
         }
 
-        structs[name] = structData;
-        structs[name].exported = false;
+        structs[importedName] = structData;
+        structs[importedName].name = importedName;
+        structs[importedName].exported = false;
       }
 
       for (const auto &func : importedFuncs) {
@@ -704,7 +747,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       const std::string &enumName = std::string(getNodeText(nameNode));
       if (isBuiltin(enumName)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
-      EnumData enumData = {.name = enumName};
+      std::string fullEnumName = prefixName(enumName);
+      EnumData enumData = {.name = fullEnumName};
 
       bool typeKnown = false;
       int32_t nextValue = 0;
@@ -770,7 +814,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         }
       }
 
-      enums[enumName] = enumData;
+      enums[fullEnumName] = enumData;
       continue;
     }
 
@@ -779,7 +823,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       const std::string &structName = std::string(getNodeText(nameNode));
       if (isBuiltin(structName)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
-      StructData structData = {.name = structName};
+      std::string fullStructName = prefixName(structName);
+      StructData structData = {.name = fullStructName};
 
       for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
         TSNode fieldNode = ts_node_named_child(child, j);
@@ -802,16 +847,17 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         }
       }
 
-      structs[structName] = std::move(structData);
+      structs[fullStructName] = std::move(structData);
       continue;
     }
 
     if (type == "function_definition") {
       TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
       std::string name = std::string(getNodeText(nameNode));
-      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+      std::string fullName = prefixName(name);
+      std::transform(fullName.begin(), fullName.end(), fullName.begin(), ::tolower);
 
-      if (isBuiltin(name)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
+      if (isBuiltin(fullName)) throw std::runtime_error(formatError(nameNode, "Reserved name."));
 
       std::optional<std::string> tag = std::nullopt;
       TSNode tagNode = ts_node_child_by_field_name(child, "tag", 3);
@@ -851,7 +897,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       std::string mangledName = name;
       if (!isExtern) mangledName += "_" + randomFunctionMangleString();
 
-      for (const auto &func : funcs[name]) {
+      for (const auto &func : funcs[fullName]) {
         if (func.params == paramTypes) throw std::runtime_error(formatError(nameNode, "Function with name '" + name + "', already exists."));
         if (isExtern && !func.internal) {
           throw std::runtime_error(formatError(nameNode, "Cannot have multiple extern overloads for function '" + name + "'."));
@@ -860,21 +906,40 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
       if (isExtern) {
         static std::unordered_set<std::string> globalExternFuncs;
-        if (globalExternFuncs.contains(name)) {
+        if (globalExternFuncs.contains(fullName)) {
           throw std::runtime_error(
             formatError(nameNode, "Extern function '" + name + "' is already defined elsewhere. Multiple definitions of the same extern function are not allowed.")
           );
         }
-        globalExternFuncs.insert(name);
+        globalExternFuncs.insert(fullName);
       }
 
-      funcs[name].push_back({.name = name, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern});
+      funcs[fullName].push_back({.name = fullName, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern});
     }
   }
+}
 
-  for (uint32_t i = 0; i < ts_node_named_child_count(root); i++) {
-    TSNode child = ts_node_named_child(root, i);
+void Compiler::processCompilation(TSNode parentNode) {
+  uint32_t startIdx = 0;
+  if (std::string(ts_node_type(parentNode)) == "namespace_definition") {
+    startIdx = 1;
+  }
+  for (uint32_t i = startIdx; i < ts_node_named_child_count(parentNode); i++) {
+    TSNode child = ts_node_named_child(parentNode, i);
     const std::string type = ts_node_type(child);
+
+    if (type == "namespace_definition") {
+      std::string nsName = std::string(getFieldText(child, "name"));
+      std::string oldPrefix = currentNamespacePrefix;
+      if (currentNamespacePrefix.empty()) {
+        currentNamespacePrefix = nsName;
+      } else {
+        currentNamespacePrefix = currentNamespacePrefix + "::" + nsName;
+      }
+      processCompilation(child);
+      currentNamespacePrefix = oldPrefix;
+      continue;
+    }
 
     if (type == "variable_declaration") {
       globalInit += compileVariableDeclaration(child, root, true);
@@ -883,7 +948,8 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
     if (type == "function_definition") {
       std::string name = std::string(getFieldText(child, "name"));
-      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+      std::string fullName = prefixName(name);
+      std::transform(fullName.begin(), fullName.end(), fullName.begin(), ::tolower);
 
       TSNode blockNode = ts_node_child_by_field_name(child, "block", 5);
 
@@ -900,7 +966,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       }
 
       const FunctionData *currentOverload = nullptr;
-      for (const auto &func : funcs[name]) {
+      for (const auto &func : funcs[fullName]) {
         if (func.params == paramTypes) {
           currentOverload = &func;
           break;
@@ -908,7 +974,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       }
 
       if (!currentOverload) {
-        throw std::runtime_error(formatError(child, "Compiler Error: Could not find matching function signature in symbol table for '" + name + "'."));
+        throw std::runtime_error(formatError(child, "Compiler Error: Could not find matching function signature in symbol table for '" + fullName + "'."));
       }
 
       std::string paramSetup = "";
@@ -947,9 +1013,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       continue;
     }
 
-    if (type != "comment" && type != "enum_definition" && type != "struct_definition" && type != "import_statement")
+    if (type != "comment" && type != "enum_definition" && type != "struct_definition" && type != "import_statement" && type != "namespace_definition")
       throw std::runtime_error(formatError(child, "Invalid global statement: " + type));
   }
-
-  return compiledFunctions;
 }

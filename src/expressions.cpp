@@ -115,7 +115,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     TSNode nameNode = ts_node_child_by_field_name(node, "name", 4);
     std::string structName = std::string(getNodeText(nameNode));
 
-    auto it = structs.find(structName);
+    auto it = findInMap(structs, structName);
     if (it == structs.end()) {
       throw std::runtime_error(formatError(nameNode, "Unknown struct type: " + structName));
     }
@@ -242,7 +242,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       // enum
     }
 
-    const auto &enumIt = enums.find(obj);
+    const auto enumIt = findInMap(enums, obj);
     if (enumIt != enums.end()) {
       const auto &enumRef = enumIt->second;
 
@@ -332,7 +332,8 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       if (auto optResult = it->second(*this, argNodes, id, precompute, node)) return optResult.value();
     }
 
-    if (funcs.find(targetFunc) == funcs.end()) {
+    auto funcIt = findInMap(funcs, targetFunc, true);
+    if (funcIt == funcs.end()) {
       throw std::runtime_error(formatError(node, "Unknown function: " + targetFunc));
     }
 
@@ -344,7 +345,7 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       argTypes.push_back(argExpr.type);
     }
 
-    const auto &overloads = funcs[targetFunc];
+    const auto &overloads = funcIt->second;
     const auto *selectedOverload = static_cast<const std::decay_t<decltype(overloads[0])> *>(nullptr);
 
     for (const auto &overload : overloads) {
@@ -476,50 +477,51 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
   if (type == "variable_ref") {
     const std::string targetVar = std::string(getFieldText(node, "name"));
 
-    if (vars.find(targetVar) == vars.end()) {
+    auto varIt = findInMap(vars, targetVar);
+    if (varIt == vars.end()) {
       throw std::runtime_error(formatError(node, "Unknown variable used in expression: " + targetVar));
     }
 
-    if (vars[targetVar].value.has_value()) {
+    const auto &varData = varIt->second;
+    if (varData.value.has_value()) {
       if (precompute) {
-        return {.data = vars[targetVar].value.value(), .precomputed = true, .type = vars[targetVar].type};
+        return {.data = varData.value.value(), .precomputed = true, .type = varData.type};
       }
-      if (vars[targetVar].type.isString() || vars[targetVar].type.isList() || vars[targetVar].type.isStruct()) {
+      if (varData.type.isString() || varData.type.isList() || varData.type.isStruct()) {
         return {
-          .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, vars[targetVar].value.value()),
+          .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, varData.value.value()),
           .precomputed = false,
-          .type = vars[targetVar].type
+          .type = varData.type
         };
       }
-      if (vars[targetVar].type.isFloat()) {
+      if (varData.type.isFloat()) {
         return {
-          .data = std::format("data modify storage {}:global expr_float{} set value {}f", datapackNamespace, id, vars[targetVar].value.value()),
+          .data = std::format("data modify storage {}:global expr_float{} set value {}f", datapackNamespace, id, varData.value.value()),
           .precomputed = false,
-          .type = vars[targetVar].type
+          .type = varData.type
         };
       }
-      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, vars[targetVar].value.value()), .precomputed = false, .type = vars[targetVar].type};
+      return {.data = std::format("scoreboard players set expr_output{} temp {}", id, varData.value.value()), .precomputed = false, .type = varData.type};
     }
 
-    if (vars[targetVar].type.isString() || vars[targetVar].type.isList() || vars[targetVar].type.isStruct()) {
+    if (varData.type.isString() || varData.type.isList() || varData.type.isStruct()) {
       return {
         .data =
-          std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
+          std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.mangledName),
         .precomputed = false,
-        .type = vars[targetVar].type
+        .type = varData.type
       };
     }
 
-    if (vars[targetVar].type.isFloat()) {
+    if (varData.type.isFloat()) {
       return {
         .data =
-          std::format("data modify storage {}:global expr_float{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, vars[targetVar].mangledName),
+          std::format("data modify storage {}:global expr_float{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.mangledName),
         .precomputed = false,
-        .type = vars[targetVar].type
+        .type = varData.type
       };
     }
 
-    const auto &varData = vars[targetVar];
     std::string branchCond;
     if (varData.type.isBoolean() || varData.type.isInteger()) {
       branchCond = std::format("if score {} vars matches 1..", varData.mangledName);

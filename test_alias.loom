@@ -1,0 +1,5 @@
+import ./test2.loom as T
+
+#load func load() {
+  say ${T::myExportedVar}
+}

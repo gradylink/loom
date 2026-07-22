@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -215,6 +216,61 @@ private:
 
   unsigned int currentExpressionId = 0;
   unsigned int currentGeneratedFunction = 0;
+
+  std::string currentNamespacePrefix = "";
+
+  void processDeclarations(TSNode parentNode);
+  void processCompilation(TSNode parentNode);
+
+public:
+  std::string prefixName(const std::string &name) const {
+    if (currentNamespacePrefix.empty()) return name;
+    return currentNamespacePrefix + "::" + name;
+  }
+
+  template<typename T>
+  typename std::unordered_map<std::string, T>::const_iterator findInMap(const std::unordered_map<std::string, T> &map, const std::string &name, bool toLower = false) const {
+    std::string searchName = name;
+    if (toLower) {
+      std::transform(searchName.begin(), searchName.end(), searchName.begin(), ::tolower);
+    }
+    if (searchName.starts_with("::")) {
+      return map.find(searchName.substr(2));
+    }
+
+    std::vector<std::string> parts;
+    if (!currentNamespacePrefix.empty()) {
+      size_t pos = 0;
+      std::string s = currentNamespacePrefix;
+      while ((pos = s.find("::")) != std::string::npos) {
+        parts.push_back(s.substr(0, pos));
+        s.erase(0, pos + 2);
+      }
+      parts.push_back(s);
+    }
+
+    for (int i = (int)parts.size(); i >= 0; --i) {
+      std::string candidate = "";
+      for (int j = 0; j < i; ++j) {
+        candidate += parts[j] + "::";
+      }
+      candidate += searchName;
+      auto it = map.find(candidate);
+      if (it != map.end()) return it;
+    }
+    return map.end();
+  }
+
+  template<typename T>
+  std::string resolveSymbolName(const std::unordered_map<std::string, T> &map, const std::string &name, bool toLower = false) const {
+    auto it = findInMap(map, name, toLower);
+    if (it != map.end()) return it->first;
+    std::string searchName = name;
+    if (toLower) {
+      std::transform(searchName.begin(), searchName.end(), searchName.begin(), ::tolower);
+    }
+    return prefixName(searchName);
+  }
 
 public:
   std::unique_ptr<TypeRegistry> typeRegistry;

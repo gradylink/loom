@@ -28,6 +28,7 @@ module.exports = grammar({
 
   conflicts: ($) => [
     [$.selector],
+    [$.namespaced_identifier, $.namespaced_arg],
   ],
 
   rules: {
@@ -50,13 +51,14 @@ module.exports = grammar({
           $.return_statement,
           $.function_call,
           $.context_statement,
+          $.namespace_definition,
         ),
         choice(";", $._newline),
       ),
 
     _newline: () => /\n/,
 
-    import_statement: ($) => seq("import", field("path", $.path)),
+    import_statement: ($) => seq("import", field("path", $.path), optional(seq("as", field("alias", $.identifier)))),
 
     path: () => /[\.\/a-zA-Z0-9_-]+\.loom/,
 
@@ -104,7 +106,7 @@ module.exports = grammar({
 
     struct_expression: ($) =>
       seq(
-        field("name", $.identifier),
+        field("name", $.namespaced_identifier),
         "{",
         optional($._newline),
         multilineCommaSep($.struct_expression_field),
@@ -134,7 +136,7 @@ module.exports = grammar({
 
     assignment: ($) =>
       seq(
-        field("name", $.identifier),
+        field("name", $.namespaced_identifier),
         repeat(choice($.index_access, $.property_access)),
         "=",
         field("value", $._expression),
@@ -441,13 +443,13 @@ module.exports = grammar({
 
     function_call: ($) =>
       seq(
-        field("name", $.identifier),
+        field("name", $.namespaced_identifier),
         "(",
         field("arguments", commaSep($._expression)),
         ")",
       ),
 
-    variable_ref: ($) => prec(2, field("name", $.identifier)),
+    variable_ref: ($) => prec(2, field("name", $.namespaced_identifier)),
 
     selector: ($) =>
       choice(
@@ -485,9 +487,11 @@ module.exports = grammar({
 
     swizzle: () => /x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx/,
 
+    namespaced_identifier: ($) => seq($.identifier, repeat(seq("::", $.identifier))),
+
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
-    type: ($) => choice($.identifier, $.list_type),
+    type: ($) => choice($.namespaced_identifier, $.list_type),
     list_type: ($) => seq($.type, "[]"),
 
     string_literal: ($) =>
@@ -554,5 +558,14 @@ module.exports = grammar({
     _modifier: () => choice("export", "extern"),
 
     comment: () => token(seq("--", /.*/)),
+
+    namespace_definition: ($) =>
+      seq(
+        "namespace",
+        field("name", $.identifier),
+        "{",
+        repeat(choice($._statement, $._newline)),
+        "}",
+      ),
   },
 });

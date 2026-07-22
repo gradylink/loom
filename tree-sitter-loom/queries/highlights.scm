@@ -2,10 +2,13 @@
 "return" @keyword.return
 "import" @keyword.import
 ["export" "extern"] @keyword.storage
-["let" "const" "enum" "struct"] @keyword.storage
+["let" "const" "enum" "struct" "namespace"] @keyword.storage
 ["if" "else"] @keyword.conditional
 ["while" "do" "for"] @keyword.repeat
 (for "in" @keyword.repeat)
+(import_statement "as" @keyword.import)
+(import_statement alias: (identifier) @module)
+(namespace_definition name: (identifier) @module)
 
 ["as" "at" "align" "anchored" "facing" "on" "positioned" "rotated"] @keyword.conditional
 (contextModifier "in" @keyword.conditional)
@@ -33,24 +36,25 @@
 (member_expression property: (identifier) @property)
 
 (member_expression
-  object: (variable_ref name: (identifier) @type)
+  object: (variable_ref name: (namespaced_identifier) @type)
   property: (identifier) @constant
   (#match? @type "^[A-Z]")
   (#match? @constant "^[A-Z]"))
 
 (function_definition name: (identifier) @function)
-(function_call name: (identifier) @function.call)
+(function_call name: (namespaced_identifier) @function.call)
 (variable_declaration name: (identifier) @variable)
 (parameter name: (identifier) @variable.parameter)
-(assignment name: (identifier) @variable)
+(assignment name: (namespaced_identifier) @variable)
 (for iterator: (identifier) @variable)
-(variable_ref name: (identifier) @variable.reference)
+(variable_ref name: (namespaced_identifier) @variable.reference)
+
+(namespaced_identifier) @module
 
 (command_name) @function.builtin
 (command_arg) @string
 (string_literal) @string
 
-(type (identifier) @type)
 (swizzle) @type
 (integer) @number
 (float) @number
@@ -60,14 +64,15 @@
 
 ".." @operator
 "=" @operator
+"::" @punctuation.delimiter
 (unary_expression operator: _ @operator)
 (binary_expression operator: _ @operator)
-(struct_expression name: (identifier) @type)
+(struct_expression name: (namespaced_identifier) @type)
 (struct_expression_field name: (identifier) @property)
-[":" ";" "(" ")" "{" "}" "," "[" "]" "[]" "!" "."] @punctuation.delimiter
+[":" ";" "(" ")" "{" "}" "," "[" "]" "[]" "!"] @punctuation.delimiter
 
 (comment) @comment @spell
 
 (interpolation ["${" "}"] @punctuation.special)
 
-(function_call name: (identifier) @function.builtin (#match? @function.builtin "^(append|remove|insert|len)$"))
+(function_call name: (namespaced_identifier) @function.builtin (#match? @function.builtin "^(append|remove|insert|len)$"))

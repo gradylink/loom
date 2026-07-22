@@ -79,6 +79,10 @@
             {
               "type": "SYMBOL",
               "name": "context_statement"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "namespace_definition"
             }
           ]
         },
@@ -115,6 +119,31 @@
             "type": "SYMBOL",
             "name": "path"
           }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "as"
+                },
+                {
+                  "type": "FIELD",
+                  "name": "alias",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         }
       ]
     },
@@ -418,7 +447,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "identifier"
+            "name": "namespaced_identifier"
           }
         },
         {
@@ -645,7 +674,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "identifier"
+            "name": "namespaced_identifier"
           }
         },
         {
@@ -2308,7 +2337,7 @@
           "name": "name",
           "content": {
             "type": "SYMBOL",
-            "name": "identifier"
+            "name": "namespaced_identifier"
           }
         },
         {
@@ -2366,7 +2395,7 @@
         "name": "name",
         "content": {
           "type": "SYMBOL",
-          "name": "identifier"
+          "name": "namespaced_identifier"
         }
       }
     },
@@ -2500,6 +2529,31 @@
       "type": "PATTERN",
       "value": "x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx"
     },
+    "namespaced_identifier": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "identifier"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "::"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "identifier"
+              }
+            ]
+          }
+        }
+      ]
+    },
     "identifier": {
       "type": "PATTERN",
       "value": "[a-z_][a-z0-9_]*",
@@ -2510,7 +2564,7 @@
       "members": [
         {
           "type": "SYMBOL",
-          "name": "identifier"
+          "name": "namespaced_identifier"
         },
         {
           "type": "SYMBOL",
@@ -2748,6 +2802,47 @@
           }
         ]
       }
+    },
+    "namespace_definition": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "namespace"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "identifier"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_statement"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "_newline"
+              }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
     }
   },
   "extras": [
@@ -2763,6 +2858,10 @@
   "conflicts": [
     [
       "selector"
+    ],
+    [
+      "namespaced_identifier",
+      "namespaced_arg"
     ]
   ],
   "precedences": [],

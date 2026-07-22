@@ -6,6 +6,7 @@
   "patterns": [
     { "include": "#comment" },
     { "include": "#import" },
+    { "include": "#namespace-definition" },
     { "include": "#function-definition" },
     { "include": "#enum-definition" },
     { "include": "#variable-declaration" },
@@ -31,10 +32,21 @@
 
     "import": {
       "name": "meta.import.loom",
-      "match": "\\b(import)\\b\\s+([\\./a-zA-Z0-9_-]+\\.loom)",
+      "match": "\\b(import)\\b\\s+([\\./a-zA-Z0-9_-]+\\.loom)(?:\\s+(as)\\s+([a-zA-Z_][a-zA-Z0-9_]*))?",
       "captures": {
         "1": { "name": "keyword.control.import.loom" },
-        "2": { "name": "string.other.path.loom" }
+        "2": { "name": "string.other.path.loom" },
+        "3": { "name": "keyword.control.as.loom" },
+        "4": { "name": "entity.name.namespace.loom" }
+      }
+    },
+
+    "namespace-definition": {
+      "name": "meta.namespace.loom",
+      "match": "\\b(namespace)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "keyword.declaration.namespace.loom" },
+        "2": { "name": "entity.name.namespace.loom" }
       }
     },
 

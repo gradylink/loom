@@ -11,7 +11,7 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Inlining const literals
 - [x] Structs
 - [x] Casting
-- [ ] Namespaces
+- [x] Namespaces
 - [x] Function overloading
 - [ ] References
 - [ ] Maps
