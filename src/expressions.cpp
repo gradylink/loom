@@ -336,29 +336,90 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
       throw std::runtime_error(formatError(node, "Unknown function: " + targetFunc));
     }
 
-    const unsigned int targetSize = funcs[targetFunc].params.size();
-    if (argNodes.size() != targetSize) {
-      throw std::runtime_error(formatError(node, std::format("Function '{}' expects {} arguments, got {}", targetFunc, targetSize, argNodes.size())));
+    std::vector<ExpressionData> compiledArgs;
+    std::vector<Type> argTypes;
+    for (const auto &argNode : argNodes) {
+      ExpressionData argExpr = compileExpression(argNode);
+      compiledArgs.push_back(argExpr);
+      argTypes.push_back(argExpr.type);
+    }
+
+    const auto &overloads = funcs[targetFunc];
+    const auto *selectedOverload = static_cast<const std::decay_t<decltype(overloads[0])> *>(nullptr);
+
+    for (const auto &overload : overloads) {
+      if (overload.params.size() == argTypes.size()) {
+        bool exactMatch = true;
+        for (size_t i = 0; i < argTypes.size(); i++) {
+          if (argTypes[i] != overload.params[i]) {
+            exactMatch = false;
+            break;
+          }
+        }
+        if (exactMatch) {
+          selectedOverload = &overload;
+          break;
+        }
+      }
+    }
+
+    if (!selectedOverload) {
+      std::vector<const std::decay_t<decltype(overloads[0])> *> bestMatches;
+      int minPromotions = 999999; // Track the lowest number of promotions needed
+
+      for (const auto &overload : overloads) {
+        if (overload.params.size() == argTypes.size()) {
+          bool canPromote = true;
+          int promotionCount = 0;
+
+          for (size_t i = 0; i < argTypes.size(); i++) {
+            if (argTypes[i] != overload.params[i]) {
+              if (argTypes[i].isInteger() && overload.params[i].isFloat()) {
+                promotionCount++;
+              } else {
+                canPromote = false;
+                break;
+              }
+            }
+          }
+
+          if (canPromote) {
+            if (promotionCount < minPromotions) {
+              minPromotions = promotionCount;
+              bestMatches.clear();
+              bestMatches.push_back(&overload);
+            } else if (promotionCount == minPromotions) {
+              bestMatches.push_back(&overload);
+            }
+          }
+        }
+      }
+
+      if (bestMatches.size() == 1) {
+        selectedOverload = bestMatches[0];
+      } else if (bestMatches.size() > 1) {
+        throw std::runtime_error(formatError(node, std::format("Ambiguous function call: multiple overloads match for '{}' with equally valid type promotions.", targetFunc)));
+      }
+    }
+
+    if (!selectedOverload) {
+      throw std::runtime_error(formatError(node, std::format("No matching overload found for function '{}' with the provided argument types.", targetFunc)));
     }
 
     std::string argPushData = "";
-    for (size_t i = 0; i < argNodes.size(); i++) {
-      ExpressionData argExpr = compileExpression(argNodes[i]);
+    for (size_t i = 0; i < compiledArgs.size(); i++) {
+      ExpressionData argExpr = compiledArgs[i];
 
-      if (argExpr.type != funcs[targetFunc].params[i]) {
-        if (argExpr.type.isInteger() && funcs[targetFunc].params[i].isFloat()) {
-          std::optional<ExpressionData> casted = std::nullopt;
-          if (TypeHandler *handler = getHandler(argExpr.type)) {
-            casted = handler->compileCast(*this, argExpr, funcs[targetFunc].params[i], id + 1, false, argNodes[i]);
-          }
+      if (argExpr.type != selectedOverload->params[i]) {
+        std::optional<ExpressionData> casted = std::nullopt;
+        if (TypeHandler *handler = getHandler(argExpr.type)) {
+          casted = handler->compileCast(*this, argExpr, selectedOverload->params[i], id + 1, false, argNodes[i]);
+        }
 
-          if (casted.has_value()) {
-            argExpr = casted.value();
-          } else {
-            throw std::runtime_error(formatError(argNodes[i], std::format("Argument {} type mismatch for function '{}'", i + 1, targetFunc)));
-          }
+        if (casted.has_value()) {
+          argExpr = casted.value();
         } else {
-          throw std::runtime_error(formatError(argNodes[i], std::format("Argument {} type mismatch for function '{}'", i + 1, targetFunc)));
+          throw std::runtime_error(formatError(argNodes[i], std::format("Failed to promote argument {} for function '{}'", i + 1, targetFunc)));
         }
       }
 
@@ -394,18 +455,18 @@ Compiler::ExpressionData Compiler::compileExpression(TSNode node, unsigned int i
     }
 
     Type funcType = Type::IntegerType();
-    if (funcs[targetFunc].returnType.has_value()) funcType = funcs[targetFunc].returnType.value();
+    if (selectedOverload->returnType.has_value()) funcType = selectedOverload->returnType.value();
 
     std::string callCommand;
-    if (!funcs[targetFunc].returnType.has_value()) {
-      callCommand = std::format("function {}:{}{}", datapackNamespace, funcs[targetFunc].internal ? "internal/" : "", funcs[targetFunc].mangledName);
+    if (!selectedOverload->returnType.has_value()) {
+      callCommand = std::format("function {}:{}{}", datapackNamespace, selectedOverload->internal ? "internal/" : "", selectedOverload->mangledName);
     } else {
       callCommand = std::format(
         "execute store result score expr_output{} temp run function {}:{}{}",
         id,
         datapackNamespace,
-        funcs[targetFunc].internal ? "internal/" : "",
-        funcs[targetFunc].mangledName
+        selectedOverload->internal ? "internal/" : "",
+        selectedOverload->mangledName
       );
     }
 

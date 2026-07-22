@@ -115,6 +115,20 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   std::string mangled = name;
   if (!isExtern) mangled += "_" + randomMangleString();
 
+  if (vars.contains(name)) {
+    throw std::runtime_error(formatError(nameNode, "Variable '" + name + "' is already defined in this scope."));
+  }
+
+  if (isExtern) {
+    static std::unordered_set<std::string> globalExternVars;
+    if (globalExternVars.contains(name)) {
+      throw std::runtime_error(
+        formatError(nameNode, "Extern variable '" + name + "' is already defined elsewhere. Multiple definitions of the same extern variable are not allowed.")
+      );
+    }
+    globalExternVars.insert(name);
+  }
+
   vars.emplace(name, VariableData{.name = name, .mangledName = mangled, .type = varType, .scope = scope, .value = value, .constant = constant, .exported = isExport});
 
   std::string ret = "";
@@ -616,26 +630,54 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       Compiler importCompiler(importedSource, datapackNamespace, absPath.parent_path());
       std::vector<CompiledFunction> importedFuncs = importCompiler.compile();
 
-      for (const auto &[name, funcData] : importCompiler.funcs) {
-        if (funcData.exported) {
-          funcs[name] = funcData;
-          funcs[name].exported = false;
+      for (const auto &[name, overloads] : importCompiler.funcs) {
+        for (const auto &funcData : overloads) {
+          if (funcData.exported) {
+            for (const auto &existingFunc : funcs[name]) {
+              if (existingFunc.params == funcData.params) {
+                throw std::runtime_error("Compilation Error: Imported function '" + name + "' collides with an existing function signature.");
+              }
+              if (!funcData.internal && !existingFunc.internal) {
+                throw std::runtime_error("Compilation Error: Imported extern function '" + name + "' collides with an existing extern function.");
+              }
+            }
+
+            FunctionData localFunc = funcData;
+            localFunc.exported = false;
+            funcs[name].push_back(localFunc);
+          }
         }
       }
 
       for (const auto &[name, varData] : importCompiler.vars) {
-        if (varData.exported) {
-          vars[name] = varData;
-          vars[name].scope = root;
-          vars[name].exported = false;
+        if (!varData.exported) continue;
+        if (vars.contains(name)) {
+          throw std::runtime_error("Compilation Error: Imported variable '" + name + "' collides with an existing variable.");
         }
+
+        vars[name] = varData;
+        vars[name].scope = root;
+        vars[name].exported = false;
       }
 
       for (const auto &[name, enumData] : importCompiler.enums) {
-        if (enumData.exported) {
-          enums[name] = enumData;
-          enums[name].exported = false;
+        if (!enumData.exported) continue;
+        if (enums.contains(name)) {
+          throw std::runtime_error("Compilation Error: Imported enum '" + name + "' collides with an existing enum.");
         }
+
+        enums[name] = enumData;
+        enums[name].exported = false;
+      }
+
+      for (const auto &[name, structData] : importCompiler.structs) {
+        if (!structData.exported) continue;
+        if (structs.contains(name)) {
+          throw std::runtime_error("Compilation Error: Imported struct '" + name + "' collides with an existing struct.");
+        }
+
+        structs[name] = structData;
+        structs[name].exported = false;
       }
 
       for (const auto &func : importedFuncs) {
@@ -748,7 +790,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
         Type fieldType = parseTypeFromString(std::string(getNodeText(typeNode)));
 
-        structData.fields.push_back({.name = fieldName, .type = std::make_unique<Type>(std::move(fieldType))});
+        structData.fields.emplace_back(fieldName, std::make_unique<Type>(std::move(fieldType)));
       }
 
       for (uint32_t j = 0; j < ts_node_child_count(child); j++) {
@@ -809,7 +851,24 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       std::string mangledName = name;
       if (!isExtern) mangledName += "_" + randomFunctionMangleString();
 
-      funcs[name] = {.name = name, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern};
+      for (const auto &func : funcs[name]) {
+        if (func.params == paramTypes) throw std::runtime_error(formatError(nameNode, "Function with name '" + name + "', already exists."));
+        if (isExtern && !func.internal) {
+          throw std::runtime_error(formatError(nameNode, "Cannot have multiple extern overloads for function '" + name + "'."));
+        }
+      }
+
+      if (isExtern) {
+        static std::unordered_set<std::string> globalExternFuncs;
+        if (globalExternFuncs.contains(name)) {
+          throw std::runtime_error(
+            formatError(nameNode, "Extern function '" + name + "' is already defined elsewhere. Multiple definitions of the same extern function are not allowed.")
+          );
+        }
+        globalExternFuncs.insert(name);
+      }
+
+      funcs[name].push_back({.name = name, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern});
     }
   }
 
@@ -829,11 +888,27 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
       TSNode blockNode = ts_node_child_by_field_name(child, "block", 5);
 
       std::vector<TSNode> paramNodes;
+      std::vector<Type> paramTypes;
       for (uint32_t j = 0; j < ts_node_named_child_count(child); j++) {
         TSNode pNode = ts_node_named_child(child, j);
         if (std::string(ts_node_type(pNode)) == "parameter") {
           paramNodes.push_back(pNode);
+
+          std::string pTypeStr = std::string(getFieldText(pNode, "type"));
+          paramTypes.push_back(parseTypeFromString(pTypeStr));
         }
+      }
+
+      const FunctionData *currentOverload = nullptr;
+      for (const auto &func : funcs[name]) {
+        if (func.params == paramTypes) {
+          currentOverload = &func;
+          break;
+        }
+      }
+
+      if (!currentOverload) {
+        throw std::runtime_error(formatError(child, "Compiler Error: Could not find matching function signature in symbol table for '" + name + "'."));
       }
 
       std::string paramSetup = "";
@@ -866,7 +941,9 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
         paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
       }
 
-      compiledFunctions.push_back({.name = funcs[name].mangledName, .data = paramSetup + compileBlock(blockNode), .tag = funcs[name].tag, .internal = funcs[name].internal});
+      compiledFunctions.push_back(
+        {.name = currentOverload->mangledName, .data = paramSetup + compileBlock(blockNode), .tag = currentOverload->tag, .internal = currentOverload->internal}
+      );
       continue;
     }
 
@@ -876,5 +953,3 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
 
   return compiledFunctions;
 }
-
-;

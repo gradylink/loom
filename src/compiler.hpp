@@ -56,18 +56,7 @@ public:
     bool exported = false;
   };
 
-  struct Type;
-
-  struct StructField {
-    std::string name;
-    std::unique_ptr<Type> type;
-  };
-
-  struct StructData {
-    std::string name;
-    std::vector<StructField> fields;
-    bool exported = false;
-  };
+  struct StructData;
 
   struct Type {
     enum Kind { Integer, Boolean, String, Enum, List, Float, Struct } kind = Integer;
@@ -129,6 +118,35 @@ public:
     bool isList() const { return kind == List; }
     bool isStruct() const { return kind == Struct; }
   };
+
+  struct StructField {
+    std::string name;
+    std::unique_ptr<Type> type;
+
+    StructField() = default;
+
+    StructField(std::string n, std::unique_ptr<Type> t) : name(std::move(n)), type(std::move(t)) {}
+
+    StructField(const StructField &o) : name(o.name), type(o.type ? std::make_unique<Type>(*o.type) : nullptr) {}
+
+    StructField &operator=(const StructField &o) {
+      if (this != &o) {
+        name = o.name;
+        type = o.type ? std::make_unique<Type>(*o.type) : nullptr;
+      }
+      return *this;
+    }
+
+    StructField(StructField &&) noexcept = default;
+    StructField &operator=(StructField &&) noexcept = default;
+  };
+
+  struct StructData {
+    std::string name;
+    std::vector<StructField> fields;
+    bool exported = false;
+  };
+
   struct FunctionData {
     std::string name;
     std::string mangledName;
@@ -187,7 +205,7 @@ private:
   TSTree *tree;
   TSNode root;
 
-  std::unordered_map<std::string, FunctionData> funcs;
+  std::unordered_map<std::string, std::vector<FunctionData>> funcs;
   std::unordered_map<std::string, VariableData> vars;
   std::unordered_map<std::string, EnumData> enums;
   std::unordered_map<std::string, StructData> structs;

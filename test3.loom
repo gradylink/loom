@@ -1,4 +1,15 @@
+func overloaded(arg: int) {
+  say ${arg}
+}
+
+func overloaded(arg: string) {
+  say ${arg}
+}
+
 #load func load() {
+  overloaded("hi");
+  overloaded(1);
+
   let myVar: bool = true;
 
   let x: int = myVar ? 1 : 0;

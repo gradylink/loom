@@ -11,15 +11,16 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Inlining const literals
 - [x] Structs
 - [x] Casting
-- [ ] Function overloading
+- [ ] Namespaces
+- [x] Function overloading
 - [ ] References
-- [ ] Struct methods (and constructor)
 - [ ] Maps
 - [x] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
       `sin`, `cos`, `tan`, `asin`, `acos`)
 - [x] Boolean conditional optimizations
 - [ ] Package Management
 - [ ] Function references
+- [ ] Struct methods (and constructor)
 - [ ] Force casting (e.g. `int`/`string`/`float` -> `enum`, `string` ->
       `&func<>`)
 - [ ] Custom type definitions
