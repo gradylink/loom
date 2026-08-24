@@ -13,7 +13,7 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Casting
 - [x] Namespaces
 - [x] Function overloading
-- [ ] References
+- [x] References
 - [ ] Maps
 - [x] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
       `sin`, `cos`, `tan`, `asin`, `acos`)
