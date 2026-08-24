@@ -468,14 +468,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "storage:\"{0}:global\",path:\"_sqrt_x\"}}]}}]}}}}\n"
        "data modify storage {0}:global _sqrt_add_res set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
 
-       "data modify storage {0}:global _temp_mul set value [1f,0f,0f,1f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_mul[15] set value 0.5f\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_mul\n"
-       "data modify storage {0}:global _temp_var1 set value [1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_var1[3] set from storage {0}:global _sqrt_add_res\n"
-       "data modify storage {0}:global _temp_var1[15] set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_var1\n"
-       "data modify storage {0}:global _sqrt_x set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
+       "item modify block 18483211 -64 14504281 container.0 "
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:product,operands:[{{type:storage,storage:\"{0}:global\",path:\"_sqrt_add_res\"}},{{type:"
+       "constant,value:0.5}}]}}]}}}}\n"
+       "data modify storage {0}:global _sqrt_x set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
 
        "execute store result score _iters temp run data get storage {0}:global _sqrt_iters\n"
        "scoreboard players add _iters temp 1\n"
@@ -487,14 +483,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   internalFunctions.push_back(
     {.name = "internal_float_sin",
      .data = std::format(
-       "data modify storage {0}:global _temp_mul set value [1f,0f,0f,1f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_mul[15] set value 57.29578f\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_mul\n"
-       "data modify storage {0}:global _temp_var1 set value [1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_var1[3] set from storage {0}:global macro_args.value\n"
-       "data modify storage {0}:global _temp_var1[15] set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_var1\n"
-       "data modify storage {0}:global macro_args.yaw set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
+       "item modify block 18483211 -64 14504281 container.0 "
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:product,operands:[{{type:storage,storage:\"{0}:global\",path:\"macro_args.value\"}},{{type:"
+       "constant,value:57.29578}}]}}]}}}}\n"
+       "data modify storage {0}:global macro_args.yaw set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
        "function {0}:internal/loom/internal_float_sin_tp with storage {0}:global macro_args",
        datapackNamespace
      )}
@@ -514,14 +506,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   internalFunctions.push_back(
     {.name = "internal_float_cos",
      .data = std::format(
-       "data modify storage {0}:global _temp_mul set value [1f,0f,0f,1f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_mul[15] set value 57.29578f\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_mul\n"
-       "data modify storage {0}:global _temp_var1 set value [1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_var1[3] set from storage {0}:global macro_args.value\n"
-       "data modify storage {0}:global _temp_var1[15] set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_var1\n"
-       "data modify storage {0}:global macro_args.yaw set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
+       "item modify block 18483211 -64 14504281 container.0 "
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:product,operands:[{{type:storage,storage:\"{0}:global\",path:\"macro_args.value\"}},{{type:"
+       "constant,value:57.29578}}]}}]}}}}\n"
+       "data modify storage {0}:global macro_args.yaw set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
        "function {0}:internal/loom/internal_float_cos_tp with storage {0}:global macro_args",
        datapackNamespace
      )}
@@ -566,14 +554,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "execute as 6c6f6f6d-0-0-0-ffff at @s facing entity 6c6f6f6d-0-0-0-aaaa run teleport @s ~ ~ ~ ~ ~\n"
        "data modify storage {0}:global _temp_degrees set from entity 6c6f6f6d-0-0-0-ffff Rotation[0]\n"
 
-       "data modify storage {0}:global _temp_mul set value [1f,0f,0f,1f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_mul[15] set value 0.0174533f\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_mul\n"
-       "data modify storage {0}:global _temp_var1 set value [1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f,0f,0f,0f,0f,1f]\n"
-       "data modify storage {0}:global _temp_var1[3] set from storage {0}:global _temp_degrees\n"
-       "data modify storage {0}:global _temp_var1[15] set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
-       "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_var1\n"
-       "$data modify storage {0}:global expr_float$(out_id) set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]",
+       "item modify block 18483211 -64 14504281 container.0 "
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:product,operands:[{{type:storage,storage:\"{0}:global\",path:\"_temp_degrees\"}},{{type:"
+       "constant,value:0.0174533}}]}}]}}}}\n"
+       "$data modify storage {0}:global expr_float$(out_id) set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]",
        datapackNamespace
      )}
   );
@@ -1090,11 +1074,9 @@ void Compiler::processCompilation(TSNode parentNode) {
             );
           }
 
-          // The refname args compound persists for the duration of the call.
           std::string argsKey = std::format("vars.{}_refargs", mangledName);
           refParamCopybacks.emplace_back(argsKey, copyBackFuncName);
 
-          // Param setup: pop caller's mangled name string, stash it, call copy-in.
           paramSetup += std::format("data modify storage {0}:global {1} set value {{}}\n", datapackNamespace, argsKey);
           paramSetup += std::format("data modify storage {0}:global {1}.refname set from storage {0}:stack regs[-1]\n", datapackNamespace, argsKey);
           paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
@@ -1116,8 +1098,6 @@ void Compiler::processCompilation(TSNode parentNode) {
       }
 
       std::string funcBody = compileBlock(blockNode);
-      // Append ref copybacks at the implicit function exit (void functions with no explicit return).
-      // return_statement already injects them mid-function; this handles fall-through.
       funcBody += currentFuncRefCopybacks;
       compiledFunctions.push_back({.name = currentOverload->mangledName, .data = paramSetup + funcBody, .tag = currentOverload->tag, .internal = currentOverload->internal});
       continue;
