@@ -6,10 +6,12 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <tree_sitter/api.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -60,9 +62,10 @@ public:
   struct StructData;
 
   struct Type {
-    enum Kind { Integer, Boolean, String, Enum, List, Float, Struct } kind = Integer;
+    enum Kind { Integer, Boolean, String, Enum, List, Float, Struct, Reference } kind = Integer;
     const EnumData *enumRef = nullptr;
     const StructData *structRef = nullptr;
+    bool isReference = false;
 
     std::unique_ptr<Type> baseType = nullptr;
 
@@ -77,6 +80,7 @@ public:
     static Type EnumTypeOf(const EnumData *ref) { return {Enum, ref, nullptr, nullptr}; }
     static Type StructTypeOf(const StructData *ref) { return {Struct, nullptr, ref, nullptr}; }
     static Type ListTypeOf(Type type) { return {List, nullptr, nullptr, std::make_unique<Type>(std::move(type))}; }
+    static Type RefTypeOf(Type type) { return {Reference, nullptr, nullptr, std::make_unique<Type>(std::move(type))}; }
 
     Type(const Type &o) : kind(o.kind), enumRef(o.enumRef), structRef(o.structRef), baseType(o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr) {}
 
@@ -118,6 +122,9 @@ public:
     }
     bool isList() const { return kind == List; }
     bool isStruct() const { return kind == Struct; }
+    bool isRef() const { return kind == Reference; }
+
+    const Type &deref() const { return isRef() ? *baseType : *this; }
   };
 
   struct StructField {
@@ -168,6 +175,10 @@ public:
 
     bool constant = false;
     bool exported = false;
+
+    std::optional<std::string> refTargetMangledName = std::nullopt;
+
+    std::string getStorageName() const { return refTargetMangledName.value_or(mangledName); }
   };
 
   struct ExpressionData {
@@ -187,15 +198,19 @@ public:
     for (auto &func : internalFunctions) {
       if (func.name == name) {
         func.used = true;
-        break;
+        return;
       }
     }
+
+    throw std::runtime_error("Failed to find internal function: " + name);
   }
 
   using BuiltinCompileCallback =
     std::function<std::optional<ExpressionData>(Compiler &compiler, const std::vector<TSNode> &argNodes, unsigned int id, bool precompute, TSNode node)>;
   void registerBuiltin(const std::string &name, BuiltinCompileCallback callback);
   bool isBuiltin(const std::string &name) const { return builtins.count(name) > 0; }
+
+  static std::unordered_set<std::string> globalExternVars;
 
 private:
   const std::string datapackNamespace;
@@ -215,9 +230,11 @@ private:
   std::unordered_map<std::string, BuiltinCompileCallback> builtins;
 
   unsigned int currentExpressionId = 0;
-  unsigned int currentGeneratedFunction = 0;
 
   std::string currentNamespacePrefix = "";
+
+  std::string currentFuncRefCopybacks = "";
+  int controlFlowDepth = 0;
 
   void processDeclarations(TSNode parentNode);
   void processCompilation(TSNode parentNode);
@@ -228,7 +245,7 @@ public:
     return currentNamespacePrefix + "::" + name;
   }
 
-  template<typename T>
+  template <typename T>
   typename std::unordered_map<std::string, T>::const_iterator findInMap(const std::unordered_map<std::string, T> &map, const std::string &name, bool toLower = false) const {
     std::string searchName = name;
     if (toLower) {
@@ -261,8 +278,7 @@ public:
     return map.end();
   }
 
-  template<typename T>
-  std::string resolveSymbolName(const std::unordered_map<std::string, T> &map, const std::string &name, bool toLower = false) const {
+  template <typename T> std::string resolveSymbolName(const std::unordered_map<std::string, T> &map, const std::string &name, bool toLower = false) const {
     auto it = findInMap(map, name, toLower);
     if (it != map.end()) return it->first;
     std::string searchName = name;
@@ -288,9 +304,12 @@ public:
   std::string_view getNodeText(TSNode node);
   std::string_view getFieldText(TSNode node, const std::string &field);
 
+  std::optional<VariableData> lookupVariable(const std::string &name) const;
+
   Type parseTypeFromString(const std::string &typeText) const;
 
   ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
+  ExpressionData compileExpressionImpl(TSNode node, unsigned int id = 1, bool precompute = true);
 
   std::string compileVariableDeclaration(TSNode child, TSNode scope, bool isGlobal);
 

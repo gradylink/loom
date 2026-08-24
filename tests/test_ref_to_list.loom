@@ -1,0 +1,7 @@
+let nums: int[] = [1,2,3];
+let rnums: &int[] = &nums;
+
+func main() {
+  let l = len(rnums);
+  say ${l};
+}

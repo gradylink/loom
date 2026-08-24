@@ -54,7 +54,7 @@ public:
         }
 
         std::string runtimeCmds;
-        if (fieldType.isString() || fieldType.isList() || fieldType.kind == Compiler::Type::Struct) {
+        if (fieldType.isString() || fieldType.isList() || fieldType.kind == Compiler::Type::Struct || fieldType.isRef()) {
           runtimeCmds = std::format("data modify storage {}:global expr_str{} set value {}\n", compiler.getDatapackNamespace(), id, extractedValue);
         } else if (fieldType.isFloat()) {
           runtimeCmds = std::format("data modify storage {}:global expr_float{} set value {}\n", compiler.getDatapackNamespace(), id, extractedValue);
@@ -66,7 +66,7 @@ public:
 
       std::string runtimeCmds = std::format("data modify storage {}:global expr_str{} set value {}\n", compiler.getDatapackNamespace(), id, object.data);
 
-      if (fieldType.isString() || fieldType.isList() || fieldType.kind == Compiler::Type::Struct) {
+      if (fieldType.isString() || fieldType.isList() || fieldType.kind == Compiler::Type::Struct || fieldType.isRef()) {
         runtimeCmds += std::format(
           "data modify storage {}:global expr_str{} set from storage {}:global expr_str{}.{}\n",
           compiler.getDatapackNamespace(),
@@ -93,7 +93,7 @@ public:
 
     std::string runtimeCmds = object.data + "\n";
 
-    if (fieldType.isString() || fieldType.isList() || fieldType.kind == Compiler::Type::Struct) {
+    if (fieldType.isString() || fieldType.isList() || fieldType.kind == Compiler::Type::Struct || fieldType.isRef()) {
       runtimeCmds += std::format(
         "data modify storage {}:global expr_str{} set from storage {}:global expr_str{}.{}\n",
         compiler.getDatapackNamespace(),

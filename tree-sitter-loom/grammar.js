@@ -58,7 +58,12 @@ module.exports = grammar({
 
     _newline: () => /\n/,
 
-    import_statement: ($) => seq("import", field("path", $.path), optional(seq("as", field("alias", $.identifier)))),
+    import_statement: ($) =>
+      seq(
+        "import",
+        field("path", $.path),
+        optional(seq("as", field("alias", $.identifier))),
+      ),
 
     path: () => /[\.\/a-zA-Z0-9_-]+\.loom/,
 
@@ -296,6 +301,7 @@ module.exports = grammar({
         $.list_expression,
         $.cast_expression,
         $.struct_expression,
+        $.reference_expression,
       ),
 
     ternary_expression: ($) =>
@@ -439,6 +445,9 @@ module.exports = grammar({
         ),
       ),
 
+    reference_expression: ($) =>
+      prec(10, seq("&", field("target", $.variable_ref))),
+
     list_expression: ($) => seq("[", commaSep($._expression), "]"),
 
     function_call: ($) =>
@@ -487,12 +496,16 @@ module.exports = grammar({
 
     swizzle: () => /x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx/,
 
-    namespaced_identifier: ($) => seq($.identifier, repeat(seq("::", $.identifier))),
+    namespaced_identifier: ($) =>
+      seq($.identifier, repeat(seq("::", $.identifier))),
 
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
-    type: ($) => choice($.namespaced_identifier, $.list_type),
+    type: ($) =>
+      choice($.namespaced_identifier, $.list_type, $.ref_type, $.paren_type),
     list_type: ($) => seq($.type, "[]"),
+    ref_type: ($) => prec(1, seq("&", $.type)),
+    paren_type: ($) => seq("(", $.type, ")"),
 
     string_literal: ($) =>
       choice(

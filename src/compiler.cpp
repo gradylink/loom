@@ -19,6 +19,8 @@ extern "C" const TSLanguage *tree_sitter_loom(void);
 
 #include "utils.hpp"
 
+std::unordered_set<std::string> Compiler::globalExternVars;
+
 Compiler::Compiler(const std::string_view &source, const std::string &datapackNamespace, std::filesystem::path currentDir)
     : source(source), datapackNamespace(datapackNamespace), currentDir(currentDir) {
   parser = ts_parser_new();
@@ -57,20 +59,42 @@ std::string_view Compiler::getNodeText(TSNode node) {
 
 std::string_view Compiler::getFieldText(TSNode node, const std::string &field) { return getNodeText(ts_node_child_by_field_name(node, field.c_str(), field.length())); }
 
+std::optional<Compiler::VariableData> Compiler::lookupVariable(const std::string &name) const {
+  auto it = findInMap(vars, name);
+  if (it != vars.end()) return it->second;
+  return std::nullopt;
+}
+
 Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const {
-  if (typeText.ends_with("[]")) {
-    return Type::ListTypeOf(parseTypeFromString(typeText.substr(0, typeText.length() - 2)));
+  auto trim = [](std::string s) {
+    while (!s.empty() && isspace((unsigned char)s.front())) s.erase(s.begin());
+    while (!s.empty() && isspace((unsigned char)s.back())) s.pop_back();
+    return s;
+  };
+
+  std::string t = trim(typeText);
+
+  while (!t.empty() && t.front() == '(' && t.back() == ')') {
+    t = trim(t.substr(1, t.size() - 2));
   }
 
-  if (typeText == "int") return Type::IntegerType();
-  if (typeText == "bool") return Type::BooleanType();
-  if (typeText == "string") return Type::StringType();
-  if (typeText == "float") return Type::FloatType();
-  const auto it = findInMap(enums, typeText);
+  if (!t.empty() && t.front() == '&') {
+    return Type::RefTypeOf(parseTypeFromString(t.substr(1)));
+  }
+
+  if (t.size() >= 2 && t.substr(t.size() - 2) == "[]") {
+    return Type::ListTypeOf(parseTypeFromString(t.substr(0, t.size() - 2)));
+  }
+
+  if (t == "int") return Type::IntegerType();
+  if (t == "bool") return Type::BooleanType();
+  if (t == "string") return Type::StringType();
+  if (t == "float") return Type::FloatType();
+  const auto it = findInMap(enums, t);
   if (it != enums.end()) return Type::EnumTypeOf(&it->second);
-  const auto itStruct = findInMap(structs, typeText);
+  const auto itStruct = findInMap(structs, t);
   if (itStruct != structs.end()) return Type::StructTypeOf(&itStruct->second);
-  throw std::runtime_error(std::format("Unknown type: {}", typeText));
+  throw std::runtime_error(std::format("Unknown type: {}", t));
 }
 
 std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, bool isGlobal) {
@@ -121,7 +145,6 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
   }
 
   if (isExtern) {
-    static std::unordered_set<std::string> globalExternVars;
     if (globalExternVars.contains(fullVarName)) {
       throw std::runtime_error(
         formatError(nameNode, "Extern variable '" + name + "' is already defined elsewhere. Multiple definitions of the same extern variable are not allowed.")
@@ -130,9 +153,33 @@ std::string Compiler::compileVariableDeclaration(TSNode child, TSNode scope, boo
     globalExternVars.insert(fullVarName);
   }
 
-  vars.emplace(fullVarName, VariableData{.name = fullVarName, .mangledName = mangled, .type = varType, .scope = scope, .value = value, .constant = constant, .exported = isExport});
+  std::optional<std::string> refTargetMangledName = std::nullopt;
+  if (varType.isRef()) {
+    if (!expr.precomputed || expr.data.size() < 2 || expr.data.front() != '"' || expr.data.back() != '"') {
+      throw std::runtime_error(formatError(child, "Reference variables must be initialized with a reference to a variable (e.g. &var)."));
+    }
+    refTargetMangledName = expr.data.substr(1, expr.data.size() - 2);
+  }
+
+  vars.emplace(
+    fullVarName,
+    VariableData{
+      .name = fullVarName,
+      .mangledName = mangled,
+      .type = varType,
+      .scope = scope,
+      .value = value,
+      .constant = constant,
+      .exported = isExport,
+      .refTargetMangledName = refTargetMangledName
+    }
+  );
 
   std::string ret = "";
+  if (varType.isRef()) {
+    return ret;
+  }
+
   if (!value.has_value() || !constant || isExport) {
     if (expr.precomputed) {
       if (varType.isString() || varType.isList() || varType.isStruct() || varType.isFloat()) {
@@ -170,7 +217,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   internalFunctions.clear();
 
   internalFunctions.push_back(
-    {.name = "internal_string_concat", .data = std::format("$data modify storage {}:global expr_str$(out_id) set value \"$(left)$(right)\"", datapackNamespace)}
+    {.name = "internal_string_concat", .data = std::format("$data modify storage {}:global expr_str$(out_id) set value '$(left)$(right)'", datapackNamespace)}
   );
   internalFunctions.push_back(
     {.name = "internal_string_slice",
@@ -181,7 +228,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global vars.$(var_name)$(path) 0 $(index)\n"
        "$data modify storage {0}:global macro_args.after set string storage {0}:global vars.$(var_name)$(path) $(index_plus_one)\n"
-       "$data modify storage {0}:global vars.$(var_name)$(path) set value \"$(before)$(value)$(after)\"",
+       "$data modify storage {0}:global vars.$(var_name)$(path) set value '$(before)$(value)$(after)'",
        datapackNamespace
      )}
   );
@@ -190,7 +237,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global vars.$(var_name)$(path) 0 $(index)\n"
        "$data modify storage {0}:global macro_args.after set string storage {0}:global vars.$(var_name)$(path) $(index_plus_one)\n"
-       "$data modify storage {0}:global vars.$(var_name)$(path) set value \"$(before)$(value)$(after)\"",
+       "$data modify storage {0}:global vars.$(var_name)$(path) set value '$(before)$(value)$(after)'",
        datapackNamespace
      )}
   );
@@ -198,7 +245,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
     {.name = "internal_string_append",
      .data = std::format(
        "$data modify storage {0}:global macro_args.left set from storage {0}:global expr_str$(target_id)\n"
-       "$data modify storage {0}:global expr_str$(target_id) set value \"$(left)$(value)\"",
+       "$data modify storage {0}:global expr_str$(target_id) set value '$(left)$(value)'",
        datapackNamespace
      )}
   );
@@ -207,7 +254,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      .data = std::format(
        "$data modify storage {0}:global macro_args.left set from storage {0}:global expr_str$(target_id)\n"
        "$data modify storage {0}:global macro_args.right set from storage {0}:global expr_str$(elem_id)\n"
-       "$data modify storage {0}:global expr_str$(target_id) set value \"$(left)$(right)\"",
+       "$data modify storage {0}:global expr_str$(target_id) set value '$(left)$(right)'",
        datapackNamespace
      )}
   );
@@ -216,7 +263,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
        "$data modify storage {0}:global macro_args.after set string storage {0}:global expr_str$(target_id) $(index_plus_one)\n"
-       "$data modify storage {0}:global expr_str$(target_id) set value \"$(before)$(after)\"",
+       "$data modify storage {0}:global expr_str$(target_id) set value '$(before)$(after)'",
        datapackNamespace
      )}
   );
@@ -225,7 +272,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      .data = std::format(
        "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
        "$data modify storage {0}:global macro_args.after set string storage {0}:global expr_str$(target_id) $(index)\n"
-       "$data modify storage {0}:global expr_str$(target_id) set value \"$(before)$(value)$(after)\"",
+       "$data modify storage {0}:global expr_str$(target_id) set value '$(before)$(value)$(after)'",
        datapackNamespace
      )}
   );
@@ -235,11 +282,10 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "$data modify storage {0}:global macro_args.before set string storage {0}:global expr_str$(target_id) 0 $(index)\n"
        "$data modify storage {0}:global macro_args.after set string storage {0}:global expr_str$(target_id) $(index)\n"
        "$data modify storage {0}:global macro_args.right set from storage {0}:global expr_str$(elem_id)\n"
-       "$data modify storage {0}:global expr_str$(target_id) set value \"$(before)$(right)$(after)\"",
+       "$data modify storage {0}:global expr_str$(target_id) set value '$(before)$(right)$(after)'",
        datapackNamespace
      )}
   );
-
   internalFunctions.push_back(
     {.name = "internal_list_get_primitive",
      .data = std::format("$execute store result score expr_output$(out_id) temp run data get storage {}:global expr_str$(target_id)[$(index)]", datapackNamespace)}
@@ -247,6 +293,15 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   internalFunctions.push_back(
     {.name = "internal_list_get_object",
      .data = std::format("$data modify storage {0}:global expr_str$(out_id) set from storage {0}:global expr_str$(target_id)[$(index)]", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_deref_int", .data = std::format("$scoreboard players operation expr_output$(out_id) temp = $(refname) vars", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_deref_float", .data = std::format("$data modify storage {0}:global expr_float$(out_id) set from storage {0}:global vars.$(refname)", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_deref_object", .data = std::format("$data modify storage {0}:global expr_str$(out_id) set from storage {0}:global vars.$(refname)", datapackNamespace)}
   );
   internalFunctions.push_back(
     {.name = "internal_list_slice",
@@ -306,9 +361,9 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   );
   internalFunctions.push_back(
     {.name = "internal_float_sub_macro",
-     .data = "$item modify block 18483211 -64 14504281 container.0 {function:set_custom_model_data,floats:{values:[{type:sum,summands:[{type:storage,storage:\"" +
+     .data = "$item modify block 18483211 -64 14504281 container.0 {type:set_custom_model_data,floats:{mode:replace_all,values:[{type:sum,summands:[{type:storage,storage:\"" +
              datapackNamespace +
-             ":global\",path:\"macro_args.a\"},{type:score,target:{type:fixed,name:\"#-1\"},score:\"math\",scale:$(text)}],mode:replace_all}]}\n"
+             ":global\",path:\"macro_args.a\"},{type:score,target:{type:fixed,name:\"invert\"},score:\"temp\",scale:$(text)}]}]}}\n"
              "data modify storage " +
              datapackNamespace + ":global macro_args.out set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]"}
   );
@@ -409,7 +464,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "data modify storage {0}:global _sqrt_div_res set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
 
        "item modify block 18483211 -64 14504281 container.0 "
-       "{{function:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"_sqrt_div_res\"}},{{type:storage,"
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"_sqrt_div_res\"}},{{type:storage,"
        "storage:\"{0}:global\",path:\"_sqrt_x\"}}]}}]}}}}\n"
        "data modify storage {0}:global _sqrt_add_res set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
 
@@ -551,7 +606,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "data modify storage {0}:global _asin_neg_sq set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
        "data modify storage {0}:global _asin_one set value 1.0f\n"
        "item modify block 18483211 -64 14504281 container.0 "
-       "{{function:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"_asin_one\"}},{{type:storage,"
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"_asin_one\"}},{{type:storage,"
        "storage:\"{0}:global\",path:\"_asin_neg_sq\"}}]}}]}}}}\n"
        "data modify storage {0}:global _asin_sub set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
 
@@ -586,7 +641,7 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
        "data modify storage {0}:global _acos_neg_sq set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
        "data modify storage {0}:global _acos_one set value 1.0f\n"
        "item modify block 18483211 -64 14504281 container.0 "
-       "{{function:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"_acos_one\"}},{{type:storage,"
+       "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"_acos_one\"}},{{type:storage,"
        "storage:\"{0}:global\",path:\"_acos_neg_sq\"}}]}}]}}}}\n"
        "data modify storage {0}:global _acos_sub set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n"
 
@@ -723,6 +778,12 @@ void Compiler::processDeclarations(TSNode parentNode) {
         structs[importedName].exported = false;
       }
 
+      for (const auto &func : importCompiler.internalFunctions) {
+        if (func.used) {
+          this->useInternalFunction(func.name);
+        }
+      }
+
       for (const auto &func : importedFuncs) {
         compiledFunctions.push_back(func);
       }
@@ -854,6 +915,7 @@ void Compiler::processDeclarations(TSNode parentNode) {
     if (type == "function_definition") {
       TSNode nameNode = ts_node_child_by_field_name(child, "name", 4);
       std::string name = std::string(getNodeText(nameNode));
+      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
       std::string fullName = prefixName(name);
       std::transform(fullName.begin(), fullName.end(), fullName.begin(), ::tolower);
 
@@ -914,7 +976,9 @@ void Compiler::processDeclarations(TSNode parentNode) {
         globalExternFuncs.insert(fullName);
       }
 
-      funcs[fullName].push_back({.name = fullName, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern});
+      funcs[fullName].push_back(
+        {.name = fullName, .mangledName = mangledName, .returnType = retType, .params = paramTypes, .tag = tag, .exported = isExport, .internal = !isExtern}
+      );
     }
   }
 }
@@ -978,12 +1042,13 @@ void Compiler::processCompilation(TSNode parentNode) {
       }
 
       std::string paramSetup = "";
+      std::vector<std::pair<std::string, std::string>> refParamCopybacks;
+
       for (auto it = paramNodes.rbegin(); it != paramNodes.rend(); ++it) {
         TSNode pNode = *it;
         std::string pName = std::string(getFieldText(pNode, "name"));
         std::string pTypeStr = std::string(getFieldText(pNode, "type"));
         Type pType = parseTypeFromString(pTypeStr);
-
         std::string mangledName = pName + "_" + randomMangleString();
 
         vars.emplace(
@@ -998,18 +1063,63 @@ void Compiler::processCompilation(TSNode parentNode) {
           }
         );
 
-        if (pType.isString() || pType.isList() || pType.isFloat()) {
-          paramSetup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
-        } else {
-          paramSetup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
-        }
+        if (pType.isRef()) {
+          const Type &innerType = *pType.baseType;
 
-        paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
+          std::string copyInFuncName = "_ref_copyin_" + randomFunctionMangleString();
+          if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
+            compiledFunctions.push_back(
+              {.name = copyInFuncName,
+               .data = std::format("$data modify storage {0}:global vars.{1} set from storage {0}:global vars.$(refname)\n", datapackNamespace, mangledName)}
+            );
+          } else {
+            compiledFunctions.push_back(
+              {.name = copyInFuncName, .data = std::format("$scoreboard players operation {1} vars = $(refname) vars\n", datapackNamespace, mangledName)}
+            );
+          }
+
+          std::string copyBackFuncName = "_ref_copyback_" + randomFunctionMangleString();
+          if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
+            compiledFunctions.push_back(
+              {.name = copyBackFuncName,
+               .data = std::format("$data modify storage {0}:global vars.$(refname) set from storage {0}:global vars.{1}\n", datapackNamespace, mangledName)}
+            );
+          } else {
+            compiledFunctions.push_back(
+              {.name = copyBackFuncName, .data = std::format("$scoreboard players operation $(refname) vars = {1} vars\n", datapackNamespace, mangledName)}
+            );
+          }
+
+          // The refname args compound persists for the duration of the call.
+          std::string argsKey = std::format("vars.{}_refargs", mangledName);
+          refParamCopybacks.emplace_back(argsKey, copyBackFuncName);
+
+          // Param setup: pop caller's mangled name string, stash it, call copy-in.
+          paramSetup += std::format("data modify storage {0}:global {1} set value {{}}\n", datapackNamespace, argsKey);
+          paramSetup += std::format("data modify storage {0}:global {1}.refname set from storage {0}:stack regs[-1]\n", datapackNamespace, argsKey);
+          paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
+          paramSetup += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, copyInFuncName, datapackNamespace, argsKey);
+
+        } else {
+          if (pType.isString() || pType.isList() || pType.isFloat()) {
+            paramSetup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
+          } else {
+            paramSetup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
+          }
+          paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
+        }
       }
 
-      compiledFunctions.push_back(
-        {.name = currentOverload->mangledName, .data = paramSetup + compileBlock(blockNode), .tag = currentOverload->tag, .internal = currentOverload->internal}
-      );
+      currentFuncRefCopybacks = "";
+      for (const auto &[argsKey, copyBackFuncName] : refParamCopybacks) {
+        currentFuncRefCopybacks += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, copyBackFuncName, datapackNamespace, argsKey);
+      }
+
+      std::string funcBody = compileBlock(blockNode);
+      // Append ref copybacks at the implicit function exit (void functions with no explicit return).
+      // return_statement already injects them mid-function; this handles fall-through.
+      funcBody += currentFuncRefCopybacks;
+      compiledFunctions.push_back({.name = currentOverload->mangledName, .data = paramSetup + funcBody, .tag = currentOverload->tag, .internal = currentOverload->internal});
       continue;
     }
 

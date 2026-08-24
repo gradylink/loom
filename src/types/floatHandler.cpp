@@ -92,7 +92,7 @@ public:
       if (op == "+") {
         runtimeCommands += std::format(
           "item modify block 18483211 -64 14504281 container.0 "
-          "{{function:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"expr_float{1}\"}},{{type:"
+          "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"expr_float{1}\"}},{{type:"
           "storage,storage:\"{0}:global\",path:\"expr_float{2}\"}}]}}]}}}}\n"
           "data modify storage {0}:global expr_float{1} set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]",
           compiler.getDatapackNamespace(),
@@ -104,7 +104,7 @@ public:
         runtimeCommands += std::format(
           "data modify storage {0}:global macro_args.a set from storage {0}:global expr_float{1}\n"
           "data modify storage {0}:global macro_args.b set from storage {0}:global expr_float{2}\n"
-          "item modify block 18483211 -64 14504281 container.0 {{function:set_name,entity:this,name:{{storage:\"{0}:global\",nbt:\"macro_args.b\"}}}}\n"
+          "item modify block 18483211 -64 14504281 container.0 {{type:set_name,entity:this,name:{{storage:\"{0}:global\",nbt:\"macro_args.b\"}}}}\n"
           "function {0}:internal/loom/internal_float_sub_macro with block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_name\".extra[0]\n"
           "data modify storage {0}:global expr_float{1} set from storage {0}:global macro_args.out",
           compiler.getDatapackNamespace(),
@@ -153,7 +153,7 @@ public:
           "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_var1\n"
           "data modify storage {0}:global macro_args.a set from storage {0}:global expr_float{1}\n"
           "data modify storage {0}:global macro_args.b set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
-          "item modify block 18483211 -64 14504281 container.0 {{function:set_name,entity:this,name:{{storage:\"{0}:global\",nbt:\"macro_args.b\"}}}}\n"
+          "item modify block 18483211 -64 14504281 container.0 {{type:set_name,entity:this,name:{{storage:\"{0}:global\",nbt:\"macro_args.b\"}}}}\n"
           "function {0}:internal/loom/internal_float_sub_macro with block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_name\".extra[0]\n"
           "data modify storage {0}:global expr_float{1} set from storage {0}:global macro_args.out",
           compiler.getDatapackNamespace(),
@@ -187,7 +187,7 @@ public:
           "data modify entity 6c6f6f6d-0-0-0-ffff transformation set from storage {0}:global _temp_trans\n"
           "data modify storage {0}:global _temp_neg set from entity 6c6f6f6d-0-0-0-ffff transformation.translation[0]\n"
           "item modify block 18483211 -64 14504281 container.0 "
-          "{{function:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"expr_float{1}\"}},{{type:"
+          "{{type:set_custom_model_data,floats:{{mode:replace_all,values:[{{type:sum,summands:[{{type:storage,storage:\"{0}:global\",path:\"expr_float{1}\"}},{{type:"
           "storage,storage:\"{0}:global\",path:\"_temp_neg\"}}]}}]}}}}\n"
           "data modify storage {0}:global _temp_diff set from block 18483211 -64 14504281 Items[0].components.\"minecraft:custom_model_data\".floats[0]\n",
           compiler.getDatapackNamespace(),

@@ -3,6 +3,9 @@
 #include <format>
 #include <stdexcept>
 
+static constexpr const char *kReturnPropagateCheck = "execute if score _loom_returned temp matches 1 return run scoreboard players get _loom_ret_val temp\n";
+static constexpr const char *kReturnFlagReset = "scoreboard players set _loom_returned temp 0\n";
+
 std::string Compiler::compileIf(TSNode ifRoot) {
   std::string ret = "";
 
@@ -31,6 +34,19 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     return ret;
   }
 
+  const auto compileBody = [&](TSNode node) -> std::string {
+    controlFlowDepth++;
+    std::string data = compileBlock(node);
+    controlFlowDepth--;
+    return data;
+  };
+
+  const auto emitSubFuncCall = [&](const std::string &executePrefix, const std::string &funcSuffix) {
+    ret += kReturnFlagReset;
+    ret += std::format("{} run function {}:internal/{}\n", executePrefix, datapackNamespace, funcSuffix);
+    ret += kReturnPropagateCheck;
+  };
+
   if (expr.branchCondition.has_value()) {
     const std::string &bc = expr.branchCondition.value();
     auto invertBranch = [](const std::string &cond) -> std::string {
@@ -47,7 +63,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     }
     ret += setup;
 
-    const std::string &trueData = compileBlock(blockNode);
+    const std::string trueData = compileBody(blockNode);
     const size_t trueLineCount = std::count(trueData.begin(), trueData.end(), '\n');
 
     if (trueLineCount > 0) {
@@ -55,14 +71,14 @@ std::string Compiler::compileIf(TSNode ifRoot) {
         ret += std::format("execute {} run {}", bcLine, trueData);
       } else {
         compiledFunctions.push_back({.name = name + "_true", .data = trueData});
-        ret += std::format("execute {} run function {}:internal/{}_true\n", bcLine, datapackNamespace, name);
+        emitSubFuncCall(std::format("execute {}", bcLine), name + "_true");
       }
     }
 
     if (hasElse) {
       std::string altData;
       std::string altType = ts_node_type(altNode);
-      if (altType == "block") altData = compileBlock(altNode);
+      if (altType == "block") altData = compileBody(altNode);
       else if (altType == "if") altData = compileIf(altNode);
 
       const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
@@ -71,7 +87,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
           ret += std::format("execute {} run {}", invertBranch(bcLine), altData);
         } else {
           compiledFunctions.push_back({.name = name + "_false", .data = altData});
-          ret += std::format("execute {} run function {}:internal/{}_false\n", invertBranch(bcLine), datapackNamespace, name);
+          emitSubFuncCall(std::format("execute {}", invertBranch(bcLine)), name + "_false");
         }
       }
     }
@@ -86,7 +102,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     ret += std::format("scoreboard players operation {} temp = expr_output1 temp\n", condScore);
   }
 
-  const std::string &trueData = compileBlock(blockNode);
+  const std::string trueData = compileBody(blockNode);
   const size_t trueLineCount = std::count(trueData.begin(), trueData.end(), '\n');
 
   if (trueLineCount > 0) {
@@ -94,14 +110,14 @@ std::string Compiler::compileIf(TSNode ifRoot) {
       ret += std::format("execute if score {} temp matches 1 run {}", condScore, trueData);
     } else {
       compiledFunctions.push_back({.name = name + "_true", .data = trueData});
-      ret += std::format("execute if score {} temp matches 1 run function {}:internal/{}_true\n", condScore, datapackNamespace, name);
+      emitSubFuncCall(std::format("execute if score {} temp matches 1", condScore), name + "_true");
     }
   }
 
   if (hasElse) {
     std::string altData;
     std::string altType = ts_node_type(altNode);
-    if (altType == "block") altData = compileBlock(altNode);
+    if (altType == "block") altData = compileBody(altNode);
     else if (altType == "if") altData = compileIf(altNode);
 
     const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
@@ -110,7 +126,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
         ret += std::format("execute unless score {} temp matches 1 run {}", condScore, altData);
       } else {
         compiledFunctions.push_back({.name = name + "_false", .data = altData});
-        ret += std::format("execute unless score {} temp matches 1 run function {}:internal/{}_false\n", condScore, datapackNamespace, name);
+        emitSubFuncCall(std::format("execute unless score {} temp matches 1", condScore), name + "_false");
       }
     }
   }
@@ -132,7 +148,16 @@ std::string Compiler::compileWhile(TSNode whileNode) {
 
   if (condExpr.precomputed && condExpr.data == "0") return "";
 
+  controlFlowDepth++;
   std::string loopFuncBody = compileBlock(blockNode);
+  controlFlowDepth--;
+
+  auto appendLoopCall = [&](std::string &target, const std::string &callLine) {
+    target += kReturnFlagReset;
+    target += callLine + "\n";
+    target += kReturnPropagateCheck;
+  };
+
   if (!condExpr.precomputed) {
     if (condExpr.branchCondition.has_value()) {
       const std::string &bc = condExpr.branchCondition.value();
@@ -143,23 +168,23 @@ std::string Compiler::compileWhile(TSNode whileNode) {
         bcLine = bc.substr(lastNl + 1);
       }
       loopFuncBody += setup;
-      loopFuncBody += std::format("execute {} run function {}:internal/{}\n", bcLine, datapackNamespace, loopName);
+      appendLoopCall(loopFuncBody, std::format("execute {} run function {}:internal/{}", bcLine, datapackNamespace, loopName));
       ret += setup;
-      ret += std::format("execute {} run function {}:internal/{}\n", bcLine, datapackNamespace, loopName);
+      appendLoopCall(ret, std::format("execute {} run function {}:internal/{}", bcLine, datapackNamespace, loopName));
     } else {
       loopFuncBody += condExpr.data + "\n";
-      loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
+      appendLoopCall(loopFuncBody, std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}", datapackNamespace, loopName));
       ret += condExpr.data + "\n";
-      ret += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
+      appendLoopCall(ret, std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}", datapackNamespace, loopName));
     }
   } else if (condExpr.data == "1") {
-    loopFuncBody += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
+    appendLoopCall(loopFuncBody, std::format("function {}:internal/{}", datapackNamespace, loopName));
   }
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
   if (condExpr.precomputed) {
-    ret += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
+    appendLoopCall(ret, std::format("function {}:internal/{}", datapackNamespace, loopName));
   }
 
   return ret;
@@ -177,7 +202,16 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
     throw std::runtime_error(formatError(condNode, "Do-while loop condition must evaluate to a boolean."));
   }
 
+  controlFlowDepth++;
   std::string loopFuncBody = compileBlock(blockNode);
+  controlFlowDepth--;
+
+  auto appendLoopCall = [&](std::string &target, const std::string &callLine) {
+    target += kReturnFlagReset;
+    target += callLine + "\n";
+    target += kReturnPropagateCheck;
+  };
+
   if (!condExpr.precomputed) {
     if (condExpr.branchCondition.has_value()) {
       const std::string &bc = condExpr.branchCondition.value();
@@ -188,18 +222,18 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
         bcLine = bc.substr(lastNl + 1);
       }
       loopFuncBody += setup;
-      loopFuncBody += std::format("execute {} run function {}:internal/{}\n", bcLine, datapackNamespace, loopName);
+      appendLoopCall(loopFuncBody, std::format("execute {} run function {}:internal/{}", bcLine, datapackNamespace, loopName));
     } else {
       loopFuncBody += condExpr.data + "\n";
-      loopFuncBody += std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}\n", datapackNamespace, loopName);
+      appendLoopCall(loopFuncBody, std::format("execute if score expr_output1 temp matches 1 run function {}:internal/{}", datapackNamespace, loopName));
     }
   } else if (condExpr.data == "1") {
-    loopFuncBody += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
+    appendLoopCall(loopFuncBody, std::format("function {}:internal/{}", datapackNamespace, loopName));
   }
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
-  ret += std::format("function {}:internal/{}\n", datapackNamespace, loopName);
+  appendLoopCall(ret, std::format("function {}:internal/{}", datapackNamespace, loopName));
   return ret;
 }
 
@@ -245,12 +279,19 @@ std::string Compiler::compileFor(TSNode forNode) {
     ret += std::format("scoreboard players operation {} vars = expr_output2 temp\n", endMangled);
   }
 
+  controlFlowDepth++;
   std::string loopFuncBody = compileBlock(blockNode);
+  controlFlowDepth--;
+
   loopFuncBody += std::format("scoreboard players add {} vars 1\n", iterMangled);
+  loopFuncBody += kReturnFlagReset;
   loopFuncBody += std::format("execute if score {} vars < {} vars run function {}:{}\n", iterMangled, endMangled, datapackNamespace, loopName);
+  loopFuncBody += kReturnPropagateCheck;
 
   compiledFunctions.push_back({.name = loopName, .data = loopFuncBody});
 
+  ret += kReturnFlagReset;
   ret += std::format("execute if score {} vars < {} vars run function {}:internal/{}\n", iterMangled, endMangled, datapackNamespace, loopName);
+  ret += kReturnPropagateCheck;
   return ret;
 }

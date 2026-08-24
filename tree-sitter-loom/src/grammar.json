@@ -1559,6 +1559,10 @@
         {
           "type": "SYMBOL",
           "name": "struct_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "reference_expression"
         }
       ]
     },
@@ -2283,6 +2287,27 @@
         ]
       }
     },
+    "reference_expression": {
+      "type": "PREC",
+      "value": 10,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "&"
+          },
+          {
+            "type": "FIELD",
+            "name": "target",
+            "content": {
+              "type": "SYMBOL",
+              "name": "variable_ref"
+            }
+          }
+        ]
+      }
+    },
     "list_expression": {
       "type": "SEQ",
       "members": [
@@ -2569,6 +2594,14 @@
         {
           "type": "SYMBOL",
           "name": "list_type"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "ref_type"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "paren_type"
         }
       ]
     },
@@ -2582,6 +2615,40 @@
         {
           "type": "STRING",
           "value": "[]"
+        }
+      ]
+    },
+    "ref_type": {
+      "type": "PREC",
+      "value": 1,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "&"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "type"
+          }
+        ]
+      }
+    },
+    "paren_type": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "("
+        },
+        {
+          "type": "SYMBOL",
+          "name": "type"
+        },
+        {
+          "type": "STRING",
+          "value": ")"
         }
       ]
     },

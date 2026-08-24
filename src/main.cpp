@@ -20,6 +20,7 @@ struct Config {
 
 bool runCompilation(const std::string &source, const std::filesystem::path &baseDir, const std::string &outputPath, Config config) {
   try {
+    Compiler::globalExternVars.clear();
     Compiler compiler(source, config.namespaceStr, baseDir);
     const auto &compiledFunctions = compiler.compile();
 
@@ -40,8 +41,8 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
   "pack": {{
     "pack_format": 18,
     "supported_formats": [18, 101],
-    "min_version": 18,
-    "max_version": [101, 1],
+    "min_format": 18,
+    "max_format": [101, 1],
     "description": "{}"
   }}
 }})",

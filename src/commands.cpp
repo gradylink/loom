@@ -2,6 +2,8 @@
 #include <format>
 
 std::optional<std::string> Compiler::optimizeCommand(const std::string &commandName, const std::vector<TSNode> &args) {
+  return std::nullopt; // optimizing was harder than i expected...
+
   bool hasInterpolation = false;
 
   for (TSNode arg : args) {
@@ -62,7 +64,7 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
     const auto &jsonArray = buildJsonTextArray(0);
     if (jsonArray.empty()) return std::nullopt;
 
-    return std::format(R"({}tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{}])", setup, jsonArray.substr(1));
+    return std::format(R"({}tellraw @a [{{"text":"[","color":"white"}},{{"selector":"@s","color":"white"}},{{"text":"] ","color":"white"}},{})", setup, jsonArray.substr(1));
   }
 
   // tellraw optimization isn't the easiest so I'm leaving it out for now
@@ -92,7 +94,7 @@ std::optional<std::string> Compiler::optimizeCommand(const std::string &commandN
     if (jsonArray.empty()) return std::nullopt;
 
     return std::format(
-      R"({}tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{}])",
+      R"({}tellraw {} [{{"text":"[","color":"gray"}},{{"selector":"@s"}},{{"text":" -> ","color":"gray"}},{{"text":"{}"}},{{"text":"] ","color":"gray"}},{})",
       setup,
       target,
       target,

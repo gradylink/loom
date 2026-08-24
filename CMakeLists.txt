@@ -43,3 +43,11 @@ target_include_directories(loom PRIVATE tree-sitter-loom/src)
 target_link_libraries(loom PRIVATE tree-sitter bfg::lyra ryml)
 
 install(TARGETS loom RUNTIME DESTINATION bin)
+
+# Convenience target to run the shell-based Loom tests harness
+add_custom_target(loom-tests
+  COMMAND ${CMAKE_COMMAND} -E env LOOM_EXEC=$<TARGET_FILE:loom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_all.sh
+  DEPENDS loom
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Running Loom tests"
+)

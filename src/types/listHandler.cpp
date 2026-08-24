@@ -41,19 +41,52 @@ public:
         if (!listExpr.type.isList()) return std::nullopt;
 
         std::string cmds = listExpr.data + "\n";
-        if (listExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, listExpr.data);
+        if (listExpr.precomputed) cmds = std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, listExpr.data);
 
         Compiler::ExpressionData elemExpr = c.compileExpression(args[1], id + 1, true);
-        if (elemExpr.type != *listExpr.type.baseType) throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append element to this list type."));
+        if (elemExpr.type != *listExpr.type.baseType) {
+          if (std::string(ts_node_type(args[1])) == "variable_ref") {
+            std::string targetVar = std::string(c.getFieldText(args[1], "name"));
+            if (auto varOpt = c.lookupVariable(targetVar)) {
+              auto varData = varOpt.value();
+              if (varData.type.isRef() && *varData.type.baseType == *listExpr.type.baseType) {
+                if (varData.refTargetMangledName.has_value()) {
+                  elemExpr = {.data = std::format("\"{}\"", varData.refTargetMangledName.value()), .precomputed = true, .type = *listExpr.type.baseType};
+                } else {
+                  elemExpr = {
+                    .data = std::format(
+                      "data modify storage {}:global expr_str{} set from storage {}:global vars.{}_refargs.refname",
+                      c.getDatapackNamespace(),
+                      id + 1,
+                      c.getDatapackNamespace(),
+                      varData.mangledName
+                    ),
+                    .precomputed = false,
+                    .type = *listExpr.type.baseType
+                  };
+                }
+              } else {
+                throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append element to this list type."));
+              }
+            } else {
+              throw std::runtime_error(formatError(args[1], "Unknown variable used in expression."));
+            }
+          } else {
+            throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append element to this list type."));
+          }
+        }
 
         cmds += elemExpr.data + "\n";
         if (elemExpr.precomputed) {
           cmds += std::format("data modify storage {0}:global expr_str{1} append value {2}\n", c.getDatapackNamespace(), id, elemExpr.data);
-        } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+        } else if (elemExpr.type.isString() || elemExpr.type.isList() || elemExpr.type.isStruct() || elemExpr.type.isRef()) {
           cmds += std::format("data modify storage {0}:global expr_str{1} append from storage {0}:global expr_str{2}\n", c.getDatapackNamespace(), id, id + 1);
-        } else {
+        } else if (elemExpr.type.isFloat()) {
+          cmds += std::format("data modify storage {0}:global expr_str{1} append from storage {0}:global expr_float{2}\n", c.getDatapackNamespace(), id, id + 1);
+        } else { // int and bool
           cmds += std::format(
-            "execute store result storage {0}:global expr_str{1} append int 1 run scoreboard players get expr_output{2} temp\n",
+            "execute store result storage {0}:global expr_int{2} int 1 run scoreboard players expr_output{2} temp\n"
+            "data modify storage {0}:global expr_str{1} append from storage {0}:global expr_int{2}\n",
             c.getDatapackNamespace(),
             id,
             id + 1
@@ -108,14 +141,44 @@ public:
         Compiler::ExpressionData elemExpr = c.compileExpression(args[2], id + 2, true);
 
         if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
-        if (elemExpr.type != *listExpr.type.baseType) throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert element into this list type."));
+        if (elemExpr.type != *listExpr.type.baseType) {
+          if (std::string(ts_node_type(args[2])) == "variable_ref") {
+            std::string targetVar = std::string(c.getFieldText(args[2], "name"));
+            if (auto varOpt = c.lookupVariable(targetVar)) {
+              auto varData = varOpt.value();
+              if (varData.type.isRef() && *varData.type.baseType == *listExpr.type.baseType) {
+                if (varData.refTargetMangledName.has_value()) {
+                  elemExpr = {.data = std::format("\"{}\"", varData.refTargetMangledName.value()), .precomputed = true, .type = *listExpr.type.baseType};
+                } else {
+                  elemExpr = {
+                    .data = std::format(
+                      "data modify storage {}:global expr_str{} set from storage {}:global vars.{}_refargs.refname",
+                      c.getDatapackNamespace(),
+                      id + 2,
+                      c.getDatapackNamespace(),
+                      varData.mangledName
+                    ),
+                    .precomputed = false,
+                    .type = *listExpr.type.baseType
+                  };
+                }
+              } else {
+                throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert element into this list type."));
+              }
+            } else {
+              throw std::runtime_error(formatError(args[2], "Unknown variable used in expression."));
+            }
+          } else {
+            throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert element into this list type."));
+          }
+        }
 
         cmds += idxExpr.data + "\n" + elemExpr.data + "\n";
 
         if (idxExpr.precomputed) {
           if (elemExpr.precomputed) {
             cmds += std::format("data modify storage {0}:global expr_str{1} insert {2} value {3}\n", c.getDatapackNamespace(), id, idxExpr.data, elemExpr.data);
-          } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+          } else if (elemExpr.type.isString() || elemExpr.type.isList() || elemExpr.type.isStruct() || elemExpr.type.isRef()) {
             cmds +=
               std::format("data modify storage {0}:global expr_str{1} insert {2} from storage {0}:global expr_str{3}\n", c.getDatapackNamespace(), id, idxExpr.data, id + 2);
           } else {
@@ -139,7 +202,7 @@ public:
               elemExpr.data,
               id + 1
             );
-          } else if (elemExpr.type.isString() || elemExpr.type.isList()) {
+          } else if (elemExpr.type.isString() || elemExpr.type.isList() || elemExpr.type.isStruct() || elemExpr.type.isRef()) {
             c.useInternalFunction("internal_list_insert_object");
             cmds += std::format(
               "data modify storage {0}:global macro_args set value {{target_id: {1}, elem_id: {2}}}\n"

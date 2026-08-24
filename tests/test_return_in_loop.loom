@@ -1,0 +1,25 @@
+func find_index(nums: int[], target: int) : int {
+  for i in 0 .. len(nums) {
+    if (nums[i] == target) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+func test_void(x: int) {
+  if (x == 0) {
+    return;
+  }
+  say "non-zero";
+}
+
+func main() {
+  let list = [10, 20, 30];
+  let idx1 = find_index(list, 20);
+  say ${idx1};
+  let idx2 = find_index(list, 40);
+  say ${idx2};
+  test_void(0);
+  test_void(5);
+}

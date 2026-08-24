@@ -1,5 +1,3 @@
 build/
 .cache/
 CPM.cmake
-
-loom_test/

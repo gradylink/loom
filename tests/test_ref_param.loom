@@ -1,0 +1,10 @@
+let a: int = 42;
+
+func add_one(x: &int) {
+  x = x + 1;
+}
+
+func main() {
+  add_one(&a);
+  say ${a};
+}

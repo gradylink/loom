@@ -1,0 +1,7 @@
+let x: int = 3;
+let y: int = 7;
+
+let refs: (&int)[] = [&x, &y];
+func main() {
+  say ${refs[0]};
+}

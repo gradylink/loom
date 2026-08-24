@@ -1,0 +1,19 @@
+func test_func(x: int) : int {
+  if (x == 1) {
+    return 100;
+  } else {
+    if (x == 2) {
+      return 200;
+    }
+  }
+  return 300;
+}
+
+func main() {
+  let val1 = test_func(1);
+  say ${val1};
+  let val2 = test_func(2);
+  say ${val2};
+  let val3 = test_func(3);
+  say ${val3};
+}
