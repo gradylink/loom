@@ -665,7 +665,8 @@ void Compiler::processImportDecl(const ImportStmt &decl, SourceLoc loc) {
   buf << f.rdbuf();
   std::string importedSource = buf.str();
 
-  Compiler importCompiler(importedSource, datapackNamespace, absPath.parent_path());
+  importedCompilers.push_back(std::make_unique<Compiler>(importedSource, datapackNamespace, absPath.parent_path()));
+  Compiler &importCompiler = *importedCompilers.back();
   std::vector<CompiledFunction> importedFuncs = importCompiler.compile();
 
   std::string aliasName = decl.alias.value_or("");
@@ -856,7 +857,7 @@ void Compiler::processStructDecl(const StructDeclStmt &decl, SourceLoc loc) {
        .returnType = retType,
        .params = paramTypes,
        .tag = std::nullopt,
-       .exported = false,
+       .exported = decl.isExport,
        .internal = true,
        .ownerStruct = structPtr,
        .isStatic = methodDecl.isStatic,

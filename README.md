@@ -37,7 +37,7 @@ A programming language that compiles to Minecraft datapacks.
 - [x] C++-based parser (allowing for improved error detection)
 - [ ] `any` type
 - [ ] Variant types
-- [ ] C++-based language server
+- [x] C++-based language server
 - [ ] `comptime` keyword
 
 ## Credits

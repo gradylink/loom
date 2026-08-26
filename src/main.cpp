@@ -1,5 +1,6 @@
 #include "compiler.hpp"
 #include "lexer.hpp"
+#include "lsp.hpp"
 #include "parser.hpp"
 
 #include <chrono>
@@ -179,10 +180,12 @@ int main(int argc, char *argv[]) {
   std::string outputPath = config.namespaceStr;
   bool watch = false;
   bool useStdin = false;
+  bool lspMode = false;
 
   auto cli = lyra::help(help) | lyra::opt(outputPath, "output")["-o"]["--output"]("Folder to output the datapack into.") |
              lyra::opt(baseDir, "base directory")["-b"]["--base-dir"]("Base directory for resolving imports.") |
              lyra::opt(useStdin)["--stdin"]("Read source from standard input.") | lyra::opt(watch)["-w"]["--watch"]("Watch the input file for changes, and recompile.") |
+             lyra::opt(lspMode)["--lsp"]("Run as a language server (JSON-RPC over stdio).") |
              lyra::arg(inputPath, "source file")("Path to a .loom file to compile.");
 
   auto res = cli.parse({argc, argv});
@@ -192,6 +195,11 @@ int main(int argc, char *argv[]) {
   }
   if (help) {
     std::cout << cli << '\n';
+    return 0;
+  }
+
+  if (lspMode) {
+    runLspServer();
     return 0;
   }
 

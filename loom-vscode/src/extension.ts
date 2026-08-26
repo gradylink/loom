@@ -1,5 +1,3 @@
-import * as path from "path";
-import * as fs from "fs";
 import { commands, ExtensionContext, window, workspace } from "vscode";
 import {
   LanguageClient,
@@ -15,7 +13,7 @@ export async function activate(context: ExtensionContext) {
   const lspEnabled = config.get<boolean>("lspEnabled", true);
 
   if (lspEnabled) {
-    await startLanguageServer(context);
+    await startLanguageServer();
   }
 
   context.subscriptions.push(
@@ -27,7 +25,7 @@ export async function activate(context: ExtensionContext) {
         await stopLanguageServer();
         const newConfig = workspace.getConfiguration("loom");
         if (newConfig.get<boolean>("lspEnabled", true)) {
-          await startLanguageServer(context);
+          await startLanguageServer();
         }
       }
     }),
@@ -38,7 +36,7 @@ export async function activate(context: ExtensionContext) {
       await stopLanguageServer();
       const newConfig = workspace.getConfiguration("loom");
       if (newConfig.get<boolean>("lspEnabled", true)) {
-        await startLanguageServer(context);
+        await startLanguageServer();
         window.showInformationMessage("Loom language server restarted.");
       }
     }),
@@ -51,67 +49,22 @@ export async function activate(context: ExtensionContext) {
   );
 }
 
-async function startLanguageServer(context: ExtensionContext): Promise<void> {
-  const serverModule = context.asAbsolutePath(
-    path.join("out", "server.js"),
-  );
-
-  const wasmPath = context.asAbsolutePath(
-    path.join("out", "tree-sitter-loom.wasm"),
-  );
-
-  const coreWasmPath = context.asAbsolutePath(
-    path.join("out", "web-tree-sitter.wasm"),
-  );
-
-  if (!fs.existsSync(serverModule)) {
-    window.showErrorMessage(
-      `Loom: LSP server not found at ${serverModule}. ` +
-        "Please rebuild the extension.",
-    );
-    return;
-  }
-
-  if (!fs.existsSync(wasmPath)) {
-    window.showWarningMessage(
-      `Loom: WASM parser not found at ${wasmPath}. ` +
-        "Tree-sitter diagnostics will be unavailable.",
-    );
-  }
-
-  if (!fs.existsSync(coreWasmPath)) {
-    window.showWarningMessage(
-      `Loom: Internal WASM parser not found at ${coreWasmPath}. ` +
-        "Tree-sitter diagnostics will be unavailable.",
-    );
-  }
-
+// The language server is the `loom` compiler itself, run as `loom --lsp` and spoken to over
+// stdio - there's no separate server process or WASM parser to bundle (see loom's src/lsp.cpp).
+async function startLanguageServer(): Promise<void> {
   const config = workspace.getConfiguration("loom");
   const loomExecutable = config.get<string>("executablePath", "loom");
 
   const serverOptions: ServerOptions = {
     run: {
-      module: serverModule,
-      transport: TransportKind.ipc,
-      options: {
-        env: {
-          ...process.env,
-          LOOM_WASM_PATH: wasmPath,
-          LOOM_EXECUTABLE: loomExecutable,
-        },
-      },
+      command: loomExecutable,
+      args: ["--lsp"],
+      transport: TransportKind.stdio,
     },
     debug: {
-      module: serverModule,
-      transport: TransportKind.ipc,
-      options: {
-        execArgv: ["--nolazy", "--inspect=6009"],
-        env: {
-          ...process.env,
-          LOOM_WASM_PATH: wasmPath,
-          LOOM_EXECUTABLE: loomExecutable,
-        },
-      },
+      command: loomExecutable,
+      args: ["--lsp"],
+      transport: TransportKind.stdio,
     },
   };
 
@@ -124,11 +77,6 @@ async function startLanguageServer(context: ExtensionContext): Promise<void> {
       "Loom Language Server Trace",
     ),
     outputChannelName: "Loom Language Server",
-    initializationOptions: {
-      wasmPath,
-      loomExecutable,
-      coreWasm: coreWasmPath,
-    },
   };
 
   client = new LanguageClient(
@@ -138,7 +86,15 @@ async function startLanguageServer(context: ExtensionContext): Promise<void> {
     clientOptions,
   );
 
-  await client.start();
+  try {
+    await client.start();
+  } catch (err) {
+    window.showErrorMessage(
+      `Loom: failed to start '${loomExecutable} --lsp'. ` +
+        "Make sure the loom compiler is installed and on your PATH, or set loom.executablePath. " +
+        `(${err instanceof Error ? err.message : String(err)})`,
+    );
+  }
 }
 
 async function stopLanguageServer(): Promise<void> {

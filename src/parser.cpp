@@ -35,7 +35,7 @@ const Token &Parser::expect(TokenKind kind, const std::string &what) {
   return advance();
 }
 
-void Parser::error(const Token &at, const std::string &message) const { throw ParseError(formatParseError(locOf(at), message)); }
+void Parser::error(const Token &at, const std::string &message) const { throw ParseError(locOf(at), formatParseError(locOf(at), message), message); }
 
 SourceLoc Parser::locOf(const Token &tok) const { return SourceLoc{.line = tok.line, .col = tok.col, .startByte = tok.startByte, .endByte = tok.endByte}; }
 
@@ -59,14 +59,20 @@ std::string Parser::parseNamespacedIdentifier() {
 static void parseTypeTextInner(Parser &self);
 
 std::string Parser::parseTypeText() {
-  uint32_t startByte = peek().startByte;
+  SourceLoc loc;
+  return parseTypeText(loc);
+}
+
+std::string Parser::parseTypeText(SourceLoc &outLoc) {
+  const Token &startTok = peek();
   parseTypeTextInner(*this);
   while (check(TokenKind::LBracket)) {
     advance();
     expect(TokenKind::RBracket, "']' to close list type");
   }
-  uint32_t endByte = previous().endByte;
-  return std::string(source.substr(startByte, endByte - startByte));
+  outLoc = locOf(startTok);
+  outLoc.endByte = previous().endByte;
+  return std::string(source.substr(startTok.startByte, outLoc.endByte - startTok.startByte));
 }
 
 static void parseTypeTextInner(Parser &self) {
@@ -275,8 +281,9 @@ std::unique_ptr<Expr> Parser::parseCast() {
   while (check(TokenKind::KwAs)) {
     const Token &opTok = peek();
     advance();
-    std::string typeText = parseTypeText();
-    expr = makeExpr(opTok, CastExpr{.expression = std::move(expr), .typeText = std::move(typeText)});
+    SourceLoc typeLoc;
+    std::string typeText = parseTypeText(typeLoc);
+    expr = makeExpr(opTok, CastExpr{.expression = std::move(expr), .typeText = std::move(typeText), .typeLoc = typeLoc});
   }
   return expr;
 }
@@ -307,15 +314,17 @@ std::unique_ptr<Expr> Parser::parsePostfixContinuation(std::unique_ptr<Expr> exp
     if (check(TokenKind::Dot)) {
       const Token &opTok = peek();
       advance();
-      std::string property(expect(TokenKind::Identifier, "property name after '.'").text);
+      const Token &propTok = expect(TokenKind::Identifier, "property name after '.'");
+      std::string property(propTok.text);
+      SourceLoc propertyLoc = locOf(propTok);
       if (check(TokenKind::LParen)) {
         advance();
         std::vector<std::unique_ptr<Expr>> args;
         parseCommaSeparated(*this, TokenKind::RParen, false, [&] { args.push_back(parseExpression()); });
         expect(TokenKind::RParen, "')' to close method call arguments");
-        expr = makeExpr(opTok, MethodCallExpr{.object = std::move(expr), .method = std::move(property), .arguments = std::move(args)});
+        expr = makeExpr(opTok, MethodCallExpr{.object = std::move(expr), .method = std::move(property), .methodLoc = propertyLoc, .arguments = std::move(args)});
       } else {
-        expr = makeExpr(opTok, MemberExpr{.object = std::move(expr), .property = std::move(property)});
+        expr = makeExpr(opTok, MemberExpr{.object = std::move(expr), .property = std::move(property), .propertyLoc = propertyLoc});
       }
       continue;
     }
@@ -384,13 +393,15 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
   }
   case TokenKind::Identifier: {
     std::string name = parseNamespacedIdentifier();
+    SourceLoc nameLoc = locOf(tok);
+    nameLoc.endByte = previous().endByte;
 
     if (check(TokenKind::LParen)) {
       advance();
       std::vector<std::unique_ptr<Expr>> args;
       parseCommaSeparated(*this, TokenKind::RParen, false, [&] { args.push_back(parseExpression()); });
       expect(TokenKind::RParen, "')' to close call arguments");
-      return makeExpr(tok, CallExpr{.name = std::move(name), .arguments = std::move(args)});
+      return makeExpr(tok, CallExpr{.name = std::move(name), .nameLoc = nameLoc, .arguments = std::move(args)});
     }
 
     if (check(TokenKind::LBrace)) {
@@ -467,23 +478,74 @@ std::unique_ptr<Stmt> Parser::makeStmt(const Token &startTok, decltype(Stmt::dat
   return s;
 }
 
+std::unique_ptr<Stmt> Parser::parseStatementRecovering() {
+  try {
+    return parseStatement();
+  } catch (const ParseError &e) {
+    diagnostics.push_back({.loc = e.loc, .message = e.rawMessage});
+    synchronize();
+    return nullptr;
+  }
+}
+
+void Parser::synchronize() {
+  if (check(TokenKind::EndOfFile)) return;
+  advance();
+
+  while (!check(TokenKind::EndOfFile) && !check(TokenKind::RBrace)) {
+    if (check(TokenKind::Semicolon) || check(TokenKind::Newline)) {
+      advance();
+      return;
+    }
+    switch (peek().kind) {
+    case TokenKind::KwLet:
+    case TokenKind::KwConst:
+    case TokenKind::KwFunc:
+    case TokenKind::KwStruct:
+    case TokenKind::KwEnum:
+    case TokenKind::KwImport:
+    case TokenKind::KwNamespace:
+    case TokenKind::KwIf:
+    case TokenKind::KwWhile:
+    case TokenKind::KwDo:
+    case TokenKind::KwFor:
+    case TokenKind::KwReturn:
+      return;
+    default:
+      break;
+    }
+    advance();
+  }
+}
+
 std::unique_ptr<Block> Parser::parseBlock() {
-  expect(TokenKind::LBrace, "'{' to start a block");
+  uint32_t startByte = expect(TokenKind::LBrace, "'{' to start a block").startByte;
   auto block = std::make_unique<Block>();
   while (!check(TokenKind::RBrace) && !check(TokenKind::EndOfFile)) {
     if (match(TokenKind::Newline)) continue;
-    block->statements.push_back(parseStatement());
+    if (recoverFromErrors) {
+      if (auto stmt = parseStatementRecovering()) block->statements.push_back(std::move(stmt));
+    } else {
+      block->statements.push_back(parseStatement());
+    }
   }
-  expect(TokenKind::RBrace, "'}' to close block");
+  block->startByte = startByte;
+  block->endByte = expect(TokenKind::RBrace, "'}' to close block").endByte;
   return block;
 }
 
 std::unique_ptr<Block> Parser::parseProgram() {
   auto block = std::make_unique<Block>();
+  block->startByte = peek().startByte;
   while (!check(TokenKind::EndOfFile)) {
     if (match(TokenKind::Newline)) continue;
-    block->statements.push_back(parseStatement());
+    if (recoverFromErrors) {
+      if (auto stmt = parseStatementRecovering()) block->statements.push_back(std::move(stmt));
+    } else {
+      block->statements.push_back(parseStatement());
+    }
   }
+  block->endByte = peek().endByte;
   return block;
 }
 
@@ -534,45 +596,65 @@ std::unique_ptr<Stmt> Parser::parseDoWhile() {
 std::unique_ptr<Stmt> Parser::parseFor() {
   const Token &startTok = peek();
   advance();
-  std::string iterator(expect(TokenKind::Identifier, "loop variable name").text);
+  const Token &iterTok = expect(TokenKind::Identifier, "loop variable name");
+  std::string iterator(iterTok.text);
+  SourceLoc iteratorLoc = locOf(iterTok);
   expect(TokenKind::KwIn, "'in' after loop variable");
   auto start = parseExpression();
   expect(TokenKind::DotDot, "'..' between loop bounds");
   auto end = parseExpression();
   auto body = parseBlock();
-  return makeStmt(startTok, ForStmt{.iterator = std::move(iterator), .start = std::move(start), .end = std::move(end), .body = std::move(body)});
+  return makeStmt(startTok, ForStmt{.iterator = std::move(iterator), .iteratorLoc = iteratorLoc, .start = std::move(start), .end = std::move(end), .body = std::move(body)});
 }
 
 std::unique_ptr<Stmt> Parser::parseVarDecl(bool isExport, bool isExtern) {
   const Token &startTok = peek();
   bool isConst = check(TokenKind::KwConst);
   advance();
-  std::string name(expect(TokenKind::Identifier, "variable name").text);
+  const Token &nameTok = expect(TokenKind::Identifier, "variable name");
+  std::string name(nameTok.text);
+  SourceLoc nameLoc = locOf(nameTok);
   std::optional<std::string> typeText;
-  if (match(TokenKind::Colon)) typeText = parseTypeText();
+  SourceLoc typeLoc;
+  if (match(TokenKind::Colon)) typeText = parseTypeText(typeLoc);
   expect(TokenKind::Eq, "'=' in variable declaration");
   auto value = parseExpression();
   return makeStmt(
     startTok,
-    VarDeclStmt{.isConst = isConst, .isExport = isExport, .isExtern = isExtern, .name = std::move(name), .typeText = std::move(typeText), .value = std::move(value)}
+    VarDeclStmt{
+      .isConst = isConst,
+      .isExport = isExport,
+      .isExtern = isExtern,
+      .name = std::move(name),
+      .nameLoc = nameLoc,
+      .typeText = std::move(typeText),
+      .typeLoc = typeLoc,
+      .value = std::move(value)
+    }
   );
 }
 
 std::unique_ptr<Stmt> Parser::parseFuncDecl(std::optional<std::string> tag, bool isExport, bool isExtern) {
   const Token &startTok = peek();
   advance();
-  std::string name(expect(TokenKind::Identifier, "function name").text);
+  const Token &nameTok = expect(TokenKind::Identifier, "function name");
+  std::string name(nameTok.text);
+  SourceLoc nameLoc = locOf(nameTok);
   expect(TokenKind::LParen, "'(' after function name");
   std::vector<Param> params;
   parseCommaSeparated(*this, TokenKind::RParen, false, [&] {
-    std::string pname(expect(TokenKind::Identifier, "parameter name").text);
+    const Token &pnameTok = expect(TokenKind::Identifier, "parameter name");
+    std::string pname(pnameTok.text);
+    SourceLoc pnameLoc = locOf(pnameTok);
     expect(TokenKind::Colon, "':' after parameter name");
-    std::string ptype = parseTypeText();
-    params.push_back(Param{.name = std::move(pname), .typeText = std::move(ptype)});
+    SourceLoc ptypeLoc;
+    std::string ptype = parseTypeText(ptypeLoc);
+    params.push_back(Param{.name = std::move(pname), .loc = pnameLoc, .typeText = std::move(ptype), .typeLoc = ptypeLoc});
   });
   expect(TokenKind::RParen, "')' to close parameter list");
   std::optional<std::string> returnTypeText;
-  if (match(TokenKind::Colon)) returnTypeText = parseTypeText();
+  SourceLoc returnTypeLoc;
+  if (match(TokenKind::Colon)) returnTypeText = parseTypeText(returnTypeLoc);
   auto body = parseBlock();
   return makeStmt(
     startTok,
@@ -581,8 +663,10 @@ std::unique_ptr<Stmt> Parser::parseFuncDecl(std::optional<std::string> tag, bool
       .isExport = isExport,
       .isExtern = isExtern,
       .name = std::move(name),
+      .nameLoc = nameLoc,
       .params = std::move(params),
       .returnTypeText = std::move(returnTypeText),
+      .returnTypeLoc = returnTypeLoc,
       .body = std::move(body)
     }
   );
@@ -591,7 +675,9 @@ std::unique_ptr<Stmt> Parser::parseFuncDecl(std::optional<std::string> tag, bool
 std::unique_ptr<Stmt> Parser::parseStructDecl(bool isExport) {
   const Token &startTok = peek();
   advance();
-  std::string name(expect(TokenKind::Identifier, "struct name").text);
+  const Token &nameTok = expect(TokenKind::Identifier, "struct name");
+  std::string name(nameTok.text);
+  SourceLoc nameLoc = locOf(nameTok);
   expect(TokenKind::LBrace, "'{' after struct name");
 
   std::vector<StructFieldDecl> fields;
@@ -615,51 +701,66 @@ std::unique_ptr<Stmt> Parser::parseStructDecl(bool isExport) {
     if (check(TokenKind::KwFunc)) {
       const Token &methodStartTok = peek();
       advance();
-      std::string mname(expect(TokenKind::Identifier, "method name").text);
+      const Token &mnameTok = expect(TokenKind::Identifier, "method name");
+      std::string mname(mnameTok.text);
+      SourceLoc mnameLoc = locOf(mnameTok);
       expect(TokenKind::LParen, "'(' after method name");
       std::vector<Param> params;
       parseCommaSeparated(*this, TokenKind::RParen, false, [&] {
-        std::string pname(expect(TokenKind::Identifier, "parameter name").text);
+        const Token &pnameTok = expect(TokenKind::Identifier, "parameter name");
+        std::string pname(pnameTok.text);
+        SourceLoc pnameLoc = locOf(pnameTok);
         expect(TokenKind::Colon, "':' after parameter name");
-        std::string ptype = parseTypeText();
-        params.push_back(Param{.name = std::move(pname), .typeText = std::move(ptype)});
+        SourceLoc ptypeLoc;
+        std::string ptype = parseTypeText(ptypeLoc);
+        params.push_back(Param{.name = std::move(pname), .loc = pnameLoc, .typeText = std::move(ptype), .typeLoc = ptypeLoc});
       });
       expect(TokenKind::RParen, "')' to close parameter list");
       std::optional<std::string> returnTypeText;
-      if (match(TokenKind::Colon)) returnTypeText = parseTypeText();
+      SourceLoc returnTypeLoc;
+      if (match(TokenKind::Colon)) returnTypeText = parseTypeText(returnTypeLoc);
       auto body = parseBlock();
       methods.push_back(
         StructMethodDecl{
           .loc = locOf(methodStartTok),
           .name = std::move(mname),
+          .nameLoc = mnameLoc,
           .isPrivate = isPrivate,
           .isStatic = isStatic,
           .params = std::move(params),
           .returnTypeText = std::move(returnTypeText),
+          .returnTypeLoc = returnTypeLoc,
           .body = std::move(body)
         }
       );
     } else {
-      std::string fname(expect(TokenKind::Identifier, "field name or 'func'").text);
+      const Token &fnameTok = expect(TokenKind::Identifier, "field name or 'func'");
+      std::string fname(fnameTok.text);
+      SourceLoc fnameLoc = locOf(fnameTok);
       expect(TokenKind::Colon, "':' after field name");
-      std::string ftype = parseTypeText();
-      fields.push_back(StructFieldDecl{.name = std::move(fname), .typeText = std::move(ftype), .isPrivate = isPrivate});
+      SourceLoc ftypeLoc;
+      std::string ftype = parseTypeText(ftypeLoc);
+      fields.push_back(StructFieldDecl{.name = std::move(fname), .nameLoc = fnameLoc, .typeText = std::move(ftype), .typeLoc = ftypeLoc, .isPrivate = isPrivate});
       match(TokenKind::Comma);
     }
     skipNewlines();
   }
   expect(TokenKind::RBrace, "'}' to close struct");
-  return makeStmt(startTok, StructDeclStmt{.isExport = isExport, .name = std::move(name), .fields = std::move(fields), .methods = std::move(methods)});
+  return makeStmt(startTok, StructDeclStmt{.isExport = isExport, .name = std::move(name), .nameLoc = nameLoc, .fields = std::move(fields), .methods = std::move(methods)});
 }
 
 std::unique_ptr<Stmt> Parser::parseEnumDecl(bool isExport) {
   const Token &startTok = peek();
   advance();
-  std::string name(expect(TokenKind::Identifier, "enum name").text);
+  const Token &nameTok = expect(TokenKind::Identifier, "enum name");
+  std::string name(nameTok.text);
+  SourceLoc nameLoc = locOf(nameTok);
   expect(TokenKind::LBrace, "'{' after enum name");
   std::vector<EnumVariantDecl> variants;
   parseCommaSeparated(*this, TokenKind::RBrace, true, [&] {
-    std::string vname(expect(TokenKind::Identifier, "variant name").text);
+    const Token &vnameTok = expect(TokenKind::Identifier, "variant name");
+    std::string vname(vnameTok.text);
+    SourceLoc vnameLoc = locOf(vnameTok);
     std::optional<std::unique_ptr<Expr>> value;
     if (match(TokenKind::Eq)) {
       const Token &valTok = peek();
@@ -676,18 +777,20 @@ std::unique_ptr<Stmt> Parser::parseEnumDecl(bool isExport) {
         error(peek(), "Expected a string, integer, or float literal for the enum variant's value");
       }
     }
-    variants.push_back(EnumVariantDecl{.name = std::move(vname), .value = std::move(value)});
+    variants.push_back(EnumVariantDecl{.name = std::move(vname), .nameLoc = vnameLoc, .value = std::move(value)});
   });
   expect(TokenKind::RBrace, "'}' to close enum");
-  return makeStmt(startTok, EnumDeclStmt{.isExport = isExport, .name = std::move(name), .variants = std::move(variants)});
+  return makeStmt(startTok, EnumDeclStmt{.isExport = isExport, .name = std::move(name), .nameLoc = nameLoc, .variants = std::move(variants)});
 }
 
 std::unique_ptr<Stmt> Parser::parseNamespaceDecl() {
   const Token &startTok = peek();
   advance();
-  std::string name(expect(TokenKind::Identifier, "namespace name").text);
+  const Token &nameTok = expect(TokenKind::Identifier, "namespace name");
+  std::string name(nameTok.text);
+  SourceLoc nameLoc = locOf(nameTok);
   auto body = parseBlock();
-  return makeStmt(startTok, NamespaceStmt{.name = std::move(name), .body = std::move(body)});
+  return makeStmt(startTok, NamespaceStmt{.name = std::move(name), .nameLoc = nameLoc, .body = std::move(body)});
 }
 
 std::unique_ptr<Stmt> Parser::parseImportDecl() {
@@ -813,19 +916,22 @@ std::unique_ptr<Stmt> Parser::parseCommandStmt() {
   return makeStmt(startTok, CommandStmt{.commandName = std::move(commandName), .parts = std::move(parts)});
 }
 
-static bool decomposeAssignTarget(std::unique_ptr<Expr> expr, std::string &outName, std::vector<PathComponent> &outPath) {
+static bool decomposeAssignTarget(std::unique_ptr<Expr> expr, std::string &outName, SourceLoc &outNameLoc, std::vector<PathComponent> &outPath) {
+  SourceLoc nodeLoc = expr->loc;
   if (auto *vr = std::get_if<VarRefExpr>(&expr->data)) {
     outName = std::move(vr->name);
+    outNameLoc = nodeLoc;
     return true;
   }
   if (auto *me = std::get_if<MemberExpr>(&expr->data)) {
-    if (!decomposeAssignTarget(std::move(me->object), outName, outPath)) return false;
-    outPath.push_back(PathComponent{.isIndex = false, .propertyName = std::move(me->property), .index = nullptr});
+    SourceLoc propLoc = me->propertyLoc;
+    if (!decomposeAssignTarget(std::move(me->object), outName, outNameLoc, outPath)) return false;
+    outPath.push_back(PathComponent{.isIndex = false, .propertyName = std::move(me->property), .loc = propLoc, .index = nullptr});
     return true;
   }
   if (auto *ee = std::get_if<ElementExpr>(&expr->data)) {
-    if (!decomposeAssignTarget(std::move(ee->target), outName, outPath)) return false;
-    outPath.push_back(PathComponent{.isIndex = true, .propertyName = "", .index = std::move(ee->index)});
+    if (!decomposeAssignTarget(std::move(ee->target), outName, outNameLoc, outPath)) return false;
+    outPath.push_back(PathComponent{.isIndex = true, .propertyName = "", .loc = nodeLoc, .index = std::move(ee->index)});
     return true;
   }
   return false;
@@ -836,6 +942,8 @@ std::unique_ptr<Stmt> Parser::tryParseAssignOrCallStmt() {
   const Token &startTok = peek();
   try {
     std::string name = parseNamespacedIdentifier();
+    SourceLoc nameLoc = locOf(startTok);
+    nameLoc.endByte = previous().endByte;
     std::unique_ptr<Expr> expr;
 
     if (check(TokenKind::LParen)) {
@@ -843,7 +951,7 @@ std::unique_ptr<Stmt> Parser::tryParseAssignOrCallStmt() {
       std::vector<std::unique_ptr<Expr>> args;
       parseCommaSeparated(*this, TokenKind::RParen, false, [&] { args.push_back(parseExpression()); });
       expect(TokenKind::RParen, "')' to close call arguments");
-      expr = makeExpr(startTok, CallExpr{.name = std::move(name), .arguments = std::move(args)});
+      expr = makeExpr(startTok, CallExpr{.name = std::move(name), .nameLoc = nameLoc, .arguments = std::move(args)});
     } else {
       expr = makeExpr(startTok, VarRefExpr{.name = std::move(name)});
     }
@@ -852,14 +960,15 @@ std::unique_ptr<Stmt> Parser::tryParseAssignOrCallStmt() {
 
     if (check(TokenKind::Eq)) {
       std::string targetName;
+      SourceLoc targetNameLoc;
       std::vector<PathComponent> path;
-      if (!decomposeAssignTarget(std::move(expr), targetName, path)) {
+      if (!decomposeAssignTarget(std::move(expr), targetName, targetNameLoc, path)) {
         pos = save;
         return nullptr;
       }
       advance();
       auto value = parseExpression();
-      return makeStmt(startTok, AssignStmt{.name = std::move(targetName), .path = std::move(path), .value = std::move(value)});
+      return makeStmt(startTok, AssignStmt{.name = std::move(targetName), .nameLoc = targetNameLoc, .path = std::move(path), .value = std::move(value)});
     }
 
     if (atStatementEnd() && (std::holds_alternative<CallExpr>(expr->data) || std::holds_alternative<MethodCallExpr>(expr->data))) {

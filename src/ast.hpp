@@ -18,6 +18,8 @@ struct Expr;
 struct Stmt;
 struct Block {
   std::vector<std::unique_ptr<Stmt>> statements;
+  uint32_t startByte = 0;
+  uint32_t endByte = 0;
 };
 
 struct IntLit {
@@ -62,6 +64,7 @@ struct TernaryExpr {
 struct MemberExpr {
   std::unique_ptr<Expr> object;
   std::string property;
+  SourceLoc propertyLoc;
 };
 
 struct SliceExpr {
@@ -77,12 +80,14 @@ struct ElementExpr {
 
 struct CallExpr {
   std::string name;
+  SourceLoc nameLoc;
   std::vector<std::unique_ptr<Expr>> arguments;
 };
 
 struct MethodCallExpr {
   std::unique_ptr<Expr> object;
   std::string method;
+  SourceLoc methodLoc;
   std::vector<std::unique_ptr<Expr>> arguments;
 };
 
@@ -93,6 +98,7 @@ struct VarRefExpr {
 struct CastExpr {
   std::unique_ptr<Expr> expression;
   std::string typeText;
+  SourceLoc typeLoc;
 };
 
 struct StructExprField {
@@ -155,6 +161,7 @@ struct DoWhileStmt {
 
 struct ForStmt {
   std::string iterator;
+  SourceLoc iteratorLoc;
   std::unique_ptr<Expr> start;
   std::unique_ptr<Expr> end;
   std::unique_ptr<Block> body;
@@ -165,70 +172,86 @@ struct VarDeclStmt {
   bool isExport = false;
   bool isExtern = false;
   std::string name;
+  SourceLoc nameLoc;
   std::optional<std::string> typeText;
+  SourceLoc typeLoc;
   std::unique_ptr<Expr> value;
 };
 
 struct PathComponent {
   bool isIndex = false;
   std::string propertyName;
+  SourceLoc loc;
   std::unique_ptr<Expr> index;
 };
 struct AssignStmt {
   std::string name;
+  SourceLoc nameLoc;
   std::vector<PathComponent> path;
   std::unique_ptr<Expr> value;
 };
 
 struct Param {
   std::string name;
+  SourceLoc loc;
   std::string typeText;
+  SourceLoc typeLoc;
 };
 struct FuncDeclStmt {
   std::optional<std::string> tag;
   bool isExport = false;
   bool isExtern = false;
   std::string name;
+  SourceLoc nameLoc;
   std::vector<Param> params;
   std::optional<std::string> returnTypeText;
+  SourceLoc returnTypeLoc;
   std::unique_ptr<Block> body;
 };
 
 struct StructFieldDecl {
   std::string name;
+  SourceLoc nameLoc;
   std::string typeText;
+  SourceLoc typeLoc;
   bool isPrivate = false;
 };
 
 struct StructMethodDecl {
   SourceLoc loc;
   std::string name;
+  SourceLoc nameLoc;
   bool isPrivate = false;
   bool isStatic = false;
   std::vector<Param> params;
   std::optional<std::string> returnTypeText;
+  SourceLoc returnTypeLoc;
   std::unique_ptr<Block> body;
 };
 
 struct StructDeclStmt {
   bool isExport = false;
   std::string name;
+  SourceLoc nameLoc;
   std::vector<StructFieldDecl> fields;
   std::vector<StructMethodDecl> methods;
 };
 
 struct EnumVariantDecl {
   std::string name;
+  SourceLoc nameLoc;
   std::optional<std::unique_ptr<Expr>> value;
 };
 struct EnumDeclStmt {
   bool isExport = false;
   std::string name;
+  SourceLoc nameLoc;
   std::vector<EnumVariantDecl> variants;
 };
 
 struct NamespaceStmt {
   std::string name;
+  SourceLoc nameLoc;
   std::unique_ptr<Block> body;
 };
 

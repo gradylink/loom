@@ -9,7 +9,14 @@
 #include <vector>
 
 struct ParseError : std::runtime_error {
-  using std::runtime_error::runtime_error;
+  SourceLoc loc;
+  std::string rawMessage;
+  ParseError(SourceLoc loc, const std::string &formatted, std::string rawMessage) : std::runtime_error(formatted), loc(loc), rawMessage(std::move(rawMessage)) {}
+};
+
+struct ParseDiagnostic {
+  SourceLoc loc;
+  std::string message;
 };
 
 class Parser {
@@ -19,6 +26,9 @@ public:
   std::unique_ptr<Expr> parseExpression();
 
   std::unique_ptr<Block> parseProgram();
+
+  void enableErrorRecovery() { recoverFromErrors = true; }
+  const std::vector<ParseDiagnostic> &getDiagnostics() const { return diagnostics; }
 
   const Token &peek(size_t ahead = 0) const;
   const Token &previous() const;
@@ -36,10 +46,16 @@ private:
   std::vector<Token> tokens;
   size_t pos = 0;
 
+  bool recoverFromErrors = false;
+  std::vector<ParseDiagnostic> diagnostics;
+  std::unique_ptr<Stmt> parseStatementRecovering();
+  void synchronize();
+
   SourceLoc locOf(const Token &tok) const;
   std::unique_ptr<Expr> makeExpr(const Token &startTok, decltype(Expr::data) data);
 
   std::string parseTypeText();
+  std::string parseTypeText(SourceLoc &outLoc);
   std::string parseSelectorText();
   std::string parseNamespacedArgText();
   std::string parseImportPathText();

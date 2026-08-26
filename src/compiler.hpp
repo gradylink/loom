@@ -233,6 +233,8 @@ private:
   std::unordered_map<std::string, StructData> structs;
   std::vector<CompiledFunction> compiledFunctions;
 
+  std::vector<std::unique_ptr<Compiler>> importedCompilers;
+
   std::unordered_map<std::string, BuiltinCompileCallback> builtins;
 
   unsigned int currentExpressionId = 0;

@@ -31,9 +31,16 @@ CPMAddPackage(
   OPTIONS "RYML_INSTALL OFF"
 )
 
+CPMAddPackage(
+  NAME nlohmann_json
+  GITHUB_REPOSITORY nlohmann/json
+  VERSION 3.11.3
+  OPTIONS "JSON_BuildTests OFF"
+)
+
 file(GLOB_RECURSE LOOM_SOURCES src/*.cpp)
 add_executable(loom ${LOOM_SOURCES})
-target_link_libraries(loom PRIVATE lyra ryml)
+target_link_libraries(loom PRIVATE lyra ryml nlohmann_json::nlohmann_json)
 
 install(TARGETS loom RUNTIME DESTINATION bin)
 
