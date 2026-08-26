@@ -8,9 +8,9 @@ public:
   bool handles(const Compiler::Type &type) const override { return type.isFloat(); }
 
   std::optional<Compiler::ExpressionData>
-  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, TSNode node) const override {
+  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, SourceLoc loc) const override {
     if (op == "-") {
-      if (!operand.type.isFloat()) throw std::runtime_error(formatError(node, "Unary minus '-' on float requires a float operand."));
+      if (!operand.type.isFloat()) throw std::runtime_error(formatError(loc, "Unary minus '-' on float requires a float operand."));
 
       if (operand.precomputed) {
         std::string finalVal = operand.data.starts_with('-') ? operand.data.substr(1) : "-" + operand.data;
@@ -41,7 +41,7 @@ public:
   }
 
   std::optional<Compiler::ExpressionData> compileBinaryOp(
-    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, SourceLoc loc
   ) const override {
     const bool isMath = (op == "+" || op == "-" || op == "*" || op == "/" || op == "%");
     const bool isComparison = (op == "==" || op == "!=" || op == "<" || op == ">" || op == "<=" || op == ">=");
@@ -59,10 +59,10 @@ public:
       else if (op == "-") result = std::to_string(lVal - rVal);
       else if (op == "*") result = std::to_string(lVal * rVal);
       else if (op == "/") {
-        if (rVal == 0.0f) throw std::runtime_error(formatError(node, "Float division by zero at compile-time."));
+        if (rVal == 0.0f) throw std::runtime_error(formatError(loc, "Float division by zero at compile-time."));
         result = std::to_string(lVal / rVal);
       } else if (op == "%") {
-        if (rVal == 0.0f) throw std::runtime_error(formatError(node, "Float modulo by zero at compile-time."));
+        if (rVal == 0.0f) throw std::runtime_error(formatError(loc, "Float modulo by zero at compile-time."));
         result = std::to_string(std::fmod(lVal, rVal));
       } else if (op == "==") result = (lVal == rVal) ? "1" : "0";
       else if (op == "!=") result = (lVal != rVal) ? "1" : "0";
@@ -219,7 +219,7 @@ public:
     return Compiler::ExpressionData{.data = runtimeCommands, .precomputed = false, .type = retType};
   }
   std::optional<Compiler::ExpressionData>
-  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, SourceLoc loc) const override {
     if (targetType.isInteger()) {
       if (expr.precomputed) {
         std::string intStr = std::to_string(static_cast<int32_t>(std::stof(expr.data)));
@@ -303,11 +303,11 @@ public:
   void registerBuiltins(Compiler &compiler) const override {
     compiler.registerBuiltin(
       "abs",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         }
 
         if (!expr.type.isFloat()) return std::nullopt;
@@ -338,11 +338,11 @@ public:
 
     compiler.registerBuiltin(
       "round",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         }
 
         if (!expr.type.isFloat()) return std::nullopt;
@@ -373,11 +373,11 @@ public:
 
     compiler.registerBuiltin(
       "floor",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         }
 
         if (!expr.type.isFloat()) return std::nullopt;
@@ -408,11 +408,11 @@ public:
 
     compiler.registerBuiltin(
       "ceil",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         }
 
         if (!expr.type.isFloat()) return std::nullopt;
@@ -443,16 +443,16 @@ public:
 
     compiler.registerBuiltin(
       "sqrt",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
           float val = std::stof(expr.data);
-          if (val < 0.0f) throw std::runtime_error(formatError(node, "Float square root of a negative number at compile-time."));
+          if (val < 0.0f) throw std::runtime_error(formatError(loc, "Float square root of a negative number at compile-time."));
           std::string res = std::to_string(std::sqrt(val));
 
           if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
@@ -479,11 +479,11 @@ public:
 
     compiler.registerBuiltin(
       "sin",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
@@ -513,11 +513,11 @@ public:
 
     compiler.registerBuiltin(
       "cos",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
@@ -547,11 +547,11 @@ public:
 
     compiler.registerBuiltin(
       "tan",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
@@ -584,16 +584,16 @@ public:
 
     compiler.registerBuiltin(
       "asin",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
           float val = std::stof(expr.data);
-          if (val < -1.0f || val > 1.0f) throw std::runtime_error(formatError(node, "Float arcsine domain error (must be between -1.0 and 1.0)."));
+          if (val < -1.0f || val > 1.0f) throw std::runtime_error(formatError(loc, "Float arcsine domain error (must be between -1.0 and 1.0)."));
           std::string res = std::to_string(std::asin(val));
           if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
           return Compiler::ExpressionData{
@@ -621,16 +621,16 @@ public:
 
     compiler.registerBuiltin(
       "acos",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
           float val = std::stof(expr.data);
-          if (val < -1.0f || val > 1.0f) throw std::runtime_error(formatError(node, "Float arccosine domain error (must be between -1.0 and 1.0)."));
+          if (val < -1.0f || val > 1.0f) throw std::runtime_error(formatError(loc, "Float arccosine domain error (must be between -1.0 and 1.0)."));
           std::string res = std::to_string(std::acos(val));
           if (precompute) return Compiler::ExpressionData{.data = res, .precomputed = true, .type = Compiler::Type::FloatType()};
           return Compiler::ExpressionData{
@@ -658,11 +658,11 @@ public:
 
     compiler.registerBuiltin(
       "atan",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData expr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData expr = c.compileExpression(*args[0], id, true);
 
         if (expr.type.isInteger()) {
-          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, node).value();
+          expr = compileCast(c, expr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!expr.type.isFloat()) return std::nullopt;
 
         if (expr.precomputed) {
@@ -692,17 +692,17 @@ public:
 
     compiler.registerBuiltin(
       "atan2",
-      [this](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData yExpr = c.compileExpression(args[0], id, true);
+      [this](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData yExpr = c.compileExpression(*args[0], id, true);
 
         if (yExpr.type.isInteger()) {
-          yExpr = compileCast(c, yExpr, Compiler::Type::FloatType(), id, precompute, node).value();
+          yExpr = compileCast(c, yExpr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!yExpr.type.isFloat()) return std::nullopt;
 
-        Compiler::ExpressionData xExpr = c.compileExpression(args[1], id + 1, true);
+        Compiler::ExpressionData xExpr = c.compileExpression(*args[1], id + 1, true);
 
         if (xExpr.type.isInteger()) {
-          xExpr = compileCast(c, xExpr, Compiler::Type::FloatType(), id, precompute, node).value();
+          xExpr = compileCast(c, xExpr, Compiler::Type::FloatType(), id, precompute, loc).value();
         } else if (!xExpr.type.isFloat()) return std::nullopt;
 
         if (yExpr.precomputed && xExpr.precomputed) {

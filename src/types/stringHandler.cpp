@@ -10,13 +10,13 @@ public:
   bool handles(const Compiler::Type &type) const override { return type.isString(); }
 
   std::optional<Compiler::ExpressionData> compileBinaryOp(
-    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, SourceLoc loc
   ) const override {
 
     if (op != "+") return std::nullopt;
 
     if (!left.type.isString() || !right.type.isString()) {
-      throw std::runtime_error(formatError(node, "Implicit concatenation coercion between strings and numeric primitives is not allowed."));
+      throw std::runtime_error(formatError(loc, "Implicit concatenation coercion between strings and numeric primitives is not allowed."));
     }
 
     if (left.precomputed && right.precomputed) {
@@ -64,8 +64,8 @@ public:
   void registerBuiltins(Compiler &compiler) const override {
     compiler.registerBuiltin(
       "len",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData objExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData objExpr = c.compileExpression(*args[0], id, true);
         if (!objExpr.type.isString()) return std::nullopt; // Let next handler try
 
         if (objExpr.precomputed) {
@@ -90,15 +90,15 @@ public:
 
     compiler.registerBuiltin(
       "append",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData strExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData strExpr = c.compileExpression(*args[0], id, true);
         if (!strExpr.type.isString()) return std::nullopt;
 
         std::string cmds = strExpr.data + "\n";
         if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, strExpr.data);
 
-        Compiler::ExpressionData elemExpr = c.compileExpression(args[1], id + 1, true);
-        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append non-string to a string."));
+        Compiler::ExpressionData elemExpr = c.compileExpression(*args[1], id + 1, true);
+        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(args[1]->loc, "Type mismatch: cannot append non-string to a string."));
 
         cmds += elemExpr.data + "\n";
         if (elemExpr.precomputed) {
@@ -127,15 +127,15 @@ public:
 
     compiler.registerBuiltin(
       "remove",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData strExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData strExpr = c.compileExpression(*args[0], id, true);
         if (!strExpr.type.isString()) return std::nullopt;
 
         std::string cmds = strExpr.data + "\n";
         if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, strExpr.data);
 
-        Compiler::ExpressionData idxExpr = c.compileExpression(args[1], id + 1, true);
-        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
+        Compiler::ExpressionData idxExpr = c.compileExpression(*args[1], id + 1, true);
+        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1]->loc, "Index must evaluate to an integer."));
 
         cmds += idxExpr.data + "\n";
         if (idxExpr.precomputed) {
@@ -170,18 +170,18 @@ public:
 
     compiler.registerBuiltin(
       "insert",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData strExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData strExpr = c.compileExpression(*args[0], id, true);
         if (!strExpr.type.isString()) return std::nullopt;
 
         std::string cmds = strExpr.data + "\n";
         if (strExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, strExpr.data);
 
-        Compiler::ExpressionData idxExpr = c.compileExpression(args[1], id + 1, true);
-        Compiler::ExpressionData elemExpr = c.compileExpression(args[2], id + 2, true);
+        Compiler::ExpressionData idxExpr = c.compileExpression(*args[1], id + 1, true);
+        Compiler::ExpressionData elemExpr = c.compileExpression(*args[2], id + 2, true);
 
-        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
-        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert non-string into a string."));
+        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1]->loc, "Index must evaluate to an integer."));
+        if (!elemExpr.type.isString()) throw std::runtime_error(formatError(args[2]->loc, "Type mismatch: cannot insert non-string into a string."));
 
         cmds += idxExpr.data + "\n" + elemExpr.data + "\n";
 
@@ -236,7 +236,7 @@ public:
   }
 
   std::optional<Compiler::ExpressionData>
-  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, SourceLoc loc) const override {
     if (targetType.isInteger()) {
       if (expr.precomputed) {
         std::string raw = expr.data;

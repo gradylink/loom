@@ -6,39 +6,42 @@
 static constexpr const char *kReturnPropagateCheck = "execute if score _loom_returned temp matches 1 return run scoreboard players get _loom_ret_val temp\n";
 static constexpr const char *kReturnFlagReset = "scoreboard players set _loom_returned temp 0\n";
 
-std::string Compiler::compileIf(TSNode ifRoot) {
+std::string Compiler::compileIf(const IfStmt &ifStmt, SourceLoc loc) {
   std::string ret = "";
 
   const std::string &name = "if_" + randomFunctionMangleString();
-  const ExpressionData expr = compileExpression(ts_node_child_by_field_name(ifRoot, "expression", 10));
+  const ExpressionData expr = compileExpression(*ifStmt.condition);
 
-  if (!expr.type.isBoolean()) throw std::runtime_error(formatError(ifRoot, "Invalid type for if statement expression."));
+  if (!expr.type.isBoolean()) throw std::runtime_error(formatError(loc, "Invalid type for if statement expression."));
 
-  TSNode blockNode = ts_node_child_by_field_name(ifRoot, "block", 5);
-
-  const bool hasElse = ts_node_named_child_count(ifRoot) > 2;
-  TSNode altNode;
-  if (hasElse) altNode = ts_node_named_child(ifRoot, 2);
+  const bool hasElse = ifStmt.elseBranch.has_value();
 
   if (expr.precomputed) {
     if (expr.data == "1") {
-      ret += compileBlock(blockNode);
+      ret += compileBlock(*ifStmt.thenBlock);
     } else if (hasElse) {
-      std::string altType = ts_node_type(altNode);
-      if (altType == "block") {
-        ret += compileBlock(altNode);
-      } else if (altType == "if") {
-        ret += compileIf(altNode);
+      const Stmt &elseStmt = **ifStmt.elseBranch;
+      if (auto *blockStmt = std::get_if<BlockStmt>(&elseStmt.data)) {
+        ret += compileBlock(*blockStmt->block);
+      } else if (auto *nestedIf = std::get_if<IfStmt>(&elseStmt.data)) {
+        ret += compileIf(*nestedIf, elseStmt.loc);
       }
     }
     return ret;
   }
 
-  const auto compileBody = [&](TSNode node) -> std::string {
+  const auto compileBody = [&](const Block &blk) -> std::string {
     controlFlowDepth++;
-    std::string data = compileBlock(node);
+    std::string data = compileBlock(blk);
     controlFlowDepth--;
     return data;
+  };
+
+  const auto compileElseData = [&]() -> std::string {
+    const Stmt &elseStmt = **ifStmt.elseBranch;
+    if (auto *blockStmt = std::get_if<BlockStmt>(&elseStmt.data)) return compileBody(*blockStmt->block);
+    if (auto *nestedIf = std::get_if<IfStmt>(&elseStmt.data)) return compileIf(*nestedIf, elseStmt.loc);
+    return "";
   };
 
   const auto emitSubFuncCall = [&](const std::string &executePrefix, const std::string &funcSuffix) {
@@ -63,7 +66,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     }
     ret += setup;
 
-    const std::string trueData = compileBody(blockNode);
+    const std::string trueData = compileBody(*ifStmt.thenBlock);
     const size_t trueLineCount = std::count(trueData.begin(), trueData.end(), '\n');
 
     if (trueLineCount > 0) {
@@ -76,10 +79,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     }
 
     if (hasElse) {
-      std::string altData;
-      std::string altType = ts_node_type(altNode);
-      if (altType == "block") altData = compileBody(altNode);
-      else if (altType == "if") altData = compileIf(altNode);
+      const std::string altData = compileElseData();
 
       const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
       if (altLineCount > 0) {
@@ -102,7 +102,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
     ret += std::format("scoreboard players operation {} temp = expr_output1 temp\n", condScore);
   }
 
-  const std::string trueData = compileBody(blockNode);
+  const std::string trueData = compileBody(*ifStmt.thenBlock);
   const size_t trueLineCount = std::count(trueData.begin(), trueData.end(), '\n');
 
   if (trueLineCount > 0) {
@@ -115,10 +115,7 @@ std::string Compiler::compileIf(TSNode ifRoot) {
   }
 
   if (hasElse) {
-    std::string altData;
-    std::string altType = ts_node_type(altNode);
-    if (altType == "block") altData = compileBody(altNode);
-    else if (altType == "if") altData = compileIf(altNode);
+    const std::string altData = compileElseData();
 
     const size_t altLineCount = std::count(altData.begin(), altData.end(), '\n');
     if (altLineCount > 0) {
@@ -134,22 +131,19 @@ std::string Compiler::compileIf(TSNode ifRoot) {
   return ret;
 }
 
-std::string Compiler::compileWhile(TSNode whileNode) {
+std::string Compiler::compileWhile(const WhileStmt &whileStmt, SourceLoc loc) {
   std::string ret = "";
   const std::string &loopName = "while_" + randomFunctionMangleString();
 
-  TSNode condNode = ts_node_child_by_field_name(whileNode, "condition", 9);
-  TSNode blockNode = ts_node_child_by_field_name(whileNode, "block", 5);
-
-  const ExpressionData &condExpr = compileExpression(condNode);
+  const ExpressionData &condExpr = compileExpression(*whileStmt.condition);
   if (!condExpr.type.isBoolean()) {
-    throw std::runtime_error(formatError(condNode, "While loop condition must evaluate to a boolean."));
+    throw std::runtime_error(formatError(loc, "While loop condition must evaluate to a boolean."));
   }
 
   if (condExpr.precomputed && condExpr.data == "0") return "";
 
   controlFlowDepth++;
-  std::string loopFuncBody = compileBlock(blockNode);
+  std::string loopFuncBody = compileBlock(*whileStmt.body);
   controlFlowDepth--;
 
   auto appendLoopCall = [&](std::string &target, const std::string &callLine) {
@@ -190,20 +184,17 @@ std::string Compiler::compileWhile(TSNode whileNode) {
   return ret;
 }
 
-std::string Compiler::compileDoWhile(TSNode doWhileNode) {
+std::string Compiler::compileDoWhile(const DoWhileStmt &doWhileStmt, SourceLoc loc) {
   std::string ret = "";
   const std::string &loopName = "dowhile_" + randomFunctionMangleString();
 
-  TSNode blockNode = ts_node_child_by_field_name(doWhileNode, "block", 5);
-  TSNode condNode = ts_node_child_by_field_name(doWhileNode, "condition", 9);
-
-  const ExpressionData &condExpr = compileExpression(condNode);
+  const ExpressionData &condExpr = compileExpression(*doWhileStmt.condition);
   if (!condExpr.type.isBoolean()) {
-    throw std::runtime_error(formatError(condNode, "Do-while loop condition must evaluate to a boolean."));
+    throw std::runtime_error(formatError(loc, "Do-while loop condition must evaluate to a boolean."));
   }
 
   controlFlowDepth++;
-  std::string loopFuncBody = compileBlock(blockNode);
+  std::string loopFuncBody = compileBlock(*doWhileStmt.body);
   controlFlowDepth--;
 
   auto appendLoopCall = [&](std::string &target, const std::string &callLine) {
@@ -237,32 +228,26 @@ std::string Compiler::compileDoWhile(TSNode doWhileNode) {
   return ret;
 }
 
-std::string Compiler::compileFor(TSNode forNode) {
+std::string Compiler::compileFor(const ForStmt &forStmt, SourceLoc loc) {
   std::string ret = "";
   const std::string &loopName = "for_" + randomFunctionMangleString();
 
-  TSNode iterNode = ts_node_child_by_field_name(forNode, "iterator", 8);
-  TSNode startNode = ts_node_child_by_field_name(forNode, "start", 5);
-  TSNode endNode = ts_node_child_by_field_name(forNode, "end", 3);
-  TSNode blockNode = ts_node_child_by_field_name(forNode, "block", 5);
-
-  const std::string &iterName = std::string(getNodeText(iterNode));
+  const std::string &iterName = forStmt.iterator;
   const std::string &iterMangled = iterName + "_" + randomMangleString();
   const std::string &endMangled = "limit_" + randomMangleString();
 
-  const ExpressionData &startExpr = compileExpression(startNode, 1, false);
-  const ExpressionData &endExpr = compileExpression(endNode, 2, false);
+  const ExpressionData &startExpr = compileExpression(*forStmt.start, 1, false);
+  const ExpressionData &endExpr = compileExpression(*forStmt.end, 2, false);
 
   if (!startExpr.type.isInteger() && !startExpr.type.isBoolean()) {
-    throw std::runtime_error(formatError(startNode, "For loop start boundary must be an integer."));
+    throw std::runtime_error(formatError(loc, "For loop start boundary must be an integer."));
   }
   if (!endExpr.type.isInteger() && !endExpr.type.isBoolean()) {
-    throw std::runtime_error(formatError(endNode, "For loop end boundary must be an integer."));
+    throw std::runtime_error(formatError(loc, "For loop end boundary must be an integer."));
   }
 
   vars.emplace(
-    iterName,
-    VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::IntegerType(), .scope = blockNode, .value = std::nullopt, .constant = false}
+    iterName, VariableData{.name = iterName, .mangledName = iterMangled, .type = Type::IntegerType(), .scope = forStmt.body.get(), .value = std::nullopt, .constant = false}
   );
 
   if (startExpr.precomputed) {
@@ -280,7 +265,7 @@ std::string Compiler::compileFor(TSNode forNode) {
   }
 
   controlFlowDepth++;
-  std::string loopFuncBody = compileBlock(blockNode);
+  std::string loopFuncBody = compileBlock(*forStmt.body);
   controlFlowDepth--;
 
   loopFuncBody += std::format("scoreboard players add {} vars 1\n", iterMangled);

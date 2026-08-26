@@ -19,7 +19,10 @@ CPMAddPackage(
     GITHUB_REPOSITORY bfgroup/Lyra
     VERSION 1.7.0
     GIT_TAG 1.7.0
+    DOWNLOAD_ONLY TRUE
 )
+add_library(lyra INTERFACE)
+target_include_directories(lyra INTERFACE ${lyra_SOURCE_DIR}/include)
 
 CPMAddPackage(
   NAME ryml
@@ -28,23 +31,12 @@ CPMAddPackage(
   OPTIONS "RYML_INSTALL OFF"
 )
 
-find_package(tree-sitter QUIET)
-if(NOT tree-sitter_FOUND)
-  CPMAddPackage(
-        NAME tree-sitter
-        GITHUB_REPOSITORY tree-sitter/tree-sitter
-        VERSION 0.25.10
-    )
-endif()
-
 file(GLOB_RECURSE LOOM_SOURCES src/*.cpp)
-add_executable(loom ${LOOM_SOURCES} tree-sitter-loom/src/parser.c)
-target_include_directories(loom PRIVATE tree-sitter-loom/src)
-target_link_libraries(loom PRIVATE tree-sitter bfg::lyra ryml)
+add_executable(loom ${LOOM_SOURCES})
+target_link_libraries(loom PRIVATE lyra ryml)
 
 install(TARGETS loom RUNTIME DESTINATION bin)
 
-# Convenience target to run the shell-based Loom tests harness
 add_custom_target(loom-tests
   COMMAND ${CMAKE_COMMAND} -E env LOOM_EXEC=$<TARGET_FILE:loom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_all.sh
   DEPENDS loom

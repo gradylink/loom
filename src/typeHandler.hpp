@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ast.hpp"
 #include "compiler.hpp"
 #include <memory>
 #include <optional>
@@ -15,23 +16,23 @@ public:
   virtual bool handles(const Compiler::Type &type) const = 0;
 
   virtual std::optional<Compiler::ExpressionData> compileBinaryOp(
-    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, SourceLoc loc
   ) const {
     return std::nullopt;
   }
 
   virtual std::optional<Compiler::ExpressionData>
-  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, TSNode node) const {
+  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, SourceLoc loc) const {
     return std::nullopt;
   }
 
   virtual std::optional<Compiler::ExpressionData>
-  compileMemberExpression(Compiler &compiler, const Compiler::ExpressionData &object, std::string_view property, unsigned int id, bool precompute, TSNode node) const {
+  compileMemberExpression(Compiler &compiler, const Compiler::ExpressionData &object, std::string_view property, unsigned int id, bool precompute, SourceLoc loc) const {
     return std::nullopt;
   }
 
   virtual std::optional<Compiler::ExpressionData>
-  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const {
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, SourceLoc loc) const {
     return std::nullopt;
   }
 };

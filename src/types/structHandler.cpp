@@ -10,7 +10,7 @@ public:
   bool handles(const Compiler::Type &type) const override { return type.kind == Compiler::Type::Struct; }
 
   std::optional<Compiler::ExpressionData> compileMemberExpression(
-    Compiler &compiler, const Compiler::ExpressionData &object, std::string_view property, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, const Compiler::ExpressionData &object, std::string_view property, unsigned int id, bool precompute, SourceLoc loc
   ) const override {
     std::string prop(property);
     const Compiler::StructData *structRef = object.type.structRef;

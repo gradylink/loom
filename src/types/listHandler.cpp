@@ -11,8 +11,8 @@ public:
   void registerBuiltins(Compiler &compiler) const override {
     compiler.registerBuiltin(
       "len",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData listExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData listExpr = c.compileExpression(*args[0], id, true);
         if (!listExpr.type.isList()) return std::nullopt;
 
         if (listExpr.precomputed) {
@@ -36,17 +36,17 @@ public:
 
     compiler.registerBuiltin(
       "append",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData listExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData listExpr = c.compileExpression(*args[0], id, true);
         if (!listExpr.type.isList()) return std::nullopt;
 
         std::string cmds = listExpr.data + "\n";
         if (listExpr.precomputed) cmds = std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, listExpr.data);
 
-        Compiler::ExpressionData elemExpr = c.compileExpression(args[1], id + 1, true);
+        Compiler::ExpressionData elemExpr = c.compileExpression(*args[1], id + 1, true);
         if (elemExpr.type != *listExpr.type.baseType) {
-          if (std::string(ts_node_type(args[1])) == "variable_ref") {
-            std::string targetVar = std::string(c.getFieldText(args[1], "name"));
+          if (auto *vr = std::get_if<VarRefExpr>(&args[1]->data)) {
+            std::string targetVar = vr->name;
             if (auto varOpt = c.lookupVariable(targetVar)) {
               auto varData = varOpt.value();
               if (varData.type.isRef() && *varData.type.baseType == *listExpr.type.baseType) {
@@ -66,13 +66,13 @@ public:
                   };
                 }
               } else {
-                throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append element to this list type."));
+                throw std::runtime_error(formatError(args[1]->loc, "Type mismatch: cannot append element to this list type."));
               }
             } else {
-              throw std::runtime_error(formatError(args[1], "Unknown variable used in expression."));
+              throw std::runtime_error(formatError(args[1]->loc, "Unknown variable used in expression."));
             }
           } else {
-            throw std::runtime_error(formatError(args[1], "Type mismatch: cannot append element to this list type."));
+            throw std::runtime_error(formatError(args[1]->loc, "Type mismatch: cannot append element to this list type."));
           }
         }
 
@@ -99,15 +99,15 @@ public:
 
     compiler.registerBuiltin(
       "remove",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData listExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData listExpr = c.compileExpression(*args[0], id, true);
         if (!listExpr.type.isList()) return std::nullopt;
 
         std::string cmds = listExpr.data + "\n";
         if (listExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, listExpr.data);
 
-        Compiler::ExpressionData idxExpr = c.compileExpression(args[1], id + 1, true);
-        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
+        Compiler::ExpressionData idxExpr = c.compileExpression(*args[1], id + 1, true);
+        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1]->loc, "Index must evaluate to an integer."));
         cmds += idxExpr.data + "\n";
 
         if (idxExpr.precomputed) {
@@ -130,20 +130,20 @@ public:
 
     compiler.registerBuiltin(
       "insert",
-      [](Compiler &c, const std::vector<TSNode> &args, unsigned int id, bool precompute, TSNode node) -> std::optional<Compiler::ExpressionData> {
-        Compiler::ExpressionData listExpr = c.compileExpression(args[0], id, true);
+      [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
+        Compiler::ExpressionData listExpr = c.compileExpression(*args[0], id, true);
         if (!listExpr.type.isList()) return std::nullopt;
 
         std::string cmds = listExpr.data + "\n";
         if (listExpr.precomputed) cmds += std::format("data modify storage {}:global expr_str{} set value {}\n", c.getDatapackNamespace(), id, listExpr.data);
 
-        Compiler::ExpressionData idxExpr = c.compileExpression(args[1], id + 1, true);
-        Compiler::ExpressionData elemExpr = c.compileExpression(args[2], id + 2, true);
+        Compiler::ExpressionData idxExpr = c.compileExpression(*args[1], id + 1, true);
+        Compiler::ExpressionData elemExpr = c.compileExpression(*args[2], id + 2, true);
 
-        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1], "Index must evaluate to an integer."));
+        if (!idxExpr.type.isInteger()) throw std::runtime_error(formatError(args[1]->loc, "Index must evaluate to an integer."));
         if (elemExpr.type != *listExpr.type.baseType) {
-          if (std::string(ts_node_type(args[2])) == "variable_ref") {
-            std::string targetVar = std::string(c.getFieldText(args[2], "name"));
+          if (auto *vr = std::get_if<VarRefExpr>(&args[2]->data)) {
+            std::string targetVar = vr->name;
             if (auto varOpt = c.lookupVariable(targetVar)) {
               auto varData = varOpt.value();
               if (varData.type.isRef() && *varData.type.baseType == *listExpr.type.baseType) {
@@ -163,13 +163,13 @@ public:
                   };
                 }
               } else {
-                throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert element into this list type."));
+                throw std::runtime_error(formatError(args[2]->loc, "Type mismatch: cannot insert element into this list type."));
               }
             } else {
-              throw std::runtime_error(formatError(args[2], "Unknown variable used in expression."));
+              throw std::runtime_error(formatError(args[2]->loc, "Unknown variable used in expression."));
             }
           } else {
-            throw std::runtime_error(formatError(args[2], "Type mismatch: cannot insert element into this list type."));
+            throw std::runtime_error(formatError(args[2]->loc, "Type mismatch: cannot insert element into this list type."));
           }
         }
 

@@ -28,8 +28,7 @@ std::string randomFunctionMangleString() {
   return ret;
 }
 
-std::string formatError(TSNode node, const std::string &message) {
-  if (ts_node_is_null(node)) return message;
-  TSPoint start = ts_node_start_point(node);
-  return std::format("line {}, col {}: {}", start.row + 1, start.column + 1, message);
+std::string formatError(SourceLoc loc, const std::string &message) {
+  if (loc.line == 0) return message;
+  return std::format("line {}, col {}: {}", loc.line, loc.col, message);
 }

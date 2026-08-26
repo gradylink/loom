@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ast.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
@@ -9,7 +10,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <tree_sitter/api.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -170,7 +170,7 @@ public:
     std::string name;
     std::string mangledName;
     Type type;
-    TSNode scope;
+    const Block *scope;
     std::optional<std::string> value;
 
     bool constant = false;
@@ -206,7 +206,7 @@ public:
   }
 
   using BuiltinCompileCallback =
-    std::function<std::optional<ExpressionData>(Compiler &compiler, const std::vector<TSNode> &argNodes, unsigned int id, bool precompute, TSNode node)>;
+    std::function<std::optional<ExpressionData>(Compiler &compiler, const std::vector<const Expr *> &argNodes, unsigned int id, bool precompute, SourceLoc loc)>;
   void registerBuiltin(const std::string &name, BuiltinCompileCallback callback);
   bool isBuiltin(const std::string &name) const { return builtins.count(name) > 0; }
 
@@ -217,9 +217,7 @@ private:
   const std::string source;
   const std::filesystem::path currentDir;
 
-  TSParser *parser;
-  TSTree *tree;
-  TSNode root;
+  std::unique_ptr<Block> program;
 
   std::unordered_map<std::string, std::vector<FunctionData>> funcs;
   std::unordered_map<std::string, VariableData> vars;
@@ -236,8 +234,13 @@ private:
   std::string currentFuncRefCopybacks = "";
   int controlFlowDepth = 0;
 
-  void processDeclarations(TSNode parentNode);
-  void processCompilation(TSNode parentNode);
+  void processDeclarations(const Block &block);
+  void processCompilation(const Block &block);
+  void processStructDecl(const StructDeclStmt &decl, SourceLoc loc);
+  void processEnumDecl(const EnumDeclStmt &decl, SourceLoc loc);
+  void processFuncDeclDeclaration(const FuncDeclStmt &decl, SourceLoc loc);
+  void processImportDecl(const ImportStmt &decl, SourceLoc loc);
+  void compileFuncDecl(const FuncDeclStmt &decl, SourceLoc loc);
 
 public:
   std::string prefixName(const std::string &name) const {
@@ -301,23 +304,19 @@ public:
                                                   "scoreboard objectives add temp dummy\n"
                                                   "scoreboard players set invert temp -1\n";
 
-  std::string_view getNodeText(TSNode node);
-  std::string_view getFieldText(TSNode node, const std::string &field);
-
   std::optional<VariableData> lookupVariable(const std::string &name) const;
 
   Type parseTypeFromString(const std::string &typeText) const;
 
-  ExpressionData compileExpression(TSNode node, unsigned int id = 1, bool precompute = true);
-  ExpressionData compileExpressionImpl(TSNode node, unsigned int id = 1, bool precompute = true);
+  ExpressionData compileExpression(const Expr &node, unsigned int id = 1, bool precompute = true);
+  ExpressionData compileExpressionImpl(const Expr &node, unsigned int id, bool precompute);
 
-  std::string compileVariableDeclaration(TSNode child, TSNode scope, bool isGlobal);
+  std::string compileVariableDeclaration(const VarDeclStmt &decl, SourceLoc loc, const Block *scope, bool isGlobal);
 
-  std::string compileIf(TSNode ifRoot);
-  std::string compileWhile(TSNode whileNode);
-  std::string compileDoWhile(TSNode doWhileNode);
-  std::string compileFor(TSNode forNode);
+  std::string compileIf(const IfStmt &ifStmt, SourceLoc loc);
+  std::string compileWhile(const WhileStmt &whileStmt, SourceLoc loc);
+  std::string compileDoWhile(const DoWhileStmt &doWhileStmt, SourceLoc loc);
+  std::string compileFor(const ForStmt &forStmt, SourceLoc loc);
 
-  std::string compileBlock(TSNode node);
-  std::optional<std::string> optimizeCommand(const std::string &commandName, const std::vector<TSNode> &args);
+  std::string compileBlock(const Block &block);
 };

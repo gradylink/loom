@@ -4,557 +4,485 @@
 #include <sstream>
 #include <stdexcept>
 
-std::string Compiler::compileBlock(TSNode node) {
+std::string Compiler::compileBlock(const Block &block) {
   std::string ret = "";
+  bool returned = false;
 
-  for (uint32_t i = 0; i < ts_node_named_child_count(node); i++) {
-    TSNode child = ts_node_named_child(node, i);
-    const std::string type = ts_node_type(child);
+  for (const auto &stmtPtr : block.statements) {
+    if (returned) break;
+    const Stmt &stmt = *stmtPtr;
 
-    if (type == "if") {
-      ret += compileIf(child);
-      continue;
-    }
+    std::visit(
+      [&](auto &&n) {
+        using T = std::decay_t<decltype(n)>;
 
-    if (type == "while") {
-      ret += compileWhile(child);
-      continue;
-    }
-
-    if (type == "do_while") {
-      ret += compileDoWhile(child);
-      continue;
-    }
-
-    if (type == "for") {
-      ret += compileFor(child);
-      continue;
-    }
-
-    if (type == "context_statement") {
-      std::string contextChain = "execute";
-
-      const uint32_t childCount = ts_node_child_count(child);
-
-      TSNode blockNode;
-
-      for (uint32_t i = 0; i < childCount; i++) {
-        TSNode subNode = ts_node_child(child, i);
-        const std::string &subType = ts_node_type(subNode);
-
-        if (subType == "block") {
-          blockNode = subNode;
-          break;
+        if constexpr (std::is_same_v<T, IfStmt>) {
+          ret += compileIf(n, stmt.loc);
         }
 
-        if (subType == "contextModifier") {
-          TSNode keywordNode = ts_node_child(subNode, 0);
-          const std::string keyword = std::string(getNodeText(keywordNode));
+        else if constexpr (std::is_same_v<T, WhileStmt>) {
+          ret += compileWhile(n, stmt.loc);
+        }
 
-          if (keyword == "as" || keyword == "at") {
-            const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
-            contextChain += std::format(" {} {}", keyword, selector);
-          } else if (keyword == "align") {
-            const std::string axes = std::string(getNodeText(ts_node_child_by_field_name(subNode, "axes", 4)));
-            contextChain += std::format(" align {}", axes);
-          } else if (keyword == "anchored") {
-            const std::string anchor = std::string(getNodeText(ts_node_child_by_field_name(subNode, "anchor", 6)));
-            contextChain += std::format(" anchored {}", anchor);
-          } else if (keyword == "facing") {
-            const std::string secondText = std::string(getNodeText(ts_node_child(subNode, 1)));
-            if (secondText == "entity") {
-              const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
-              const std::string anchor = std::string(getNodeText(ts_node_child_by_field_name(subNode, "anchor", 6)));
-              contextChain += std::format(" facing entity {} {}", selector, anchor);
-            } else {
-              const std::string pos = std::string(getNodeText(ts_node_child_by_field_name(subNode, "pos", 3)));
-              contextChain += std::format(" facing {}", pos);
-            }
-          } else if (keyword == "in") {
-            const std::string dim = std::string(getNodeText(ts_node_child_by_field_name(subNode, "dim", 3)));
-            contextChain += std::format(" in {}", dim);
-          } else if (keyword == "on") {
-            const std::string relation = std::string(getNodeText(ts_node_child_by_field_name(subNode, "relation", 8)));
-            contextChain += std::format(" on {}", relation);
-          } else if (keyword == "positioned") {
-            const std::string secondText = std::string(getNodeText(ts_node_child(subNode, 1)));
-            if (secondText == "as") {
-              const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
-              contextChain += std::format(" positioned as {}", selector);
-            } else if (secondText == "over") {
-              const std::string heightmap = std::string(getNodeText(ts_node_child_by_field_name(subNode, "heightmap", 9)));
-              contextChain += std::format(" positioned over {}", heightmap);
-            } else {
-              const std::string pos = std::string(getNodeText(ts_node_child_by_field_name(subNode, "pos", 3)));
-              contextChain += std::format(" positioned {}", pos);
-            }
-          } else if (keyword == "rotated") {
-            const std::string secondText = std::string(getNodeText(ts_node_child(subNode, 1)));
-            if (secondText == "as") {
-              const std::string selector = std::string(getNodeText(ts_node_child_by_field_name(subNode, "selector", 8)));
-              contextChain += std::format(" rotated as {}", selector);
-            } else {
-              const std::string rot = std::string(getNodeText(ts_node_child_by_field_name(subNode, "rot", 3)));
-              contextChain += std::format(" rotated {}", rot);
+        else if constexpr (std::is_same_v<T, DoWhileStmt>) {
+          ret += compileDoWhile(n, stmt.loc);
+        }
+
+        else if constexpr (std::is_same_v<T, ForStmt>) {
+          ret += compileFor(n, stmt.loc);
+        }
+
+        else if constexpr (std::is_same_v<T, ContextStmt>) {
+          std::string contextChain = "execute";
+
+          for (const auto &mod : n.modifiers) {
+            if (mod.keyword == "as" || mod.keyword == "at") {
+              contextChain += std::format(" {} {}", mod.keyword, mod.primaryText);
+            } else if (mod.keyword == "align") {
+              contextChain += std::format(" align {}", mod.primaryText);
+            } else if (mod.keyword == "anchored") {
+              contextChain += std::format(" anchored {}", mod.primaryText);
+            } else if (mod.keyword == "facing") {
+              if (mod.secondaryText.has_value()) {
+                contextChain += std::format(" facing entity {} {}", mod.primaryText, *mod.secondaryText);
+              } else {
+                contextChain += std::format(" facing {}", mod.primaryText);
+              }
+            } else if (mod.keyword == "in") {
+              contextChain += std::format(" in {}", mod.primaryText);
+            } else if (mod.keyword == "on") {
+              contextChain += std::format(" on {}", mod.primaryText);
+            } else if (mod.keyword == "positioned") {
+              if (mod.primaryText == "as" && mod.secondaryText.has_value()) {
+                contextChain += std::format(" positioned as {}", *mod.secondaryText);
+              } else if (mod.primaryText == "over" && mod.secondaryText.has_value()) {
+                contextChain += std::format(" positioned over {}", *mod.secondaryText);
+              } else {
+                contextChain += std::format(" positioned {}", mod.primaryText);
+              }
+            } else if (mod.keyword == "rotated") {
+              if (mod.primaryText == "as" && mod.secondaryText.has_value()) {
+                contextChain += std::format(" rotated as {}", *mod.secondaryText);
+              } else {
+                contextChain += std::format(" rotated {}", mod.primaryText);
+              }
             }
           }
-        }
-      }
 
-      if (ts_node_is_null(blockNode)) {
-        continue;
-      }
+          const std::string innerBlockData = compileBlock(*n.body);
+          std::vector<std::string> validLines;
+          std::stringstream ss(innerBlockData);
+          std::string currentLine;
+          while (std::getline(ss, currentLine)) {
+            if (!currentLine.empty() && currentLine.back() == '\r') currentLine.pop_back();
+            if (!currentLine.empty()) validLines.push_back(currentLine);
+          }
 
-      const std::string innerBlockData = compileBlock(blockNode);
-      std::vector<std::string> validLines;
-      std::stringstream ss(innerBlockData);
-      std::string currentLine;
-      while (std::getline(ss, currentLine)) {
-        if (!currentLine.empty() && currentLine.back() == '\r') currentLine.pop_back();
-        if (!currentLine.empty()) validLines.push_back(currentLine);
-      }
-
-      if (validLines.size() == 1) {
-        ret += std::format("{} run {}\n", contextChain, validLines[0]);
-      } else if (validLines.size() > 1) {
-        const std::string &macroFuncName = "_generated_function_" + randomFunctionMangleString();
-        std::string macroBody = "";
-        for (const auto &line : validLines) {
-          macroBody += line + "\n";
-        }
-        compiledFunctions.push_back({.name = macroFuncName, .data = macroBody});
-        ret += std::format("{} run function {}:internal/{}\n", contextChain, datapackNamespace, macroFuncName);
-      }
-      continue;
-    }
-
-    if (type == "variable_declaration") {
-      ret += compileVariableDeclaration(child, node, false);
-      continue;
-    }
-
-    if (type == "assignment") {
-      const std::string name = std::string(getFieldText(child, "name"));
-      auto varIt = findInMap(vars, name);
-      if (varIt == vars.end()) {
-        throw std::runtime_error(formatError(child, "Assignment to undefined variable: " + name));
-      }
-      const auto &varData = varIt->second;
-      if (varData.constant) {
-        throw std::runtime_error(formatError(child, "Cannot reassign constant variable: " + name));
-      }
-
-      TSNode expNode = ts_node_child_by_field_name(child, "value", 5);
-
-      std::vector<TSNode> pathNodes;
-      uint32_t namedCount = ts_node_named_child_count(child);
-      for (uint32_t i = 1; i < namedCount - 1; i++) {
-        pathNodes.push_back(ts_node_named_child(child, i));
-      }
-      const bool isPathAssignment = !pathNodes.empty();
-
-      if (isPathAssignment) {
-        Compiler::Type expectedType = varData.type.isRef() ? *varData.type.baseType : varData.type;
-        bool endsInStringSubscript = false;
-
-        for (size_t i = 0; i < pathNodes.size(); i++) {
-          TSNode pathNode = pathNodes[i];
-          std::string nodeType = std::string(ts_node_type(pathNode));
-
-          if (nodeType == "index_access") {
-            if (!expectedType.isList() && !expectedType.isString()) {
-              throw std::runtime_error(formatError(pathNode, "Cannot use index assignment on non-container type."));
+          if (validLines.size() == 1) {
+            ret += std::format("{} run {}\n", contextChain, validLines[0]);
+          } else if (validLines.size() > 1) {
+            const std::string &macroFuncName = "_generated_function_" + randomFunctionMangleString();
+            std::string macroBody = "";
+            for (const auto &line : validLines) {
+              macroBody += line + "\n";
             }
-            if (expectedType.isString()) {
-              if (i != pathNodes.size() - 1) {
-                throw std::runtime_error(formatError(pathNode, "String character index must be at the end of the assignment path."));
+            compiledFunctions.push_back({.name = macroFuncName, .data = macroBody});
+            ret += std::format("{} run function {}:internal/{}\n", contextChain, datapackNamespace, macroFuncName);
+          }
+        }
+
+        else if constexpr (std::is_same_v<T, VarDeclStmt>) {
+          ret += compileVariableDeclaration(n, stmt.loc, &block, false);
+        }
+
+        else if constexpr (std::is_same_v<T, AssignStmt>) {
+          const std::string &name = n.name;
+          auto varIt = findInMap(vars, name);
+          if (varIt == vars.end()) {
+            throw std::runtime_error(formatError(stmt.loc, "Assignment to undefined variable: " + name));
+          }
+          const auto &varData = varIt->second;
+          if (varData.constant) {
+            throw std::runtime_error(formatError(stmt.loc, "Cannot reassign constant variable: " + name));
+          }
+
+          const Expr &expNode = *n.value;
+          const bool isPathAssignment = !n.path.empty();
+
+          if (isPathAssignment) {
+            Type expectedType = varData.type.isRef() ? *varData.type.baseType : varData.type;
+            bool endsInStringSubscript = false;
+
+            for (size_t i = 0; i < n.path.size(); i++) {
+              const PathComponent &pc = n.path[i];
+              if (pc.isIndex) {
+                if (!expectedType.isList() && !expectedType.isString()) {
+                  throw std::runtime_error(formatError(stmt.loc, "Cannot use index assignment on non-container type."));
+                }
+                if (expectedType.isString()) {
+                  if (i != n.path.size() - 1) {
+                    throw std::runtime_error(formatError(stmt.loc, "String character index must be at the end of the assignment path."));
+                  }
+                  endsInStringSubscript = true;
+                } else {
+                  expectedType = *expectedType.baseType;
+                  if (expectedType.isString() && i == n.path.size() - 1) endsInStringSubscript = true;
+                }
+              } else {
+                if (expectedType.kind != Compiler::Type::Struct) {
+                  throw std::runtime_error(formatError(stmt.loc, "Cannot access property on non-struct type."));
+                }
+                bool found = false;
+                for (const auto &field : expectedType.structRef->fields) {
+                  if (field.name == pc.propertyName) {
+                    expectedType = *field.type;
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  throw std::runtime_error(formatError(stmt.loc, "Unknown field '" + pc.propertyName + "' in struct."));
+                }
               }
-              endsInStringSubscript = true;
+            }
+
+            const ExpressionData expr = compileExpression(expNode, 1, true);
+            ret += expr.data + "\n";
+
+            if (endsInStringSubscript) {
+              if (!expr.type.isString()) {
+                throw std::runtime_error(formatError(stmt.loc, "Type mismatch: cannot assign non-string to a string character index."));
+              }
             } else {
-              expectedType = *expectedType.baseType;
-              if (expectedType.isString() && i == pathNodes.size() - 1) {
-                endsInStringSubscript = true;
+              if (expr.type != expectedType) {
+                throw std::runtime_error(formatError(stmt.loc, "Type mismatch in assignment."));
               }
             }
-          } else if (nodeType == "property_access") {
-            if (expectedType.kind != Compiler::Type::Struct) {
-              throw std::runtime_error(formatError(pathNode, "Cannot access property on non-struct type."));
+
+            struct CompiledPathComponent {
+              bool isProperty;
+              std::string propName;
+              ExpressionData indexExpr;
+            };
+            std::vector<CompiledPathComponent> compiledPath;
+            bool allIndicesPrecomputed = true;
+
+            for (const auto &pc : n.path) {
+              if (pc.isIndex) {
+                ExpressionData idxExpr = compileExpression(*pc.index, 2, true);
+                if (!idxExpr.type.isInteger()) {
+                  throw std::runtime_error(formatError(stmt.loc, "Indices must evaluate to integers."));
+                }
+                if (!idxExpr.precomputed) allIndicesPrecomputed = false;
+                compiledPath.push_back({false, "", idxExpr});
+              } else {
+                compiledPath.push_back({true, pc.propertyName, {}});
+              }
             }
-            std::string propName = std::string(getFieldText(pathNode, "property"));
-            bool found = false;
-            for (const auto &field : expectedType.structRef->fields) {
-              if (field.name == propName) {
-                expectedType = *field.type;
-                found = true;
+
+            std::string pathSuffix = "";
+            size_t listDimensions = endsInStringSubscript ? compiledPath.size() - 1 : compiledPath.size();
+            for (size_t i = 0; i < listDimensions; i++) {
+              if (compiledPath[i].isProperty) {
+                pathSuffix += "." + compiledPath[i].propName;
+              } else {
+                pathSuffix += "[" + compiledPath[i].indexExpr.data + "]";
+              }
+            }
+
+            if (endsInStringSubscript) {
+              ExpressionData stringCharIdx = compiledPath.back().indexExpr;
+
+              ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, varData.getStorageName());
+
+              if (expr.precomputed) {
+                ret += std::format("data modify storage {0}:global macro_args.value set value {1}\n", datapackNamespace, expr.data);
+              } else {
+                ret += std::format("data modify storage {0}:global macro_args.value set from storage {0}:global expr_str1\n", datapackNamespace);
+              }
+
+              if (stringCharIdx.precomputed) {
+                ret += std::format("data modify storage {0}:global macro_args.index set value {1}\n", datapackNamespace, stringCharIdx.data);
+              } else {
+                ret += std::format("execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+              }
+
+              ret += std::format("data modify storage {0}:global macro_args.index_plus_one set from storage {0}:global macro_args.index\n", datapackNamespace);
+              ret += std::format("execute store result score _temp temp run data get storage {0}:global macro_args.index_plus_one\n", datapackNamespace);
+              ret += "scoreboard players add _temp temp 1\n";
+              ret += std::format("execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get _temp temp\n", datapackNamespace);
+
+              ret += std::format("data modify storage {0}:global macro_args.path set value \"{1}\"\n", datapackNamespace, pathSuffix);
+
+              if (expr.precomputed) {
+                useInternalFunction("internal_string_mutate_static");
+                ret += std::format("function {0}:internal/loom/internal_string_mutate_static with storage {0}:global macro_args\n", datapackNamespace);
+              } else {
+                useInternalFunction("internal_string_mutate_dynamic");
+                ret += std::format("function {0}:internal/loom/internal_string_mutate_dynamic with storage {0}:global macro_args\n", datapackNamespace);
+              }
+              return;
+            }
+
+            if (allIndicesPrecomputed) {
+              if (expr.precomputed) {
+                ret += std::format("data modify storage {0}:global vars.{1}{2} set value {3}\n", datapackNamespace, varData.getStorageName(), pathSuffix, expr.data);
+              } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
+                ret +=
+                  std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_str1\n", datapackNamespace, varData.getStorageName(), pathSuffix);
+              } else if (expr.type.isFloat()) {
+                ret +=
+                  std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_float1\n", datapackNamespace, varData.getStorageName(), pathSuffix);
+              } else {
+                ret += std::format(
+                  "execute store result storage {0}:global vars.{1}{2} int 1 run scoreboard players get expr_output1 temp\n",
+                  datapackNamespace,
+                  varData.getStorageName(),
+                  pathSuffix
+                );
+              }
+            } else {
+              ret += std::format("data modify storage {0}:global macro_args.path set value \"\"\n", datapackNamespace);
+              for (size_t i = 0; i < compiledPath.size(); i++) {
+                if (!compiledPath[i].isProperty && !compiledPath[i].indexExpr.precomputed) ret += compiledPath[i].indexExpr.data + "\n";
+                ret += std::format("data modify storage {0}:global macro_args.string_before set from storage {0}:global macro_args.path\n", datapackNamespace);
+
+                if (compiledPath[i].isProperty) {
+                  ret += std::format("data modify storage {0}:global macro_args.prop_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].propName);
+                  useInternalFunction("internal_path_append_prop");
+                  ret += std::format("function {0}:internal/loom/internal_path_append_prop with storage {0}:global macro_args\n", datapackNamespace);
+                } else {
+                  if (compiledPath[i].indexExpr.precomputed) {
+                    ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].indexExpr.data);
+                  } else {
+                    ret += std::format(
+                      "execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n",
+                      datapackNamespace
+                    );
+                  }
+                  useInternalFunction("internal_path_append");
+                  ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
+                }
+              }
+
+              ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, varData.getStorageName());
+              if (expr.precomputed) {
+                useInternalFunction("internal_list_nested_set_value");
+                ret += std::format(
+                  "data modify storage {0}:global macro_args.value set value {1}\nfunction {0}:internal/loom/internal_list_nested_set_value with storage {0}:global "
+                  "macro_args\n",
+                  datapackNamespace,
+                  expr.data
+                );
+              } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
+                useInternalFunction("internal_list_nested_set_object");
+                ret += std::format("function {0}:internal/loom/internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
+              } else {
+                useInternalFunction("internal_list_nested_set_primitive");
+                ret += std::format("function {0}:internal/loom/internal_list_nested_set_primitive with storage {0}:global macro_args\n", datapackNamespace);
+              }
+            }
+            return;
+          }
+
+          const ExpressionData expr = compileExpression(expNode);
+
+          const Type &actualType = varData.type.isRef() ? *varData.type.baseType : varData.type;
+
+          if (actualType.kind == Compiler::Type::Enum) {
+            if (expr.type.kind != Compiler::Type::Enum || expr.type.enumRef != actualType.enumRef) {
+              throw std::runtime_error(formatError(stmt.loc, "Assignment to enum variable requires a variant of the same enum: " + name));
+            }
+          } else {
+            if (actualType.isBoolean() && expr.type.isInteger()) {
+              throw std::runtime_error(formatError(stmt.loc, "Cannot assign an 'int' to 'bool' variable: " + name));
+            }
+            if (actualType.isString() && !expr.type.isString()) {
+              throw std::runtime_error(formatError(stmt.loc, "Invalid type for 'string' variable: " + name));
+            }
+          }
+
+          bool usedCompoundOp = false;
+
+          if (expr.precomputed) {
+            if (actualType.isString() || actualType.isFloat() || actualType.isList() || actualType.isStruct()) {
+              ret += std::format("data modify storage {0}:global vars.{1} set value {2}\n", datapackNamespace, varData.getStorageName(), expr.data);
+            } else {
+              ret += std::format("scoreboard players set {} vars {}\n", varData.getStorageName(), expr.data);
+            }
+          } else {
+            if (auto *binExpr = std::get_if<BinaryExpr>(&expNode.data); binExpr && (actualType.isInteger() || actualType.isBoolean())) {
+              const std::string &op = binExpr->op;
+
+              if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+                if (auto *leftRef = std::get_if<VarRefExpr>(&binExpr->left->data)) {
+                  auto leftIt = findInMap(vars, leftRef->name);
+                  if (leftIt != vars.end() && leftIt == varIt) {
+                    const ExpressionData rightExpr = compileExpression(*binExpr->right, 1, false);
+                    ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, varData.getStorageName(), op);
+                    usedCompoundOp = true;
+                  }
+                }
+                if (!usedCompoundOp) {
+                  if (auto *rightRef = std::get_if<VarRefExpr>(&binExpr->right->data)) {
+                    auto rightIt = findInMap(vars, rightRef->name);
+                    if (rightIt != vars.end() && rightIt == varIt) {
+                      const ExpressionData leftExpr = compileExpression(*binExpr->left, 1, false);
+                      ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, varData.getStorageName(), op);
+                      usedCompoundOp = true;
+                    }
+                  }
+                }
+              }
+            }
+
+            if (!usedCompoundOp) {
+              if (actualType.isString() || actualType.isList() || actualType.isStruct()) {
+                ret +=
+                  std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, varData.getStorageName());
+              } else if (actualType.isFloat()) {
+                ret += std::format(
+                  "{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_float1\n",
+                  expr.data,
+                  datapackNamespace,
+                  varData.getStorageName()
+                );
+              } else {
+                ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, varData.getStorageName());
+              }
+            }
+          }
+
+          if (!usedCompoundOp && varData.type.isRef() && !varData.refTargetMangledName.has_value()) {
+            std::string argsKey = std::format("vars.{}_refargs", varData.mangledName);
+            for (auto fit = compiledFunctions.rbegin(); fit != compiledFunctions.rend(); ++fit) {
+              if (fit->name.starts_with("_ref_copyback_") && fit->data.find(varData.mangledName) != std::string::npos) {
+                ret += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, fit->name, datapackNamespace, argsKey);
                 break;
               }
             }
-            if (!found) {
-              throw std::runtime_error(formatError(pathNode, "Unknown field '" + propName + "' in struct."));
-            }
           }
         }
 
-        const ExpressionData expr = compileExpression(expNode, 1, true);
-        ret += expr.data + "\n";
-
-        if (endsInStringSubscript) {
-          if (!expr.type.isString()) {
-            throw std::runtime_error(formatError(expNode, "Type mismatch: cannot assign non-string to a string character index."));
-          }
-        } else {
-          if (expr.type != expectedType) {
-            throw std::runtime_error(formatError(expNode, "Type mismatch in assignment."));
-          }
+        else if constexpr (std::is_same_v<T, ExprStmt>) {
+          ExpressionData expr = compileExpression(*n.expr, 1, false);
+          ret += expr.data + "\n";
         }
 
-        struct PathComponent {
-          bool isProperty;
-          std::string propName;
-          ExpressionData indexExpr;
-        };
-        std::vector<PathComponent> compiledPath;
-        bool allIndicesPrecomputed = true;
+        else if constexpr (std::is_same_v<T, ReturnStmt>) {
+          ret += currentFuncRefCopybacks;
 
-        for (size_t i = 0; i < pathNodes.size(); i++) {
-          if (std::string(ts_node_type(pathNodes[i])) == "index_access") {
-            TSNode idxNode = ts_node_child_by_field_name(pathNodes[i], "index", 5);
-            ExpressionData idxExpr = compileExpression(idxNode, 2, true);
-            if (!idxExpr.type.isInteger()) {
-              throw std::runtime_error(formatError(pathNodes[i], "Indices must evaluate to integers."));
-            }
-            if (!idxExpr.precomputed) allIndicesPrecomputed = false;
-            compiledPath.push_back({false, "", idxExpr});
-          } else {
-            std::string propName = std::string(getFieldText(pathNodes[i], "property"));
-            compiledPath.push_back({true, propName, {}});
-          }
-        }
-
-        std::string pathSuffix = "";
-        size_t listDimensions = endsInStringSubscript ? compiledPath.size() - 1 : compiledPath.size();
-        for (size_t i = 0; i < listDimensions; i++) {
-          if (compiledPath[i].isProperty) {
-            pathSuffix += "." + compiledPath[i].propName;
-          } else {
-            pathSuffix += "[" + compiledPath[i].indexExpr.data + "]";
-          }
-        }
-
-        if (endsInStringSubscript) {
-          ExpressionData stringCharIdx = compiledPath.back().indexExpr;
-
-          ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, varData.getStorageName());
-
-          if (expr.precomputed) {
-            ret += std::format("data modify storage {0}:global macro_args.value set value {1}\n", datapackNamespace, expr.data);
-          } else {
-            ret += std::format("data modify storage {0}:global macro_args.value set from storage {0}:global expr_str1\n", datapackNamespace);
-          }
-
-          if (stringCharIdx.precomputed) {
-            ret += std::format("data modify storage {0}:global macro_args.index set value {1}\n", datapackNamespace, stringCharIdx.data);
-          } else {
-            ret += std::format("execute store result storage {0}:global macro_args.index int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
-          }
-
-          ret += std::format("data modify storage {0}:global macro_args.index_plus_one set from storage {0}:global macro_args.index\n", datapackNamespace);
-          ret += std::format("execute store result score _temp temp run data get storage {0}:global macro_args.index_plus_one\n", datapackNamespace);
-          ret += "scoreboard players add _temp temp 1\n";
-          ret += std::format("execute store result storage {0}:global macro_args.index_plus_one int 1 run scoreboard players get _temp temp\n", datapackNamespace);
-
-          ret += std::format("data modify storage {0}:global macro_args.path set value \"{1}\"\n", datapackNamespace, pathSuffix);
-
-          if (expr.precomputed) {
-            useInternalFunction("internal_string_mutate_static");
-            ret += std::format("function {0}:internal/loom/internal_string_mutate_static with storage {0}:global macro_args\n", datapackNamespace);
-          } else {
-            useInternalFunction("internal_string_mutate_dynamic");
-            ret += std::format("function {0}:internal/loom/internal_string_mutate_dynamic with storage {0}:global macro_args\n", datapackNamespace);
-          }
-          continue;
-        }
-
-        if (allIndicesPrecomputed) {
-          if (expr.precomputed) {
-            ret += std::format("data modify storage {0}:global vars.{1}{2} set value {3}\n", datapackNamespace, varData.getStorageName(), pathSuffix, expr.data);
-          } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
-            ret += std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_str1\n", datapackNamespace, varData.getStorageName(), pathSuffix);
-          } else if (expr.type.isFloat()) {
-            ret +=
-              std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_float1\n", datapackNamespace, varData.getStorageName(), pathSuffix);
-          } else {
-            ret += std::format(
-              "execute store result storage {0}:global vars.{1}{2} int 1 run scoreboard players get expr_output1 temp\n",
-              datapackNamespace,
-              varData.getStorageName(),
-              pathSuffix
-            );
-          }
-        } else {
-          ret += std::format("data modify storage {0}:global macro_args.path set value \"\"\n", datapackNamespace);
-          for (size_t i = 0; i < compiledPath.size(); i++) {
-            if (!compiledPath[i].isProperty && !compiledPath[i].indexExpr.precomputed) ret += compiledPath[i].indexExpr.data + "\n";
-            ret += std::format("data modify storage {0}:global macro_args.string_before set from storage {0}:global macro_args.path\n", datapackNamespace);
-
-            if (compiledPath[i].isProperty) {
-              ret += std::format("data modify storage {0}:global macro_args.prop_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].propName);
-              useInternalFunction("internal_path_append_prop");
-              ret += std::format("function {0}:internal/loom/internal_path_append_prop with storage {0}:global macro_args\n", datapackNamespace);
-            } else {
-              if (compiledPath[i].indexExpr.precomputed) {
-                ret += std::format("data modify storage {0}:global macro_args.index_to_append set value \"{1}\"\n", datapackNamespace, compiledPath[i].indexExpr.data);
+          if (n.value.has_value()) {
+            ExpressionData expr = compileExpression(**n.value);
+            if (expr.type.isBoolean() || expr.type.isInteger()) {
+              if (controlFlowDepth > 0) {
+                if (expr.precomputed) {
+                  ret += std::format("scoreboard players set _loom_ret_val temp {}\n", expr.data);
+                } else {
+                  ret += std::format("{}\nscoreboard players operation _loom_ret_val temp = expr_output1 temp\n", expr.data);
+                }
+                ret += "scoreboard players set _loom_returned temp 1\n";
+                ret += "return 0\n";
               } else {
-                ret +=
-                  std::format("execute store result storage {0}:global macro_args.index_to_append int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+                if (expr.precomputed) {
+                  ret += std::format("return {}\n", expr.data);
+                } else {
+                  ret += std::format("{}\nreturn run scoreboard players get expr_output1 temp\n", expr.data);
+                }
               }
-              useInternalFunction("internal_path_append");
-              ret += std::format("function {0}:internal/loom/internal_path_append with storage {0}:global macro_args\n", datapackNamespace);
-            }
-          }
-
-          ret += std::format("data modify storage {0}:global macro_args.var_name set value \"{1}\"\n", datapackNamespace, varData.getStorageName());
-          if (expr.precomputed) {
-            useInternalFunction("internal_list_nested_set_value");
-            ret += std::format(
-              "data modify storage {0}:global macro_args.value set value {1}\nfunction {0}:internal/loom/internal_list_nested_set_value with storage {0}:global macro_args\n",
-              datapackNamespace,
-              expr.data
-            );
-          } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
-            useInternalFunction("internal_list_nested_set_object");
-            ret += std::format("function {0}:internal/loom/internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
-          } else {
-            useInternalFunction("internal_list_nested_set_primitive");
-            ret += std::format("function {0}:internal/loom/internal_list_nested_set_primitive with storage {0}:global macro_args\n", datapackNamespace);
-          }
-        }
-        continue;
-      }
-
-      const ExpressionData expr = compileExpression(expNode);
-
-      const Type &actualType = varData.type.isRef() ? *varData.type.baseType : varData.type;
-
-      if (actualType.kind == Compiler::Type::Enum) {
-        if (expr.type.kind != Compiler::Type::Enum || expr.type.enumRef != actualType.enumRef) {
-          throw std::runtime_error(formatError(expNode, "Assignment to enum variable requires a variant of the same enum: " + name));
-        }
-      } else {
-        if (actualType.isBoolean() && expr.type.isInteger()) {
-          throw std::runtime_error(formatError(expNode, "Cannot assign an 'int' to 'bool' variable: " + name));
-        }
-        if (actualType.isString() && !expr.type.isString()) {
-          throw std::runtime_error(formatError(expNode, "Invalid type for 'string' variable: " + name));
-        }
-      }
-
-      if (expr.precomputed) {
-        if (actualType.isString() || actualType.isFloat() || actualType.isList() || actualType.isStruct()) {
-          ret += std::format("data modify storage {0}:global vars.{1} set value {2}\n", datapackNamespace, varData.getStorageName(), expr.data);
-        } else {
-          ret += std::format("scoreboard players set {} vars {}\n", varData.getStorageName(), expr.data);
-        }
-      } else {
-        if (std::string(ts_node_type(expNode)) == "binary_expression" && (actualType.isInteger() || actualType.isBoolean())) {
-          const std::string_view op = getFieldText(expNode, "operator");
-
-          if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
-            TSNode leftNode = ts_node_child_by_field_name(expNode, "left", 4);
-            TSNode rightNode = ts_node_child_by_field_name(expNode, "right", 5);
-
-            if (std::string(ts_node_type(leftNode)) == "variable_ref") {
-              auto leftIt = findInMap(vars, std::string(getFieldText(leftNode, "name")));
-              if (leftIt != vars.end() && leftIt == varIt) {
-                const ExpressionData rightExpr = compileExpression(rightNode, 1, false);
-                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", rightExpr.data, varData.getStorageName(), op);
-                continue;
-              }
-            }
-            if (std::string(ts_node_type(rightNode)) == "variable_ref") {
-              auto rightIt = findInMap(vars, std::string(getFieldText(rightNode, "name")));
-              if (rightIt != vars.end() && rightIt == varIt) {
-                const ExpressionData leftExpr = compileExpression(leftNode, 1, false);
-                ret += std::format("{}\nscoreboard players operation {} vars {}= expr_output1 temp\n", leftExpr.data, varData.getStorageName(), op);
-                continue;
-              }
-            }
-          }
-        }
-
-        if (actualType.isString() || actualType.isList() || actualType.isStruct()) {
-          ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, varData.getStorageName());
-        } else if (actualType.isFloat()) {
-          ret += std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_float1\n", expr.data, datapackNamespace, varData.getStorageName());
-        } else {
-          ret += std::format("{}\nscoreboard players operation {} vars = expr_output1 temp\n", expr.data, varData.getStorageName());
-        }
-      }
-
-      // Immediately call the copy-back macro to propagate the change to the caller's variable.
-      if (varData.type.isRef() && !varData.refTargetMangledName.has_value()) {
-        std::string argsKey = std::format("vars.{}_refargs", varData.mangledName);
-        for (auto fit = compiledFunctions.rbegin(); fit != compiledFunctions.rend(); ++fit) {
-          if (fit->name.starts_with("_ref_copyback_") && fit->data.find(varData.mangledName) != std::string::npos) {
-            ret += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, fit->name, datapackNamespace, argsKey);
-            break;
-          }
-        }
-      }
-
-      continue;
-    }
-
-    if (type == "function_call") {
-      ExpressionData expr = compileExpression(child, 1, false);
-      ret += expr.data + "\n";
-      continue;
-    }
-
-    if (type == "return_statement") {
-      ret += currentFuncRefCopybacks;
-
-      TSNode exprNode = ts_node_named_child(child, 0);
-      if (!ts_node_is_null(exprNode)) {
-        ExpressionData expr = compileExpression(exprNode);
-        if (expr.type.isBoolean() || expr.type.isInteger()) {
-          if (controlFlowDepth > 0) {
-            if (expr.precomputed) {
-              ret += std::format("scoreboard players set _loom_ret_val temp {}\n", expr.data);
             } else {
-              ret += std::format("{}\nscoreboard players operation _loom_ret_val temp = expr_output1 temp\n", expr.data);
+              if (controlFlowDepth > 0) {
+                ret += compileExpression(**n.value, 1, false).data + "\n";
+                ret += "scoreboard players set _loom_returned temp 1\n";
+                ret += "return 0\n";
+              } else {
+                ret += compileExpression(**n.value, 1, false).data + "\nreturn 0\n";
+              }
             }
-            ret += "scoreboard players set _loom_returned temp 1\n";
+          } else {
+            if (controlFlowDepth > 0) {
+              ret += "scoreboard players set _loom_returned temp 1\n";
+            }
             ret += "return 0\n";
-          } else {
-            if (expr.precomputed) {
-              ret += std::format("return {}\n", expr.data);
+          }
+          returned = true;
+        }
+
+        else if constexpr (std::is_same_v<T, CommandStmt>) {
+          bool requiresMacro = false;
+          std::vector<std::optional<ExpressionData>> compiledParts;
+          compiledParts.reserve(n.parts.size());
+
+          for (const auto &part : n.parts) {
+            if (part.isInterpolation) {
+              ExpressionData expr = compileExpression(*part.interpExpr);
+              compiledParts.push_back(expr);
+              if (!expr.precomputed) requiresMacro = true;
             } else {
-              ret += std::format("{}\nreturn run scoreboard players get expr_output1 temp\n", expr.data);
+              compiledParts.push_back(std::nullopt);
             }
           }
-        } else {
-          if (controlFlowDepth > 0) {
-            ret += compileExpression(exprNode, 1, false).data + "\n";
-            ret += "scoreboard players set _loom_returned temp 1\n";
-            ret += "return 0\n";
-          } else {
-            ret += compileExpression(exprNode, 1, false).data + "\nreturn 0\n";
-          }
-        }
-      } else {
-        if (controlFlowDepth > 0) {
-          ret += "scoreboard players set _loom_returned temp 1\n";
-        }
-        ret += "return 0\n";
-      }
-      break;
-    }
 
-    if (type == "command_statement") {
-      std::string cmdName = std::string(getNodeText(ts_node_named_child(child, 0)));
-      std::vector<TSNode> args;
-      std::vector<std::optional<Compiler::ExpressionData>> compiledArgs;
-      bool requiresMacro = false;
-
-      for (uint32_t j = 1; j < ts_node_named_child_count(child); j++) {
-        TSNode argNode = ts_node_named_child(child, j);
-        std::string argType = ts_node_type(argNode);
-
-        if (argType == "command_arg" || argType == "integer") {
-          args.push_back(argNode);
-          compiledArgs.push_back(std::nullopt);
-        } else if (argType == "interpolation") {
-          args.push_back(argNode);
-
-          TSNode exprNode = ts_node_child_by_field_name(argNode, "expression", 10);
-
-          Compiler::ExpressionData expr = compileExpression(exprNode);
-          compiledArgs.push_back(expr);
-
-          if (!expr.precomputed) {
-            requiresMacro = true;
-          }
-        }
-      }
-
-      std::optional<std::string> optimized = optimizeCommand(cmdName, args);
-      if (optimized.has_value()) {
-        ret += optimized.value() + "\n";
-        continue;
-      }
-
-      auto getSpacingBetween = [&](TSNode prev, TSNode curr) -> std::string {
-        uint32_t prevEnd = ts_node_end_byte(prev);
-        uint32_t currStart = ts_node_start_byte(curr);
-        if (currStart > prevEnd) {
-          return std::string(source.substr(prevEnd, currStart - prevEnd));
-        }
-        return "";
-      };
-
-      TSNode cmdNameNode = ts_node_named_child(child, 0);
-
-      if (!requiresMacro) {
-        ret += cmdName;
-        TSNode lastNode = cmdNameNode;
-        for (size_t i = 0; i < args.size(); i++) {
-          ret += getSpacingBetween(lastNode, args[i]);
-          if (compiledArgs[i].has_value()) {
-            ret += compiledArgs[i].value().data;
-          } else {
-            ret += std::string(getNodeText(args[i]));
-          }
-          lastNode = args[i];
-        }
-        ret += "\n";
-        continue;
-      }
-
-      std::string macroBody = "$" + cmdName;
-      std::string macroSetup = "";
-      int macroVarId = 0;
-      TSNode lastNode = cmdNameNode;
-
-      for (size_t i = 0; i < args.size(); i++) {
-        macroBody += getSpacingBetween(lastNode, args[i]);
-        if (compiledArgs[i].has_value()) {
-          Compiler::ExpressionData &expr = compiledArgs[i].value();
-
-          if (expr.precomputed) {
-            macroBody += expr.data;
-          } else {
-            macroBody += std::format("$(var_{})", macroVarId);
-            macroSetup += expr.data + "\n";
-
-            if (expr.type.isString() || expr.type.isList()) {
-              macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_str1\n", datapackNamespace, macroVarId);
-            } else if (expr.type.isFloat()) {
-              macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_float1\n", datapackNamespace, macroVarId);
-            } else {
-              macroSetup +=
-                std::format("execute store result storage {0}:function_input var_{1} int 1 run scoreboard players get expr_output1 temp\n", datapackNamespace, macroVarId);
+          if (!requiresMacro) {
+            ret += n.commandName;
+            for (size_t i = 0; i < n.parts.size(); i++) {
+              if (compiledParts[i].has_value()) {
+                ret += compiledParts[i]->data;
+              } else {
+                ret += n.parts[i].literalText;
+              }
             }
-            macroVarId++;
+            ret += "\n";
+          } else {
+            std::string macroBody = "$" + n.commandName;
+            std::string macroSetup = "";
+            int macroVarId = 0;
+
+            for (size_t i = 0; i < n.parts.size(); i++) {
+              if (compiledParts[i].has_value()) {
+                ExpressionData &expr = compiledParts[i].value();
+
+                if (expr.precomputed) {
+                  macroBody += expr.data;
+                } else {
+                  macroBody += std::format("$(var_{})", macroVarId);
+                  macroSetup += expr.data + "\n";
+
+                  if (expr.type.isString() || expr.type.isList()) {
+                    macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_str1\n", datapackNamespace, macroVarId);
+                  } else if (expr.type.isFloat()) {
+                    macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_float1\n", datapackNamespace, macroVarId);
+                  } else {
+                    macroSetup += std::format(
+                      "execute store result storage {0}:function_input var_{1} int 1 run scoreboard players get expr_output1 temp\n",
+                      datapackNamespace,
+                      macroVarId
+                    );
+                  }
+                  macroVarId++;
+                }
+              } else {
+                macroBody += n.parts[i].literalText;
+              }
+            }
+
+            const std::string macroFuncName = "_generated_function_" + randomFunctionMangleString();
+            compiledFunctions.push_back({.name = macroFuncName, .data = macroBody + "\n"});
+
+            ret += macroSetup;
+            ret += std::format("function {}:internal/{} with storage {}:function_input\n", datapackNamespace, macroFuncName, datapackNamespace);
           }
-        } else {
-          macroBody += std::string(getNodeText(args[i]));
         }
-        lastNode = args[i];
-      }
 
-      const std::string macroFuncName = "_generated_function_" + randomFunctionMangleString();
-      compiledFunctions.push_back({.name = macroFuncName, .data = macroBody + "\n"});
-
-      ret += macroSetup;
-      ret += std::format("function {}:internal/{} with storage {}:function_input\n", datapackNamespace, macroFuncName, datapackNamespace);
-      continue;
-    }
-
-    if (type != "comment") throw std::runtime_error(formatError(child, "Invalid block statement: " + type));
+        else {
+          throw std::runtime_error(formatError(stmt.loc, "Invalid block statement."));
+        }
+      },
+      stmt.data
+    );
   }
 
-  std::erase_if(vars, [&node](const auto &pair) { return ts_node_eq(pair.second.scope, node); });
+  std::erase_if(vars, [&block](const auto &pair) { return pair.second.scope == &block; });
 
   return ret;
 }

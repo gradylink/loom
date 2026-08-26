@@ -1,4 +1,6 @@
 #include "compiler.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
 
 #include <chrono>
 #include <exception>

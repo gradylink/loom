@@ -9,11 +9,11 @@ public:
   bool handles(const Compiler::Type &type) const override { return type.isBoolean(); }
 
   std::optional<Compiler::ExpressionData>
-  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, TSNode node) const override {
+  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, SourceLoc loc) const override {
 
     if (op == "!") {
       if (!operand.type.isBoolean()) {
-        throw std::runtime_error(formatError(node, "Logical NOT operator '!' can only be applied to booleans."));
+        throw std::runtime_error(formatError(loc, "Logical NOT operator '!' can only be applied to booleans."));
       }
 
       if (operand.precomputed) {
@@ -46,7 +46,7 @@ public:
   }
 
   std::optional<Compiler::ExpressionData> compileBinaryOp(
-    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, SourceLoc loc
   ) const override {
 
     const bool isLogical = (op == "&&" || op == "||");
@@ -55,7 +55,7 @@ public:
     if (!isLogical && !isComparison) return std::nullopt;
 
     if (!left.type.isBoolean() || !right.type.isBoolean()) {
-      throw std::runtime_error(formatError(node, "Logical operators '&&', '||', '==' and '!=' require boolean operands."));
+      throw std::runtime_error(formatError(loc, "Logical operators '&&', '||', '==' and '!=' require boolean operands."));
     }
 
     if (left.precomputed && right.precomputed) {
@@ -136,7 +136,7 @@ public:
   }
 
   std::optional<Compiler::ExpressionData>
-  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, SourceLoc loc) const override {
     if (targetType.isInteger()) {
       if (expr.precomputed) {
         std::string intStr = (expr.data != "0") ? "1" : "0";

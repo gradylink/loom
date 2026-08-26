@@ -9,11 +9,11 @@ public:
   bool handles(const Compiler::Type &type) const override { return type.isInteger(); }
 
   std::optional<Compiler::ExpressionData>
-  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, TSNode node) const override {
+  compileUnaryOp(Compiler &compiler, std::string_view op, const Compiler::ExpressionData &operand, unsigned int id, bool precompute, SourceLoc loc) const override {
 
     if (op == "-") {
       if (!operand.type.isInteger() && !operand.type.isBoolean()) {
-        throw std::runtime_error(formatError(node, "Unary minus '-' can only be applied to integers and booleans."));
+        throw std::runtime_error(formatError(loc, "Unary minus '-' can only be applied to integers and booleans."));
       }
 
       if (operand.precomputed) {
@@ -41,7 +41,7 @@ public:
   }
 
   std::optional<Compiler::ExpressionData> compileBinaryOp(
-    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, SourceLoc loc
   ) const override {
 
     const bool isMath = (op == "+" || op == "-" || op == "*" || op == "/" || op == "%");
@@ -50,7 +50,7 @@ public:
     if (!isMath && !isComparison) return std::nullopt;
 
     if (!left.type.isInteger() || !right.type.isInteger()) {
-      throw std::runtime_error(formatError(node, "Invalid operand types for integer operation: " + std::string(op)));
+      throw std::runtime_error(formatError(loc, "Invalid operand types for integer operation: " + std::string(op)));
     }
 
     const Compiler::Type retType = isMath ? Compiler::Type::IntegerType() : Compiler::Type::BooleanType();
@@ -64,10 +64,10 @@ public:
       else if (op == "-") result = std::to_string(lVal - rVal);
       else if (op == "*") result = std::to_string(lVal * rVal);
       else if (op == "/") {
-        if (rVal == 0) throw std::runtime_error(formatError(node, "Division by zero at compile-time."));
+        if (rVal == 0) throw std::runtime_error(formatError(loc, "Division by zero at compile-time."));
         result = std::to_string(lVal / rVal);
       } else if (op == "%") {
-        if (rVal == 0) throw std::runtime_error(formatError(node, "Modulo by zero at compile-time."));
+        if (rVal == 0) throw std::runtime_error(formatError(loc, "Modulo by zero at compile-time."));
         result = std::to_string(lVal % rVal);
       } else if (op == "==") result = (lVal == rVal) ? "1" : "0";
       else if (op == "!=") result = (lVal != rVal) ? "1" : "0";
@@ -120,7 +120,7 @@ public:
     };
   }
   std::optional<Compiler::ExpressionData>
-  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, SourceLoc loc) const override {
     if (targetType.isFloat()) {
       if (expr.precomputed) {
         std::string floatStr = std::to_string(static_cast<float>(std::stoi(expr.data)));

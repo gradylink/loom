@@ -9,17 +9,17 @@ public:
   bool handles(const Compiler::Type &type) const override { return type.kind == Compiler::Type::Enum; }
 
   std::optional<Compiler::ExpressionData> compileBinaryOp(
-    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, TSNode node
+    Compiler &compiler, std::string_view op, const Compiler::ExpressionData &left, const Compiler::ExpressionData &right, unsigned int id, bool precompute, SourceLoc loc
   ) const override {
 
     const bool isComparison = (op == "==" || op == "!=");
     if (!isComparison) return std::nullopt;
 
     if (left.type.kind != Compiler::Type::Enum || right.type.kind != Compiler::Type::Enum) {
-      throw std::runtime_error(formatError(node, "Enum comparisons require both operands to be enum types."));
+      throw std::runtime_error(formatError(loc, "Enum comparisons require both operands to be enum types."));
     }
     if (left.type.enumRef != right.type.enumRef) {
-      throw std::runtime_error(formatError(node, "Cannot compare variants from different enums."));
+      throw std::runtime_error(formatError(loc, "Cannot compare variants from different enums."));
     }
 
     const Compiler::Type retType = Compiler::Type::BooleanType();
@@ -125,7 +125,7 @@ public:
     return std::nullopt;
   }
   std::optional<Compiler::ExpressionData>
-  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, TSNode node) const override {
+  compileCast(Compiler &compiler, const Compiler::ExpressionData &expr, const Compiler::Type &targetType, unsigned int id, bool precompute, SourceLoc loc) const override {
     if (expr.type.isInteger() && targetType.isInteger()) {
       Compiler::ExpressionData ret = expr;
       ret.type = Compiler::Type::IntegerType();
@@ -141,7 +141,7 @@ public:
       ret.type = Compiler::Type::StringType();
       return ret;
     }
-    throw std::runtime_error(formatError(node, "Invalid cast from enum to target type. Enums can only be cast to their underlying type."));
+    throw std::runtime_error(formatError(loc, "Invalid cast from enum to target type. Enums can only be cast to their underlying type."));
   }
 };
 

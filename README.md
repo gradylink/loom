@@ -34,7 +34,7 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] Inline advancements and dialogs
 - [ ] CLI Utils
 - [ ] Bitwise
-- [ ] C++-based parser (allowing for improved error detection)
+- [x] C++-based parser (allowing for improved error detection)
 - [ ] `any` type
 - [ ] Variant types
 - [ ] C++-based language server
