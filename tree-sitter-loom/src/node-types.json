@@ -54,6 +54,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -145,6 +149,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -285,6 +293,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -445,6 +457,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -735,6 +751,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -815,6 +835,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -886,6 +910,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -1039,6 +1067,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1123,6 +1155,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1204,6 +1240,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -1367,6 +1407,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1487,6 +1531,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1567,6 +1615,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1644,6 +1696,10 @@
         },
         {
           "type": "member_expression",
+          "named": true
+        },
+        {
+          "type": "method_call_expression",
           "named": true
         },
         {
@@ -1741,6 +1797,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1780,6 +1840,182 @@
         "types": [
           {
             "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "method_call_expression",
+    "named": true,
+    "fields": {
+      "arguments": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": ",",
+            "named": false
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "cast_expression",
+            "named": true
+          },
+          {
+            "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "list_expression",
+            "named": true
+          },
+          {
+            "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "reference_expression",
+            "named": true
+          },
+          {
+            "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          },
+          {
+            "type": "struct_expression",
+            "named": true
+          },
+          {
+            "type": "ternary_expression",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable_ref",
+            "named": true
+          }
+        ]
+      },
+      "method": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "object": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "cast_expression",
+            "named": true
+          },
+          {
+            "type": "element_expression",
+            "named": true
+          },
+          {
+            "type": "float",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "integer",
+            "named": true
+          },
+          {
+            "type": "list_expression",
+            "named": true
+          },
+          {
+            "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "reference_expression",
+            "named": true
+          },
+          {
+            "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          },
+          {
+            "type": "struct_expression",
+            "named": true
+          },
+          {
+            "type": "ternary_expression",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable_ref",
             "named": true
           }
         ]
@@ -1984,6 +2220,10 @@
           "named": true
         },
         {
+          "type": "method_call_expression",
+          "named": true
+        },
+        {
           "type": "parenthesized_expression",
           "named": true
         },
@@ -2110,6 +2350,10 @@
           "named": true
         },
         {
+          "type": "method_call_expression",
+          "named": true
+        },
+        {
           "type": "parenthesized_expression",
           "named": true
         },
@@ -2223,6 +2467,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -2297,6 +2545,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -2368,6 +2620,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -2505,6 +2761,10 @@
         {
           "type": "struct_field",
           "named": true
+        },
+        {
+          "type": "struct_method",
+          "named": true
         }
       ]
     }
@@ -2590,6 +2850,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -2652,6 +2916,56 @@
     }
   },
   {
+    "type": "struct_method",
+    "named": true,
+    "fields": {
+      "block": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "parameters": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": ",",
+            "named": false
+          },
+          {
+            "type": "parameter",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "type",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "ternary_expression",
     "named": true,
     "fields": {
@@ -2693,6 +3007,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -2770,6 +3088,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -2841,6 +3163,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -2948,6 +3274,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -3087,6 +3417,10 @@
             "named": true
           },
           {
+            "type": "method_call_expression",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -3200,6 +3534,10 @@
           },
           {
             "type": "member_expression",
+            "named": true
+          },
+          {
+            "type": "method_call_expression",
             "named": true
           },
           {
@@ -3556,11 +3894,23 @@
     "named": false
   },
   {
+    "type": "private",
+    "named": false
+  },
+  {
+    "type": "public",
+    "named": false
+  },
+  {
     "type": "return",
     "named": false
   },
   {
     "type": "rotated",
+    "named": false
+  },
+  {
+    "type": "static",
     "named": false
   },
   {

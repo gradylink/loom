@@ -2,6 +2,7 @@
 "return" @keyword.return
 "import" @keyword.import
 ["export" "extern"] @keyword.storage
+["public" "private" "static"] @keyword.storage
 ["let" "const" "enum" "struct" "namespace"] @keyword.storage
 ["if" "else"] @keyword.conditional
 ["while" "do" "for"] @keyword.repeat
@@ -29,11 +30,13 @@
 
 (struct_definition name: (identifier) @type)
 (struct_field name: (identifier) @property)
+(struct_method name: (identifier) @method)
 (enum_definition name: (identifier) @type)
 (enum_variant name: (identifier) @constant)
 
 (property_access property: (identifier) @property)
 (member_expression property: (identifier) @property)
+(method_call_expression method: (identifier) @method.call)
 
 (member_expression
   object: (variable_ref name: (namespaced_identifier) @type)

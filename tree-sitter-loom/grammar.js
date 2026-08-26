@@ -29,6 +29,7 @@ module.exports = grammar({
   conflicts: ($) => [
     [$.selector],
     [$.namespaced_identifier, $.namespaced_arg],
+    [$.struct_field, $.struct_method],
   ],
 
   rules: {
@@ -96,17 +97,37 @@ module.exports = grammar({
         "struct",
         field("name", $.identifier),
         "{",
-        optional($._newline),
-        multilineCommaSep($.struct_field),
-        optional($._newline),
+        repeat($._newline),
+        repeat(
+          seq(
+            choice($.struct_field, $.struct_method),
+            optional(","),
+            repeat($._newline),
+          ),
+        ),
         "}",
       ),
 
     struct_field: ($) =>
       seq(
+        repeat($._visibility_modifier),
         field("name", $.identifier),
         ":",
         field("type", $.type),
+      ),
+
+    _visibility_modifier: () => choice("public", "private"),
+
+    struct_method: ($) =>
+      seq(
+        repeat(choice($._visibility_modifier, "static")),
+        "func",
+        field("name", $.identifier),
+        "(",
+        field("parameters", commaSep($.parameter)),
+        ")",
+        optional(seq(":", field("type", $.type))),
+        field("block", $.block),
       ),
 
     struct_expression: ($) =>
@@ -286,6 +307,7 @@ module.exports = grammar({
     _expression: ($) =>
       choice(
         $.ternary_expression,
+        $.method_call_expression,
         $.member_expression,
         $.binary_expression,
         $.unary_expression,
@@ -323,6 +345,27 @@ module.exports = grammar({
           field("object", $._expression),
           ".",
           field("property", $.identifier),
+        ),
+      ),
+
+    // Not listed in `_statement`: a bare `obj.method(args);` statement (no assignment, no
+    // enclosing expression) is ambiguous with `assignment`'s `.property` path for tree-sitter's
+    // GLR parser, and adding it there reintroduces mis-parses of `this.field = value;`. The
+    // compiler's hand-rolled recursive-descent parser resolves this cleanly with one token of
+    // lookahead, but this grammar only needs to support editor highlighting, so a standalone
+    // method-call statement degrades to an ERROR node here rather than risking assignment
+    // highlighting. Method calls used in any other expression position (assigned, returned,
+    // passed as an argument, etc.) highlight correctly.
+    method_call_expression: ($) =>
+      prec.left(
+        9,
+        seq(
+          field("object", $._expression),
+          ".",
+          field("method", $.identifier),
+          "(",
+          field("arguments", commaSep($._expression)),
+          ")",
         ),
       ),
 
