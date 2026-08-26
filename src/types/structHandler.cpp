@@ -19,16 +19,22 @@ public:
 
     Compiler::Type fieldType;
     bool found = false;
+    bool isPrivateField = false;
     for (const auto &field : structRef->fields) {
       if (field.name == prop) {
         fieldType = *field.type;
         found = true;
+        isPrivateField = field.isPrivate;
         break;
       }
     }
 
     if (!found) {
       throw std::runtime_error(std::format("Struct '{}' has no field named '{}'", structRef->name, prop));
+    }
+
+    if (isPrivateField && compiler.getCurrentStructContext() != structRef) {
+      throw std::runtime_error(std::format("Field '{}' is private to struct '{}'", prop, structRef->name));
     }
 
     if (object.precomputed) {

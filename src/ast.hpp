@@ -80,6 +80,12 @@ struct CallExpr {
   std::vector<std::unique_ptr<Expr>> arguments;
 };
 
+struct MethodCallExpr {
+  std::unique_ptr<Expr> object;
+  std::string method;
+  std::vector<std::unique_ptr<Expr>> arguments;
+};
+
 struct VarRefExpr {
   std::string name;
 };
@@ -122,6 +128,7 @@ struct Expr {
     SliceExpr,
     ElementExpr,
     CallExpr,
+    MethodCallExpr,
     VarRefExpr,
     CastExpr,
     StructExpr,
@@ -190,11 +197,24 @@ struct FuncDeclStmt {
 struct StructFieldDecl {
   std::string name;
   std::string typeText;
+  bool isPrivate = false;
 };
+
+struct StructMethodDecl {
+  SourceLoc loc;
+  std::string name;
+  bool isPrivate = false;
+  bool isStatic = false;
+  std::vector<Param> params;
+  std::optional<std::string> returnTypeText;
+  std::unique_ptr<Block> body;
+};
+
 struct StructDeclStmt {
   bool isExport = false;
   std::string name;
   std::vector<StructFieldDecl> fields;
+  std::vector<StructMethodDecl> methods;
 };
 
 struct EnumVariantDecl {

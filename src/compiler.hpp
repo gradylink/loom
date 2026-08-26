@@ -130,17 +130,19 @@ public:
   struct StructField {
     std::string name;
     std::unique_ptr<Type> type;
+    bool isPrivate = false;
 
     StructField() = default;
 
-    StructField(std::string n, std::unique_ptr<Type> t) : name(std::move(n)), type(std::move(t)) {}
+    StructField(std::string n, std::unique_ptr<Type> t, bool priv = false) : name(std::move(n)), type(std::move(t)), isPrivate(priv) {}
 
-    StructField(const StructField &o) : name(o.name), type(o.type ? std::make_unique<Type>(*o.type) : nullptr) {}
+    StructField(const StructField &o) : name(o.name), type(o.type ? std::make_unique<Type>(*o.type) : nullptr), isPrivate(o.isPrivate) {}
 
     StructField &operator=(const StructField &o) {
       if (this != &o) {
         name = o.name;
         type = o.type ? std::make_unique<Type>(*o.type) : nullptr;
+        isPrivate = o.isPrivate;
       }
       return *this;
     }
@@ -153,6 +155,7 @@ public:
     std::string name;
     std::vector<StructField> fields;
     bool exported = false;
+    bool hasConstructor = false;
   };
 
   struct FunctionData {
@@ -164,6 +167,11 @@ public:
 
     bool exported = false;
     bool internal = true;
+
+    const StructData *ownerStruct = nullptr;
+    bool isStatic = false;
+    bool isConstructor = false;
+    bool isPrivate = false;
   };
 
   struct VariableData {
@@ -234,6 +242,8 @@ private:
   std::string currentFuncRefCopybacks = "";
   int controlFlowDepth = 0;
 
+  const StructData *currentStructContext = nullptr;
+
   void processDeclarations(const Block &block);
   void processCompilation(const Block &block);
   void processStructDecl(const StructDeclStmt &decl, SourceLoc loc);
@@ -241,6 +251,28 @@ private:
   void processFuncDeclDeclaration(const FuncDeclStmt &decl, SourceLoc loc);
   void processImportDecl(const ImportStmt &decl, SourceLoc loc);
   void compileFuncDecl(const FuncDeclStmt &decl, SourceLoc loc);
+  void compileStructDecl(const StructDeclStmt &decl, SourceLoc loc);
+  void compileStructMethod(const StructData &structData, const StructMethodDecl &methodDecl, const FunctionData &funcData);
+
+  struct ParamSetupResult {
+    std::string setup;
+    std::optional<std::pair<std::string, std::string>> refCopyback;
+  };
+  ParamSetupResult setupIncomingParameter(const std::string &paramName, const Type &paramType, const Block *scope);
+
+  ExpressionData compileMethodCallOnVariable(
+    const std::string &objVarName, const std::string &methodName, const std::vector<const Expr *> &argNodes, unsigned int id, bool precompute, SourceLoc loc
+  );
+
+  ExpressionData compileFunctionInvocation(
+    const std::vector<FunctionData> &overloads,
+    const std::string &displayName,
+    const std::vector<const Expr *> &argNodes,
+    std::optional<ExpressionData> implicitSelf,
+    unsigned int id,
+    bool precompute,
+    SourceLoc loc
+  );
 
 public:
   std::string prefixName(const std::string &name) const {
@@ -297,6 +329,7 @@ public:
   TypeHandler *getHandler(const Type &type);
 
   const std::string &getDatapackNamespace() const { return datapackNamespace; }
+  const StructData *getCurrentStructContext() const { return currentStructContext; }
 
   void addCompiledFunction(const CompiledFunction &func) { compiledFunctions.push_back(func); }
 

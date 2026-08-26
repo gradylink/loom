@@ -21,7 +21,7 @@ A programming language that compiles to Minecraft datapacks.
 - [ ] Entity local variables
 - [ ] Package Management
 - [ ] Function references
-- [ ] Struct methods (and constructor)
+- [x] Struct methods (and constructor)
 - [ ] Force casting (e.g. `int`/`string`/`float` -> `enum`, `string` ->
       `&func<>`)
 - [ ] Custom type definitions

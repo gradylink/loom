@@ -78,6 +78,7 @@ private:
   std::unique_ptr<Expr> parseUnary();
   std::unique_ptr<Expr> parseCast();
   std::unique_ptr<Expr> parsePostfix();
+  std::unique_ptr<Expr> parsePostfixContinuation(std::unique_ptr<Expr> expr);
   std::unique_ptr<Expr> parsePrimary();
   std::unique_ptr<Expr> tryParseAtTest();
 };

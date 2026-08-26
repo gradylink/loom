@@ -86,6 +86,249 @@ Compiler::ExpressionData Compiler::compileExpression(const Expr &node, unsigned 
   return expr;
 }
 
+Compiler::ExpressionData Compiler::compileMethodCallOnVariable(
+  const std::string &objVarName, const std::string &methodName, const std::vector<const Expr *> &argNodes, unsigned int id, bool precompute, SourceLoc loc
+) {
+  auto objVarIt = findInMap(vars, objVarName);
+  if (objVarIt == vars.end()) {
+    throw std::runtime_error(formatError(loc, "Unknown variable used in expression: " + objVarName));
+  }
+  const VariableData &objVar = objVarIt->second;
+  const Type &objActualType = objVar.type.isRef() ? *objVar.type.baseType : objVar.type;
+  if (!objActualType.isStruct()) {
+    throw std::runtime_error(formatError(loc, "Cannot call methods on a non-struct value."));
+  }
+  const StructData *structRef = objActualType.structRef;
+
+  std::string methodKey = structRef->name + "::" + methodName;
+  std::transform(methodKey.begin(), methodKey.end(), methodKey.begin(), ::tolower);
+  auto methodIt = funcs.find(methodKey);
+  if (methodIt == funcs.end() || methodIt->second.empty()) {
+    throw std::runtime_error(formatError(loc, std::format("Struct '{}' has no method named '{}'", structRef->name, methodName)));
+  }
+  const FunctionData &rep = methodIt->second.front();
+  if (rep.isStatic) {
+    throw std::runtime_error(formatError(loc, std::format("'{}' is a static struct function; call it as {}::{}(...)", methodName, structRef->name, methodName)));
+  }
+  if (rep.isPrivate && currentStructContext != rep.ownerStruct) {
+    throw std::runtime_error(formatError(loc, std::format("'{}' is private to struct '{}'.", methodName, structRef->name)));
+  }
+
+  ExpressionData implicitSelf;
+  if (objVar.type.isRef()) {
+    implicitSelf = {.data = std::format("\"{}\"", objVar.mangledName), .precomputed = true, .type = objVar.type};
+  } else {
+    implicitSelf = {.data = std::format("\"{}\"", objVar.mangledName), .precomputed = true, .type = Type::RefTypeOf(objVar.type)};
+  }
+
+  return compileFunctionInvocation(methodIt->second, methodName, argNodes, implicitSelf, id, precompute, loc);
+}
+
+Compiler::ExpressionData Compiler::compileFunctionInvocation(
+  const std::vector<FunctionData> &overloads,
+  const std::string &displayName,
+  const std::vector<const Expr *> &argNodes,
+  std::optional<ExpressionData> implicitSelf,
+  unsigned int id,
+  bool precompute,
+  SourceLoc loc
+) {
+  std::vector<ExpressionData> compiledArgs;
+  std::vector<Type> argTypes;
+  for (const auto &argNode : argNodes) {
+    ExpressionData argExpr = compileExpression(*argNode);
+    compiledArgs.push_back(argExpr);
+    argTypes.push_back(argExpr.type);
+  }
+
+  const FunctionData *selectedOverload = nullptr;
+
+  for (const auto &overload : overloads) {
+    if (overload.params.size() == argTypes.size()) {
+      bool exactMatch = true;
+      for (size_t i = 0; i < argTypes.size(); i++) {
+        if (argTypes[i] != overload.params[i]) {
+          exactMatch = false;
+          break;
+        }
+      }
+      if (exactMatch) {
+        selectedOverload = &overload;
+        break;
+      }
+    }
+  }
+
+  if (!selectedOverload) {
+    std::vector<const FunctionData *> bestMatches;
+    int minPromotions = 999999;
+
+    for (const auto &overload : overloads) {
+      if (overload.params.size() == argTypes.size()) {
+        bool canPromote = true;
+        int promotionCount = 0;
+
+        for (size_t i = 0; i < argTypes.size(); i++) {
+          if (argTypes[i] != overload.params[i]) {
+            if (argTypes[i].isInteger() && overload.params[i].isFloat()) {
+              promotionCount++;
+            } else {
+              canPromote = false;
+              break;
+            }
+          }
+        }
+
+        if (canPromote) {
+          if (promotionCount < minPromotions) {
+            minPromotions = promotionCount;
+            bestMatches.clear();
+            bestMatches.push_back(&overload);
+          } else if (promotionCount == minPromotions) {
+            bestMatches.push_back(&overload);
+          }
+        }
+      }
+    }
+
+    if (bestMatches.size() == 1) {
+      selectedOverload = bestMatches[0];
+    } else if (bestMatches.size() > 1) {
+      throw std::runtime_error(formatError(loc, std::format("Ambiguous function call: multiple overloads match for '{}' with equally valid type promotions.", displayName)));
+    }
+  }
+
+  if (!selectedOverload) {
+    throw std::runtime_error(formatError(loc, std::format("No matching overload found for function '{}' with the provided argument types.", displayName)));
+  }
+
+  std::string argPushData = "";
+
+  if (implicitSelf.has_value()) {
+    argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, implicitSelf->data);
+  }
+
+  for (size_t i = 0; i < compiledArgs.size(); i++) {
+    ExpressionData argExpr = compiledArgs[i];
+
+    const Type &expectedType = selectedOverload->params[i];
+
+    if (!expectedType.isRef()) {
+      if (argExpr.type != expectedType) {
+        std::optional<ExpressionData> casted = std::nullopt;
+        if (TypeHandler *handler = getHandler(argExpr.type)) {
+          casted = handler->compileCast(*this, argExpr, expectedType, id + 1, false, argNodes[i]->loc);
+        }
+
+        if (casted.has_value()) {
+          argExpr = casted.value();
+        } else {
+          throw std::runtime_error(formatError(argNodes[i]->loc, std::format("Failed to promote argument {} for function '{}'", i + 1, displayName)));
+        }
+      }
+    } else {
+      bool isValidRefArg = false;
+      if (std::holds_alternative<ReferenceExpr>(argNodes[i]->data)) {
+        if (argExpr.type.isRef() && *argExpr.type.baseType == *expectedType.baseType) {
+          isValidRefArg = true;
+        }
+      } else if (auto *vr = std::get_if<VarRefExpr>(&argNodes[i]->data)) {
+        auto varIt = findInMap(vars, vr->name);
+        if (varIt != vars.end() && varIt->second.type.isRef()) {
+          if (*varIt->second.type.baseType == *expectedType.baseType) {
+            isValidRefArg = true;
+            if (varIt->second.refTargetMangledName.has_value()) {
+              argExpr = {.data = std::format("\"{}\"", varIt->second.refTargetMangledName.value()), .precomputed = true, .type = expectedType};
+            } else {
+              argExpr = {
+                .data = std::format(
+                  "data modify storage {}:global expr_str{} set from storage {}:global vars.{}_refargs.refname",
+                  datapackNamespace,
+                  id,
+                  datapackNamespace,
+                  varIt->second.mangledName
+                ),
+                .precomputed = false,
+                .type = expectedType
+              };
+            }
+          }
+        }
+      }
+      if (!isValidRefArg) {
+        throw std::runtime_error(formatError(argNodes[i]->loc, std::format("Argument {} for function '{}' requires a reference.", i + 1, displayName)));
+      }
+    }
+
+    if (argExpr.precomputed) {
+      argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, argExpr.data);
+    } else {
+      argPushData += argExpr.data + "\n";
+      if (argExpr.type.isString() || argExpr.type.isList() || argExpr.type.isRef()) {
+        argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
+      } else if (argExpr.type.isFloat()) {
+        argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_float{}\n", datapackNamespace, datapackNamespace, id);
+      } else {
+        argPushData += std::format(
+          "execute store result storage {0}:global stack_temp int 1 run scoreboard players get expr_output1 temp\ndata modify storage "
+          "{0}:stack regs append from storage "
+          "{0}:global stack_temp\n",
+          datapackNamespace
+        );
+      }
+    }
+  }
+
+  std::string push;
+  std::string pop;
+  for (unsigned int i = 1; i < id; i++) {
+    push += std::format(
+      "data modify storage {0}:stack regs append value {{}}\n"
+      "data modify storage {0}:stack regs[-1].str set from storage {0}:global expr_str{1}\n"
+      "data modify storage {0}:stack regs[-1].flt set from storage {0}:global expr_float{1}\n"
+      "execute store result storage {0}:stack regs[-1].int int 1 run scoreboard players get expr_output{1} temp\n",
+      datapackNamespace,
+      i
+    );
+    pop = std::format(
+            "\ndata modify storage {0}:global expr_str{1} set from storage {0}:stack regs[-1].str\n"
+            "data modify storage {0}:global expr_float{1} set from storage {0}:stack regs[-1].flt\n"
+            "execute store result score expr_output{1} temp run data get storage {0}:stack regs[-1].int\n"
+            "data remove storage {0}:stack regs[-1]",
+            datapackNamespace,
+            i
+          ) +
+          pop;
+  }
+
+  Type funcType = Type::IntegerType();
+  if (selectedOverload->returnType.has_value()) funcType = selectedOverload->returnType.value();
+
+  std::string callCommand;
+  if (funcType.isInteger() || funcType.isBoolean()) {
+    callCommand = std::format(
+      "execute store result score expr_output{} temp run function {}:{}{}",
+      id,
+      datapackNamespace,
+      selectedOverload->internal ? "internal/" : "",
+      selectedOverload->mangledName
+    );
+  } else {
+    callCommand = std::format("function {}:{}{}", datapackNamespace, selectedOverload->internal ? "internal/" : "", selectedOverload->mangledName);
+  }
+
+  std::string captureReturn = "";
+  if (id != 1) {
+    if (funcType.isString() || funcType.isList() || funcType.isStruct() || funcType.isRef()) {
+      captureReturn = std::format("\ndata modify storage {0}:global expr_str{1} set from storage {0}:global expr_str1", datapackNamespace, id);
+    } else if (funcType.isFloat()) {
+      captureReturn = std::format("\ndata modify storage {0}:global expr_float{1} set from storage {0}:global expr_float1", datapackNamespace, id);
+    }
+  }
+
+  return {.data = std::format("{}{}{}{}{}", push, argPushData, callCommand, captureReturn, pop), .precomputed = false, .type = funcType};
+}
+
 Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsigned int id, bool precompute) {
   return std::visit(
     [&](auto &&n) -> ExpressionData {
@@ -103,7 +346,9 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           return {.data = n.text, .precomputed = true, .type = Type::FloatType()};
         }
         return {
-          .data = std::format("data modify storage {}:global expr_float{} set value {}f", datapackNamespace, id, n.text), .precomputed = false, .type = Type::FloatType()
+          .data = std::format("data modify storage {}:global expr_float{} set value {}f", datapackNamespace, id, n.text),
+          .precomputed = false,
+          .type = Type::FloatType()
         };
       }
 
@@ -119,9 +364,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
         if (precompute) {
           return {.data = n.text, .precomputed = true, .type = Type::StringType()};
         }
-        return {
-          .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, n.text), .precomputed = false, .type = Type::StringType()
-        };
+        return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, n.text), .precomputed = false, .type = Type::StringType()};
       }
 
       else if constexpr (std::is_same_v<T, ListExpr>) {
@@ -172,9 +415,8 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
             runtimeCmds += elemData.data + "\n";
 
             if (elemData.type.isString() || elemData.type.kind == Type::List) {
-              runtimeCmds += std::format(
-                "data modify storage {}:global expr_str{} append from storage {}:global expr_str{}\n", datapackNamespace, id, datapackNamespace, id + 1
-              );
+              runtimeCmds +=
+                std::format("data modify storage {}:global expr_str{} append from storage {}:global expr_str{}\n", datapackNamespace, id, datapackNamespace, id + 1);
             } else {
               runtimeCmds += std::format(
                 "execute store result storage {0}:global expr_int{2} int 1 run scoreboard players get expr_output{2} temp\n"
@@ -196,6 +438,11 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           throw std::runtime_error(formatError(node.loc, "Unknown struct type: " + n.name));
         }
         const StructData &structData = it->second;
+        if (structData.hasConstructor) {
+          throw std::runtime_error(
+            formatError(node.loc, std::format("Struct '{}' has a constructor; use {}(...) instead of struct-literal syntax.", n.name, structData.name))
+          );
+        }
         Type targetType = Type::StructTypeOf(&structData);
 
         bool allPrecomputed = true;
@@ -247,15 +494,30 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
             runtimeCmds += elemData.data + "\n";
             if (elemData.type.isString() || elemData.type.isList() || elemData.type.isStruct()) {
               runtimeCmds += std::format(
-                "data modify storage {}:global expr_str{}.{} set from storage {}:global expr_str{}\n", datapackNamespace, id, fieldName, datapackNamespace, id + 1
+                "data modify storage {}:global expr_str{}.{} set from storage {}:global expr_str{}\n",
+                datapackNamespace,
+                id,
+                fieldName,
+                datapackNamespace,
+                id + 1
               );
             } else if (elemData.type.isFloat()) {
               runtimeCmds += std::format(
-                "data modify storage {}:global expr_str{}.{} set from storage {}:global expr_float{}\n", datapackNamespace, id, fieldName, datapackNamespace, id + 1
+                "data modify storage {}:global expr_str{}.{} set from storage {}:global expr_float{}\n",
+                datapackNamespace,
+                id,
+                fieldName,
+                datapackNamespace,
+                id + 1
               );
             } else {
-              runtimeCmds +=
-                std::format("execute store result storage {}:global expr_str{}.{} int 1 run scoreboard players get expr_output{} temp\n", datapackNamespace, id, fieldName, id + 1);
+              runtimeCmds += std::format(
+                "execute store result storage {}:global expr_str{}.{} int 1 run scoreboard players get expr_output{} temp\n",
+                datapackNamespace,
+                id,
+                fieldName,
+                id + 1
+              );
             }
           }
         }
@@ -292,15 +554,18 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
       else if constexpr (std::is_same_v<T, MemberExpr>) {
         std::string objText = exprToString(*n.object);
 
+        std::optional<Compiler::ExpressionData> objExpr;
         try {
-          Compiler::ExpressionData objExpr = compileExpression(*n.object, id, precompute);
-          if (TypeHandler *handler = getHandler(objExpr.type)) {
-            if (auto optResult = handler->compileMemberExpression(*this, objExpr, n.property, id, precompute, node.loc)) {
+          objExpr = compileExpression(*n.object, id, precompute);
+        } catch (...) {
+        }
+
+        if (objExpr.has_value()) {
+          if (TypeHandler *handler = getHandler(objExpr->type)) {
+            if (auto optResult = handler->compileMemberExpression(*this, objExpr.value(), n.property, id, precompute, node.loc)) {
               return optResult.value();
             }
           }
-        } catch (...) {
-          // enum
         }
 
         const auto enumIt = findInMap(enums, objText);
@@ -351,9 +616,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
 
       else if constexpr (std::is_same_v<T, EntityTestExpr>) {
         return {
-          .data = std::format(
-            "scoreboard players set expr_output{} temp 0\nexecute if entity {} run scoreboard players set expr_output{} temp 1", id, n.selectorText, id
-          ),
+          .data = std::format("scoreboard players set expr_output{} temp 0\nexecute if entity {} run scoreboard players set expr_output{} temp 1", id, n.selectorText, id),
           .precomputed = false,
           .type = Type::BooleanType()
         };
@@ -377,6 +640,20 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
         throw std::runtime_error(formatError(node.loc, "Unknown unary operation: " + n.op));
       }
 
+      else if constexpr (std::is_same_v<T, MethodCallExpr>) {
+        std::string objVarName;
+        if (auto *vr = std::get_if<VarRefExpr>(&n.object->data)) {
+          objVarName = vr->name;
+        } else {
+          objVarName = exprToString(*n.object);
+        }
+
+        std::vector<const Expr *> argNodes;
+        for (const auto &a : n.arguments) argNodes.push_back(a.get());
+
+        return compileMethodCallOnVariable(objVarName, n.method, argNodes, id, precompute, node.loc);
+      }
+
       else if constexpr (std::is_same_v<T, CallExpr>) {
         std::string targetFunc = n.name;
         std::transform(targetFunc.begin(), targetFunc.end(), targetFunc.begin(), ::tolower);
@@ -388,209 +665,64 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           if (auto optResult = it->second(*this, argNodes, id, precompute, node.loc)) return optResult.value();
         }
 
+        if (currentStructContext && targetFunc.find("::") == std::string::npos) {
+          std::string implicitKey = currentStructContext->name + "::" + targetFunc;
+          std::transform(implicitKey.begin(), implicitKey.end(), implicitKey.begin(), ::tolower);
+          auto implicitIt = funcs.find(implicitKey);
+          if (implicitIt != funcs.end() && !implicitIt->second.empty() && !implicitIt->second.front().isStatic) {
+            auto thisIt = vars.find("this");
+            if (thisIt != vars.end()) {
+              ExpressionData implicitSelf = {.data = std::format("\"{}\"", thisIt->second.mangledName), .precomputed = true, .type = thisIt->second.type};
+              return compileFunctionInvocation(implicitIt->second, targetFunc, argNodes, implicitSelf, id, precompute, node.loc);
+            }
+          }
+        }
+
         auto funcIt = findInMap(funcs, targetFunc, true);
         if (funcIt == funcs.end()) {
           throw std::runtime_error(formatError(node.loc, "Unknown function: " + targetFunc));
         }
 
-        std::vector<ExpressionData> compiledArgs;
-        std::vector<Type> argTypes;
-        for (const auto &argNode : argNodes) {
-          ExpressionData argExpr = compileExpression(*argNode);
-          compiledArgs.push_back(argExpr);
-          argTypes.push_back(argExpr.type);
-        }
-
         const auto &overloads = funcIt->second;
-        const auto *selectedOverload = static_cast<const std::decay_t<decltype(overloads[0])> *>(nullptr);
-
-        for (const auto &overload : overloads) {
-          if (overload.params.size() == argTypes.size()) {
-            bool exactMatch = true;
-            for (size_t i = 0; i < argTypes.size(); i++) {
-              if (argTypes[i] != overload.params[i]) {
-                exactMatch = false;
-                break;
-              }
-            }
-            if (exactMatch) {
-              selectedOverload = &overload;
-              break;
-            }
+        if (!overloads.empty() && overloads.front().ownerStruct) {
+          const FunctionData &rep = overloads.front();
+          if (!rep.isConstructor && !rep.isStatic) {
+            throw std::runtime_error(formatError(node.loc, std::format("'{}' is an instance method; call it as <object>.{}(...)", targetFunc, targetFunc)));
+          }
+          if (rep.isPrivate && currentStructContext != rep.ownerStruct) {
+            throw std::runtime_error(formatError(node.loc, std::format("'{}' is private to struct '{}'.", targetFunc, rep.ownerStruct->name)));
           }
         }
 
-        if (!selectedOverload) {
-          std::vector<const std::decay_t<decltype(overloads[0])> *> bestMatches;
-          int minPromotions = 999999;
-
-          for (const auto &overload : overloads) {
-            if (overload.params.size() == argTypes.size()) {
-              bool canPromote = true;
-              int promotionCount = 0;
-
-              for (size_t i = 0; i < argTypes.size(); i++) {
-                if (argTypes[i] != overload.params[i]) {
-                  if (argTypes[i].isInteger() && overload.params[i].isFloat()) {
-                    promotionCount++;
-                  } else {
-                    canPromote = false;
-                    break;
-                  }
-                }
-              }
-
-              if (canPromote) {
-                if (promotionCount < minPromotions) {
-                  minPromotions = promotionCount;
-                  bestMatches.clear();
-                  bestMatches.push_back(&overload);
-                } else if (promotionCount == minPromotions) {
-                  bestMatches.push_back(&overload);
-                }
-              }
-            }
-          }
-
-          if (bestMatches.size() == 1) {
-            selectedOverload = bestMatches[0];
-          } else if (bestMatches.size() > 1) {
-            throw std::runtime_error(
-              formatError(node.loc, std::format("Ambiguous function call: multiple overloads match for '{}' with equally valid type promotions.", targetFunc))
-            );
-          }
-        }
-
-        if (!selectedOverload) {
-          throw std::runtime_error(formatError(node.loc, std::format("No matching overload found for function '{}' with the provided argument types.", targetFunc)));
-        }
-
-        std::string argPushData = "";
-        for (size_t i = 0; i < compiledArgs.size(); i++) {
-          ExpressionData argExpr = compiledArgs[i];
-
-          const Type &expectedType = selectedOverload->params[i];
-
-          if (!expectedType.isRef()) {
-            if (argExpr.type != expectedType) {
-              std::optional<ExpressionData> casted = std::nullopt;
-              if (TypeHandler *handler = getHandler(argExpr.type)) {
-                casted = handler->compileCast(*this, argExpr, expectedType, id + 1, false, argNodes[i]->loc);
-              }
-
-              if (casted.has_value()) {
-                argExpr = casted.value();
-              } else {
-                throw std::runtime_error(formatError(argNodes[i]->loc, std::format("Failed to promote argument {} for function '{}'", i + 1, targetFunc)));
-              }
-            }
-          } else {
-            bool isValidRefArg = false;
-            if (std::holds_alternative<ReferenceExpr>(argNodes[i]->data)) {
-              if (argExpr.type.isRef() && *argExpr.type.baseType == *expectedType.baseType) {
-                isValidRefArg = true;
-              }
-            } else if (auto *vr = std::get_if<VarRefExpr>(&argNodes[i]->data)) {
-              auto varIt = findInMap(vars, vr->name);
-              if (varIt != vars.end() && varIt->second.type.isRef()) {
-                if (*varIt->second.type.baseType == *expectedType.baseType) {
-                  isValidRefArg = true;
-                  if (varIt->second.refTargetMangledName.has_value()) {
-                    argExpr = {.data = std::format("\"{}\"", varIt->second.refTargetMangledName.value()), .precomputed = true, .type = expectedType};
-                  } else {
-                    argExpr = {
-                      .data = std::format(
-                        "data modify storage {}:global expr_str{} set from storage {}:global vars.{}_refargs.refname",
-                        datapackNamespace,
-                        id,
-                        datapackNamespace,
-                        varIt->second.mangledName
-                      ),
-                      .precomputed = false,
-                      .type = expectedType
-                    };
-                  }
-                }
-              }
-            }
-            if (!isValidRefArg) {
-              throw std::runtime_error(formatError(argNodes[i]->loc, std::format("Argument {} for function '{}' requires a reference.", i + 1, targetFunc)));
-            }
-          }
-
-          if (argExpr.precomputed) {
-            argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, argExpr.data);
-          } else {
-            argPushData += argExpr.data + "\n";
-            if (argExpr.type.isString() || argExpr.type.isList() || argExpr.type.isRef()) {
-              argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
-            } else if (argExpr.type.isFloat()) {
-              argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_float{}\n", datapackNamespace, datapackNamespace, id);
-            } else {
-              argPushData += std::format(
-                "execute store result storage {0}:global stack_temp int 1 run scoreboard players get expr_output1 temp\ndata modify storage "
-                "{0}:stack regs append from storage "
-                "{0}:global stack_temp\n",
-                datapackNamespace
-              );
-            }
-          }
-        }
-
-        std::string push;
-        std::string pop;
-        for (unsigned int i = 1; i < id; i++) {
-          push += std::format(
-            "data modify storage {0}:stack regs append value {{}}\n"
-            "data modify storage {0}:stack regs[-1].str set from storage {0}:global expr_str{1}\n"
-            "data modify storage {0}:stack regs[-1].flt set from storage {0}:global expr_float{1}\n"
-            "execute store result storage {0}:stack regs[-1].int int 1 run scoreboard players get expr_output{1} temp\n",
-            datapackNamespace,
-            i
-          );
-          pop = std::format(
-                  "\ndata modify storage {0}:global expr_str{1} set from storage {0}:stack regs[-1].str\n"
-                  "data modify storage {0}:global expr_float{1} set from storage {0}:stack regs[-1].flt\n"
-                  "execute store result score expr_output{1} temp run data get storage {0}:stack regs[-1].int\n"
-                  "data remove storage {0}:stack regs[-1]",
-                  datapackNamespace,
-                  i
-                ) +
-                pop;
-        }
-
-        Type funcType = Type::IntegerType();
-        if (selectedOverload->returnType.has_value()) funcType = selectedOverload->returnType.value();
-
-        std::string callCommand;
-        if (funcType.isInteger() || funcType.isBoolean()) {
-          callCommand = std::format(
-            "execute store result score expr_output{} temp run function {}:{}{}",
-            id,
-            datapackNamespace,
-            selectedOverload->internal ? "internal/" : "",
-            selectedOverload->mangledName
-          );
-        } else {
-          callCommand = std::format("function {}:{}{}", datapackNamespace, selectedOverload->internal ? "internal/" : "", selectedOverload->mangledName);
-        }
-
-        std::string captureReturn = "";
-        if (id != 1) {
-          if (funcType.isString() || funcType.isList() || funcType.isRef()) {
-            captureReturn = std::format("\ndata modify storage {0}:global expr_str{1} set from storage {0}:global expr_str1", datapackNamespace, id);
-          } else if (funcType.isFloat()) {
-            captureReturn = std::format("\ndata modify storage {0}:global expr_float{1} set from storage {0}:global expr_float1", datapackNamespace, id);
-          }
-        }
-
-        return {.data = std::format("{}{}{}{}{}", push, argPushData, callCommand, captureReturn, pop), .precomputed = false, .type = funcType};
+        return compileFunctionInvocation(overloads, targetFunc, argNodes, std::nullopt, id, precompute, node.loc);
       }
 
       else if constexpr (std::is_same_v<T, VarRefExpr>) {
         const std::string &targetVar = n.name;
 
         auto varIt = findInMap(vars, targetVar);
+        if (varIt == vars.end() && currentStructContext) {
+          for (const auto &field : currentStructContext->fields) {
+            if (field.name != targetVar) continue;
+            auto thisIt = vars.find("this");
+            if (thisIt == vars.end()) break;
+
+            ExpressionData thisObj{
+              .data = std::format(
+                "data modify storage {}:global expr_str{} set from storage {}:global vars.{}",
+                datapackNamespace,
+                id,
+                datapackNamespace,
+                thisIt->second.mangledName
+              ),
+              .precomputed = false,
+              .type = Type::StructTypeOf(currentStructContext)
+            };
+            if (TypeHandler *handler = getHandler(thisObj.type)) {
+              if (auto res = handler->compileMemberExpression(*this, thisObj, targetVar, id, precompute, node.loc)) return res.value();
+            }
+          }
+        }
         if (varIt == vars.end()) {
           throw std::runtime_error(formatError(node.loc, "Unknown variable used in expression: " + targetVar));
         }
@@ -621,9 +753,8 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
 
         if (actualType.isString() || actualType.isList() || actualType.isStruct()) {
           return {
-            .data = std::format(
-              "data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.getStorageName()
-            ),
+            .data =
+              std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.getStorageName()),
             .precomputed = false,
             .type = actualType
           };
@@ -631,9 +762,8 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
 
         if (actualType.isFloat()) {
           return {
-            .data = std::format(
-              "data modify storage {}:global expr_float{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.getStorageName()
-            ),
+            .data =
+              std::format("data modify storage {}:global expr_float{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.getStorageName()),
             .precomputed = false,
             .type = actualType
           };
@@ -673,7 +803,11 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           const std::string &sliced = "\"" + rawStr.substr(sIdx, eIdx - sIdx) + "\"";
 
           if (precompute) return {.data = sliced, .precomputed = true, .type = Type::StringType()};
-          return {.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, sliced), .precomputed = false, .type = Type::StringType()};
+          return {
+            .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, sliced),
+            .precomputed = false,
+            .type = Type::StringType()
+          };
         }
 
         if (target.precomputed) target.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, target.data);
@@ -801,9 +935,8 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
 
       else if constexpr (std::is_same_v<T, AtTestExpr>) {
         return {
-          .data = std::format(
-            "scoreboard players set expr_output{} temp 0\nexecute if block {} {} run scoreboard players set expr_output{} temp 1", id, n.posText, n.blockText, id
-          ),
+          .data =
+            std::format("scoreboard players set expr_output{} temp 0\nexecute if block {} {} run scoreboard players set expr_output{} temp 1", id, n.posText, n.blockText, id),
           .precomputed = false,
           .type = Type::BooleanType()
         };

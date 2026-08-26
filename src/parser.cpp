@@ -281,14 +281,42 @@ std::unique_ptr<Expr> Parser::parseCast() {
   return expr;
 }
 
-std::unique_ptr<Expr> Parser::parsePostfix() {
-  auto expr = parsePrimary();
+template <typename ParseItem> static void parseCommaSeparated(Parser &self, TokenKind closeKind, bool allowNewlines, ParseItem parseItem) {
+  if (allowNewlines) {
+    while (self.check(TokenKind::Newline)) self.advance();
+  }
+  if (self.check(closeKind)) return;
+
+  parseItem();
+  while (self.check(TokenKind::Comma)) {
+    self.advance();
+    if (allowNewlines) {
+      while (self.check(TokenKind::Newline)) self.advance();
+    }
+    parseItem();
+  }
+  if (allowNewlines) {
+    while (self.check(TokenKind::Newline)) self.advance();
+  }
+}
+
+std::unique_ptr<Expr> Parser::parsePostfix() { return parsePostfixContinuation(parsePrimary()); }
+
+std::unique_ptr<Expr> Parser::parsePostfixContinuation(std::unique_ptr<Expr> expr) {
   while (true) {
     if (check(TokenKind::Dot)) {
       const Token &opTok = peek();
       advance();
       std::string property(expect(TokenKind::Identifier, "property name after '.'").text);
-      expr = makeExpr(opTok, MemberExpr{.object = std::move(expr), .property = std::move(property)});
+      if (check(TokenKind::LParen)) {
+        advance();
+        std::vector<std::unique_ptr<Expr>> args;
+        parseCommaSeparated(*this, TokenKind::RParen, false, [&] { args.push_back(parseExpression()); });
+        expect(TokenKind::RParen, "')' to close method call arguments");
+        expr = makeExpr(opTok, MethodCallExpr{.object = std::move(expr), .method = std::move(property), .arguments = std::move(args)});
+      } else {
+        expr = makeExpr(opTok, MemberExpr{.object = std::move(expr), .property = std::move(property)});
+      }
       continue;
     }
     if (check(TokenKind::LBracket)) {
@@ -308,25 +336,6 @@ std::unique_ptr<Expr> Parser::parsePostfix() {
     break;
   }
   return expr;
-}
-
-template <typename ParseItem> static void parseCommaSeparated(Parser &self, TokenKind closeKind, bool allowNewlines, ParseItem parseItem) {
-  if (allowNewlines) {
-    while (self.check(TokenKind::Newline)) self.advance();
-  }
-  if (self.check(closeKind)) return;
-
-  parseItem();
-  while (self.check(TokenKind::Comma)) {
-    self.advance();
-    if (allowNewlines) {
-      while (self.check(TokenKind::Newline)) self.advance();
-    }
-    parseItem();
-  }
-  if (allowNewlines) {
-    while (self.check(TokenKind::Newline)) self.advance();
-  }
 }
 
 std::unique_ptr<Expr> Parser::parsePrimary() {
@@ -364,7 +373,7 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
     advance();
     auto inner = parseExpression();
     expect(TokenKind::RParen, "')' to close parenthesized expression");
-    return inner; // parenthesization is transparent - no AST node retained, matching current codegen
+    return inner;
   }
   case TokenKind::LBracket: {
     advance();
@@ -488,7 +497,7 @@ static bool isContextModifierIdentifier(const Token &tok) {
 
 std::unique_ptr<Stmt> Parser::parseIf() {
   const Token &startTok = peek();
-  advance(); // 'if'
+  advance();
   auto cond = parseExpression();
   auto thenBlock = parseBlock();
   std::optional<std::unique_ptr<Stmt>> elseBranch;
@@ -584,15 +593,63 @@ std::unique_ptr<Stmt> Parser::parseStructDecl(bool isExport) {
   advance();
   std::string name(expect(TokenKind::Identifier, "struct name").text);
   expect(TokenKind::LBrace, "'{' after struct name");
+
   std::vector<StructFieldDecl> fields;
-  parseCommaSeparated(*this, TokenKind::RBrace, true, [&] {
-    std::string fname(expect(TokenKind::Identifier, "field name").text);
-    expect(TokenKind::Colon, "':' after field name");
-    std::string ftype = parseTypeText();
-    fields.push_back(StructFieldDecl{.name = std::move(fname), .typeText = std::move(ftype)});
-  });
+  std::vector<StructMethodDecl> methods;
+
+  auto skipNewlines = [&] {
+    while (check(TokenKind::Newline)) advance();
+  };
+
+  skipNewlines();
+  while (!check(TokenKind::RBrace)) {
+    bool isPrivate = false, isPublic = false, isStatic = false;
+    while (checkIdentifierText("public") || checkIdentifierText("private") || checkIdentifierText("static")) {
+      if (checkIdentifierText("public")) isPublic = true;
+      else if (checkIdentifierText("private")) isPrivate = true;
+      else isStatic = true;
+      advance();
+    }
+    if (isPrivate && isPublic) error(peek(), "A struct member cannot be both 'public' and 'private'.");
+
+    if (check(TokenKind::KwFunc)) {
+      const Token &methodStartTok = peek();
+      advance();
+      std::string mname(expect(TokenKind::Identifier, "method name").text);
+      expect(TokenKind::LParen, "'(' after method name");
+      std::vector<Param> params;
+      parseCommaSeparated(*this, TokenKind::RParen, false, [&] {
+        std::string pname(expect(TokenKind::Identifier, "parameter name").text);
+        expect(TokenKind::Colon, "':' after parameter name");
+        std::string ptype = parseTypeText();
+        params.push_back(Param{.name = std::move(pname), .typeText = std::move(ptype)});
+      });
+      expect(TokenKind::RParen, "')' to close parameter list");
+      std::optional<std::string> returnTypeText;
+      if (match(TokenKind::Colon)) returnTypeText = parseTypeText();
+      auto body = parseBlock();
+      methods.push_back(
+        StructMethodDecl{
+          .loc = locOf(methodStartTok),
+          .name = std::move(mname),
+          .isPrivate = isPrivate,
+          .isStatic = isStatic,
+          .params = std::move(params),
+          .returnTypeText = std::move(returnTypeText),
+          .body = std::move(body)
+        }
+      );
+    } else {
+      std::string fname(expect(TokenKind::Identifier, "field name or 'func'").text);
+      expect(TokenKind::Colon, "':' after field name");
+      std::string ftype = parseTypeText();
+      fields.push_back(StructFieldDecl{.name = std::move(fname), .typeText = std::move(ftype), .isPrivate = isPrivate});
+      match(TokenKind::Comma);
+    }
+    skipNewlines();
+  }
   expect(TokenKind::RBrace, "'}' to close struct");
-  return makeStmt(startTok, StructDeclStmt{.isExport = isExport, .name = std::move(name), .fields = std::move(fields)});
+  return makeStmt(startTok, StructDeclStmt{.isExport = isExport, .name = std::move(name), .fields = std::move(fields), .methods = std::move(methods)});
 }
 
 std::unique_ptr<Stmt> Parser::parseEnumDecl(bool isExport) {
@@ -756,42 +813,57 @@ std::unique_ptr<Stmt> Parser::parseCommandStmt() {
   return makeStmt(startTok, CommandStmt{.commandName = std::move(commandName), .parts = std::move(parts)});
 }
 
+static bool decomposeAssignTarget(std::unique_ptr<Expr> expr, std::string &outName, std::vector<PathComponent> &outPath) {
+  if (auto *vr = std::get_if<VarRefExpr>(&expr->data)) {
+    outName = std::move(vr->name);
+    return true;
+  }
+  if (auto *me = std::get_if<MemberExpr>(&expr->data)) {
+    if (!decomposeAssignTarget(std::move(me->object), outName, outPath)) return false;
+    outPath.push_back(PathComponent{.isIndex = false, .propertyName = std::move(me->property), .index = nullptr});
+    return true;
+  }
+  if (auto *ee = std::get_if<ElementExpr>(&expr->data)) {
+    if (!decomposeAssignTarget(std::move(ee->target), outName, outPath)) return false;
+    outPath.push_back(PathComponent{.isIndex = true, .propertyName = "", .index = std::move(ee->index)});
+    return true;
+  }
+  return false;
+}
+
 std::unique_ptr<Stmt> Parser::tryParseAssignOrCallStmt() {
   size_t save = pos;
   const Token &startTok = peek();
   try {
     std::string name = parseNamespacedIdentifier();
+    std::unique_ptr<Expr> expr;
 
     if (check(TokenKind::LParen)) {
       advance();
       std::vector<std::unique_ptr<Expr>> args;
       parseCommaSeparated(*this, TokenKind::RParen, false, [&] { args.push_back(parseExpression()); });
       expect(TokenKind::RParen, "')' to close call arguments");
-      if (atStatementEnd()) {
-        auto call = makeExpr(startTok, CallExpr{.name = std::move(name), .arguments = std::move(args)});
-        return makeStmt(startTok, ExprStmt{.expr = std::move(call)});
-      }
-      pos = save;
-      return nullptr;
+      expr = makeExpr(startTok, CallExpr{.name = std::move(name), .arguments = std::move(args)});
+    } else {
+      expr = makeExpr(startTok, VarRefExpr{.name = std::move(name)});
     }
 
-    std::vector<PathComponent> path;
-    while (check(TokenKind::Dot) || check(TokenKind::LBracket)) {
-      if (match(TokenKind::Dot)) {
-        std::string prop(expect(TokenKind::Identifier, "property name after '.'").text);
-        path.push_back(PathComponent{.isIndex = false, .propertyName = std::move(prop), .index = nullptr});
-      } else {
-        advance();
-        auto idx = parseExpression();
-        expect(TokenKind::RBracket, "']' to close index");
-        path.push_back(PathComponent{.isIndex = true, .propertyName = "", .index = std::move(idx)});
-      }
-    }
+    expr = parsePostfixContinuation(std::move(expr));
 
     if (check(TokenKind::Eq)) {
+      std::string targetName;
+      std::vector<PathComponent> path;
+      if (!decomposeAssignTarget(std::move(expr), targetName, path)) {
+        pos = save;
+        return nullptr;
+      }
       advance();
       auto value = parseExpression();
-      return makeStmt(startTok, AssignStmt{.name = std::move(name), .path = std::move(path), .value = std::move(value)});
+      return makeStmt(startTok, AssignStmt{.name = std::move(targetName), .path = std::move(path), .value = std::move(value)});
+    }
+
+    if (atStatementEnd() && (std::holds_alternative<CallExpr>(expr->data) || std::holds_alternative<MethodCallExpr>(expr->data))) {
+      return makeStmt(startTok, ExprStmt{.expr = std::move(expr)});
     }
 
     pos = save;
@@ -917,6 +989,14 @@ static void print(const Expr &e, std::string &out) {
         out += "]";
       } else if constexpr (std::is_same_v<T, CallExpr>) {
         out += n.name + "(";
+        for (size_t i = 0; i < n.arguments.size(); i++) {
+          if (i) out += ", ";
+          printChild(n.arguments[i], out);
+        }
+        out += ")";
+      } else if constexpr (std::is_same_v<T, MethodCallExpr>) {
+        printChild(n.object, out);
+        out += "." + n.method + "(";
         for (size_t i = 0; i < n.arguments.size(); i++) {
           if (i) out += ", ";
           printChild(n.arguments[i], out);

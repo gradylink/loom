@@ -807,10 +807,65 @@ void Compiler::processStructDecl(const StructDeclStmt &decl, SourceLoc loc) {
 
   for (const auto &f : decl.fields) {
     Type fieldType = parseTypeFromString(f.typeText);
-    structData.fields.emplace_back(f.name, std::make_unique<Type>(std::move(fieldType)));
+    structData.fields.emplace_back(f.name, std::make_unique<Type>(std::move(fieldType)), f.isPrivate);
   }
 
-  structs[fullStructName] = std::move(structData);
+  StructData *structPtr = &(structs[fullStructName] = std::move(structData));
+
+  for (const auto &methodDecl : decl.methods) {
+    bool isConstructor = (methodDecl.name == decl.name);
+    if (isConstructor && methodDecl.isStatic) {
+      throw std::runtime_error(formatError(methodDecl.loc, "Constructor '" + decl.name + "' cannot be marked 'static'."));
+    }
+    if (isConstructor && methodDecl.returnTypeText.has_value()) {
+      throw std::runtime_error(
+        formatError(methodDecl.loc, "Constructor '" + decl.name + "' must not declare an explicit return type; it implicitly returns " + decl.name + ".")
+      );
+    }
+
+    std::optional<Type> retType = std::nullopt;
+    if (isConstructor) {
+      retType = Type::StructTypeOf(structPtr);
+    } else if (methodDecl.returnTypeText.has_value()) {
+      retType = parseTypeFromString(*methodDecl.returnTypeText);
+    }
+
+    std::vector<Type> paramTypes;
+    for (const auto &p : methodDecl.params) paramTypes.push_back(parseTypeFromString(p.typeText));
+
+    std::string mangledName = methodDecl.name + "_" + randomFunctionMangleString();
+
+    std::string registryKey = isConstructor ? fullStructName : (fullStructName + "::" + methodDecl.name);
+    std::transform(registryKey.begin(), registryKey.end(), registryKey.begin(), ::tolower);
+
+    for (const auto &existing : funcs[registryKey]) {
+      if (existing.params == paramTypes) {
+        throw std::runtime_error(formatError(methodDecl.loc, "'" + methodDecl.name + "' already exists with this signature."));
+      }
+      if (!isConstructor && existing.isStatic != methodDecl.isStatic) {
+        throw std::runtime_error(formatError(methodDecl.loc, "'" + methodDecl.name + "' cannot be both static and non-static across overloads."));
+      }
+      if (!isConstructor && existing.isPrivate != methodDecl.isPrivate) {
+        throw std::runtime_error(formatError(methodDecl.loc, "All overloads of '" + methodDecl.name + "' must share the same visibility."));
+      }
+    }
+
+    funcs[registryKey].push_back(
+      {.name = registryKey,
+       .mangledName = mangledName,
+       .returnType = retType,
+       .params = paramTypes,
+       .tag = std::nullopt,
+       .exported = false,
+       .internal = true,
+       .ownerStruct = structPtr,
+       .isStatic = methodDecl.isStatic,
+       .isConstructor = isConstructor,
+       .isPrivate = methodDecl.isPrivate}
+    );
+
+    if (isConstructor) structPtr->hasConstructor = true;
+  }
 }
 
 void Compiler::processFuncDeclDeclaration(const FuncDeclStmt &decl, SourceLoc loc) {
@@ -867,7 +922,9 @@ void Compiler::processCompilation(const Block &block) {
           globalInit += compileVariableDeclaration(node, stmt.loc, program.get(), true);
         } else if constexpr (std::is_same_v<T, FuncDeclStmt>) {
           compileFuncDecl(node, stmt.loc);
-        } else if constexpr (std::is_same_v<T, EnumDeclStmt> || std::is_same_v<T, StructDeclStmt> || std::is_same_v<T, ImportStmt>) {
+        } else if constexpr (std::is_same_v<T, StructDeclStmt>) {
+          compileStructDecl(node, stmt.loc);
+        } else if constexpr (std::is_same_v<T, EnumDeclStmt> || std::is_same_v<T, ImportStmt>) {
 
         } else {
           throw std::runtime_error(formatError(stmt.loc, "Invalid global statement."));
@@ -876,6 +933,66 @@ void Compiler::processCompilation(const Block &block) {
       stmt.data
     );
   }
+}
+
+Compiler::ParamSetupResult Compiler::setupIncomingParameter(const std::string &paramName, const Type &paramType, const Block *scope) {
+  ParamSetupResult result;
+  std::string mangledName = paramName + "_" + randomMangleString();
+
+  vars.emplace(
+    paramName,
+    VariableData{
+      .name = paramName,
+      .mangledName = mangledName,
+      .type = paramType,
+      .scope = scope,
+      .value = std::nullopt,
+      .constant = false,
+    }
+  );
+
+  if (paramType.isRef()) {
+    const Type &innerType = *paramType.baseType;
+
+    std::string copyInFuncName = "_ref_copyin_" + randomFunctionMangleString();
+    if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
+      compiledFunctions.push_back(
+        {.name = copyInFuncName, .data = std::format("$data modify storage {0}:global vars.{1} set from storage {0}:global vars.$(refname)\n", datapackNamespace, mangledName)}
+      );
+    } else {
+      compiledFunctions.push_back({.name = copyInFuncName, .data = std::format("$scoreboard players operation {1} vars = $(refname) vars\n", datapackNamespace, mangledName)});
+    }
+
+    std::string copyBackFuncName = "_ref_copyback_" + randomFunctionMangleString();
+    if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
+      compiledFunctions.push_back(
+        {.name = copyBackFuncName,
+         .data = std::format("$data modify storage {0}:global vars.$(refname) set from storage {0}:global vars.{1}\n", datapackNamespace, mangledName)}
+      );
+    } else {
+      compiledFunctions.push_back(
+        {.name = copyBackFuncName, .data = std::format("$scoreboard players operation $(refname) vars = {1} vars\n", datapackNamespace, mangledName)}
+      );
+    }
+
+    std::string argsKey = std::format("vars.{}_refargs", mangledName);
+    result.refCopyback = std::make_pair(argsKey, copyBackFuncName);
+
+    result.setup += std::format("data modify storage {0}:global {1} set value {{}}\n", datapackNamespace, argsKey);
+    result.setup += std::format("data modify storage {0}:global {1}.refname set from storage {0}:stack regs[-1]\n", datapackNamespace, argsKey);
+    result.setup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
+    result.setup += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, copyInFuncName, datapackNamespace, argsKey);
+
+  } else {
+    if (paramType.isString() || paramType.isList() || paramType.isFloat()) {
+      result.setup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
+    } else {
+      result.setup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
+    }
+    result.setup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
+  }
+
+  return result;
 }
 
 void Compiler::compileFuncDecl(const FuncDeclStmt &decl, SourceLoc loc) {
@@ -903,63 +1020,9 @@ void Compiler::compileFuncDecl(const FuncDeclStmt &decl, SourceLoc loc) {
   for (auto it = decl.params.rbegin(); it != decl.params.rend(); ++it) {
     const Param &p = *it;
     Type pType = parseTypeFromString(p.typeText);
-    std::string mangledName = p.name + "_" + randomMangleString();
-
-    vars.emplace(
-      p.name,
-      VariableData{
-        .name = p.name,
-        .mangledName = mangledName,
-        .type = pType,
-        .scope = decl.body.get(),
-        .value = std::nullopt,
-        .constant = false,
-      }
-    );
-
-    if (pType.isRef()) {
-      const Type &innerType = *pType.baseType;
-
-      std::string copyInFuncName = "_ref_copyin_" + randomFunctionMangleString();
-      if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
-        compiledFunctions.push_back(
-          {.name = copyInFuncName,
-           .data = std::format("$data modify storage {0}:global vars.{1} set from storage {0}:global vars.$(refname)\n", datapackNamespace, mangledName)}
-        );
-      } else {
-        compiledFunctions.push_back(
-          {.name = copyInFuncName, .data = std::format("$scoreboard players operation {1} vars = $(refname) vars\n", datapackNamespace, mangledName)}
-        );
-      }
-
-      std::string copyBackFuncName = "_ref_copyback_" + randomFunctionMangleString();
-      if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
-        compiledFunctions.push_back(
-          {.name = copyBackFuncName,
-           .data = std::format("$data modify storage {0}:global vars.$(refname) set from storage {0}:global vars.{1}\n", datapackNamespace, mangledName)}
-        );
-      } else {
-        compiledFunctions.push_back(
-          {.name = copyBackFuncName, .data = std::format("$scoreboard players operation $(refname) vars = {1} vars\n", datapackNamespace, mangledName)}
-        );
-      }
-
-      std::string argsKey = std::format("vars.{}_refargs", mangledName);
-      refParamCopybacks.emplace_back(argsKey, copyBackFuncName);
-
-      paramSetup += std::format("data modify storage {0}:global {1} set value {{}}\n", datapackNamespace, argsKey);
-      paramSetup += std::format("data modify storage {0}:global {1}.refname set from storage {0}:stack regs[-1]\n", datapackNamespace, argsKey);
-      paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
-      paramSetup += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, copyInFuncName, datapackNamespace, argsKey);
-
-    } else {
-      if (pType.isString() || pType.isList() || pType.isFloat()) {
-        paramSetup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
-      } else {
-        paramSetup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
-      }
-      paramSetup += std::format("data remove storage {}:stack regs[-1]\n", datapackNamespace);
-    }
+    ParamSetupResult result = setupIncomingParameter(p.name, pType, decl.body.get());
+    paramSetup += result.setup;
+    if (result.refCopyback.has_value()) refParamCopybacks.push_back(result.refCopyback.value());
   }
 
   currentFuncRefCopybacks = "";
@@ -970,4 +1033,100 @@ void Compiler::compileFuncDecl(const FuncDeclStmt &decl, SourceLoc loc) {
   std::string funcBody = compileBlock(*decl.body);
   funcBody += currentFuncRefCopybacks;
   compiledFunctions.push_back({.name = currentOverload->mangledName, .data = paramSetup + funcBody, .tag = currentOverload->tag, .internal = currentOverload->internal});
+}
+
+void Compiler::compileStructDecl(const StructDeclStmt &decl, SourceLoc loc) {
+  std::string fullStructName = prefixName(decl.name);
+
+  auto structIt = structs.find(fullStructName);
+  if (structIt == structs.end()) {
+    throw std::runtime_error(formatError(loc, "Compiler Error: struct '" + fullStructName + "' missing from symbol table."));
+  }
+  const StructData &structData = structIt->second;
+
+  for (const auto &methodDecl : decl.methods) {
+    bool isConstructor = (methodDecl.name == decl.name);
+    std::string registryKey = isConstructor ? fullStructName : (fullStructName + "::" + methodDecl.name);
+    std::transform(registryKey.begin(), registryKey.end(), registryKey.begin(), ::tolower);
+
+    std::vector<Type> paramTypes;
+    for (const auto &p : methodDecl.params) paramTypes.push_back(parseTypeFromString(p.typeText));
+
+    const FunctionData *funcData = nullptr;
+    for (const auto &f : funcs[registryKey]) {
+      if (f.params == paramTypes) {
+        funcData = &f;
+        break;
+      }
+    }
+    if (!funcData) {
+      throw std::runtime_error(formatError(methodDecl.loc, "Compiler Error: could not find matching signature for struct method '" + methodDecl.name + "'."));
+    }
+
+    compileStructMethod(structData, methodDecl, *funcData);
+  }
+}
+
+void Compiler::compileStructMethod(const StructData &structData, const StructMethodDecl &methodDecl, const FunctionData &funcData) {
+  const Block *blockScope = methodDecl.body.get();
+
+  std::string paramSetup = "";
+  std::vector<std::pair<std::string, std::string>> refParamCopybacks;
+
+  for (auto it = methodDecl.params.rbegin(); it != methodDecl.params.rend(); ++it) {
+    const Param &p = *it;
+    Type pType = parseTypeFromString(p.typeText);
+    ParamSetupResult result = setupIncomingParameter(p.name, pType, blockScope);
+    paramSetup += result.setup;
+    if (result.refCopyback.has_value()) refParamCopybacks.push_back(result.refCopyback.value());
+  }
+
+  const StructData *previousStructContext = currentStructContext;
+  currentStructContext = &structData;
+
+  std::string thisMangled;
+
+  if (funcData.isConstructor) {
+    thisMangled = "this_" + randomMangleString();
+    vars.emplace(
+      "this",
+      VariableData{
+        .name = "this",
+        .mangledName = thisMangled,
+        .type = Type::StructTypeOf(&structData),
+        .scope = blockScope,
+        .value = std::nullopt,
+        .constant = false,
+      }
+    );
+    paramSetup += std::format("data modify storage {}:global vars.{} set value {{}}\n", datapackNamespace, thisMangled);
+  } else if (!funcData.isStatic) {
+    ParamSetupResult thisResult = setupIncomingParameter("this", Type::RefTypeOf(Type::StructTypeOf(&structData)), blockScope);
+    paramSetup += thisResult.setup;
+    if (thisResult.refCopyback.has_value()) refParamCopybacks.push_back(thisResult.refCopyback.value());
+  }
+
+  currentFuncRefCopybacks = "";
+  for (const auto &[argsKey, copyBackFuncName] : refParamCopybacks) {
+    currentFuncRefCopybacks += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, copyBackFuncName, datapackNamespace, argsKey);
+  }
+
+  std::string funcBody = compileBlock(*methodDecl.body);
+  funcBody += currentFuncRefCopybacks;
+
+  if (funcData.isConstructor) {
+    bool hasExplicitReturn = false;
+    if (!methodDecl.body->statements.empty()) {
+      const Stmt &lastStmt = *methodDecl.body->statements.back();
+      hasExplicitReturn = std::holds_alternative<ReturnStmt>(lastStmt.data);
+    }
+    if (!hasExplicitReturn) {
+      funcBody += currentFuncRefCopybacks;
+      funcBody += std::format("data modify storage {0}:global expr_str1 set from storage {0}:global vars.{1}\nreturn 0\n", datapackNamespace, thisMangled);
+    }
+  }
+
+  compiledFunctions.push_back({.name = funcData.mangledName, .data = paramSetup + funcBody, .tag = funcData.tag, .internal = funcData.internal});
+
+  currentStructContext = previousStructContext;
 }
