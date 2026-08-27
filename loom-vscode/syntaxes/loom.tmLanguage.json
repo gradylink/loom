@@ -7,19 +7,23 @@
     { "include": "#comment" },
     { "include": "#import" },
     { "include": "#namespace-definition" },
+    { "include": "#struct-definition" },
     { "include": "#function-definition" },
     { "include": "#enum-definition" },
     { "include": "#variable-declaration" },
+    { "include": "#struct-field" },
     { "include": "#control-flow" },
     { "include": "#context-modifiers" },
     { "include": "#return-statement" },
     { "include": "#interpolation" },
     { "include": "#string" },
+    { "include": "#boolean" },
+    { "include": "#number" },
+    { "include": "#this" },
+    { "include": "#struct-literal" },
     { "include": "#selector" },
     { "include": "#operators" },
     { "include": "#builtins" },
-    { "include": "#boolean" },
-    { "include": "#number" },
     { "include": "#attribute-tag" },
     { "include": "#punctuation" },
     { "include": "#identifier" }
@@ -61,7 +65,7 @@
 
     "function-definition": {
       "name": "meta.function.loom",
-      "begin": "\\b(export\\s+|extern\\s+)*(func)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\()",
+      "begin": "\\b(export\\s+|extern\\s+|public\\s+|private\\s+|static\\s+)*(func)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\()",
       "beginCaptures": {
         "1": { "name": "storage.modifier.loom" },
         "2": { "name": "keyword.declaration.function.loom" },
@@ -84,7 +88,7 @@
 
     "parameter": {
       "name": "meta.parameter.loom",
-      "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\\[\\])*)",
+      "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*(&?[a-zA-Z_][a-zA-Z0-9_]*(?:::[a-zA-Z_][a-zA-Z0-9_]*)*(?:\\[\\])*)",
       "captures": {
         "1": { "name": "variable.parameter.loom" },
         "2": { "name": "punctuation.separator.colon.loom" },
@@ -122,9 +126,69 @@
       ]
     },
 
+    "struct-definition": {
+      "name": "meta.struct.loom",
+      "match": "\\b(export\\s+)?(struct)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(\\{)",
+      "captures": {
+        "1": { "name": "storage.modifier.loom" },
+        "2": { "name": "keyword.declaration.struct.loom" },
+        "3": { "name": "entity.name.type.struct.loom" },
+        "4": { "name": "punctuation.section.block.begin.loom" }
+      }
+    },
+
+    "struct-field": {
+      "name": "meta.struct-field.loom",
+      "match": "\\b(?:(public|private|static)\\s+)*([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*(&?[a-zA-Z_][a-zA-Z0-9_]*(?:::[a-zA-Z_][a-zA-Z0-9_]*)*(?:\\[\\])*)",
+      "captures": {
+        "1": { "name": "storage.modifier.loom" },
+        "2": { "name": "variable.other.member.loom" },
+        "3": { "name": "punctuation.separator.colon.loom" },
+        "4": { "name": "entity.name.type.loom" }
+      }
+    },
+
+    "struct-literal": {
+      "name": "meta.struct-literal.loom",
+      "begin": "\\b([A-Z][a-zA-Z0-9_]*)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "entity.name.type.loom" },
+        "2": { "name": "punctuation.section.block.begin.loom" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.block.end.loom" }
+      },
+      "patterns": [
+        { "include": "#comment" },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)(?!:)",
+          "captures": {
+            "1": { "name": "variable.other.member.loom" },
+            "2": { "name": "punctuation.separator.colon.loom" }
+          }
+        },
+        { "include": "#struct-literal" },
+        { "include": "#string" },
+        { "include": "#boolean" },
+        { "include": "#number" },
+        { "include": "#this" },
+        { "include": "#operators" },
+        { "include": "#builtins" },
+        { "include": "#function-call" },
+        { "include": "#punctuation" },
+        { "include": "#identifier" }
+      ]
+    },
+
+    "this": {
+      "name": "variable.language.this.loom",
+      "match": "\\bthis\\b"
+    },
+
     "variable-declaration": {
       "name": "meta.variable.declaration.loom",
-      "match": "\\b(export\\s+|extern\\s+)*(let|const)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(:)\\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\\[\\])*)",
+      "match": "\\b(export\\s+|extern\\s+)*(let|const)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*(:)\\s*(&?[a-zA-Z_][a-zA-Z0-9_]*(?:::[a-zA-Z_][a-zA-Z0-9_]*)*(?:\\[\\])*))?",
       "captures": {
         "1": { "name": "storage.modifier.loom" },
         "2": { "name": "storage.type.loom" },
@@ -278,10 +342,6 @@
         {
           "name": "variable.language.selector.loom",
           "match": "@[srpeano]\\b"
-        },
-        {
-          "name": "variable.other.selector.player.loom",
-          "match": "\\b[a-zA-Z0-9_]{3,16}\\b"
         }
       ]
     },

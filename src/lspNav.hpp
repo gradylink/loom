@@ -28,9 +28,15 @@ struct CompletionEntry {
   std::string detail;
 };
 
+struct SemanticToken {
+  SourceLoc loc;
+  std::string kind;
+};
+
 std::optional<NavResult> findDefinition(const Block &program, const std::string &fromDir, const ImportLoader &loader, uint32_t offset);
 std::optional<NavResult> findHover(const Block &program, const std::string &fromDir, const ImportLoader &loader, uint32_t offset, std::string &outHover);
 std::vector<SymbolEntry> documentSymbols(const Block &program);
 std::vector<CompletionEntry> completionItems(const Block &program, const std::string &text, const std::string &fromDir, const ImportLoader &loader, uint32_t offset);
+std::vector<SemanticToken> semanticTokens(const Block &program, const std::string &fromDir, const ImportLoader &loader);
 
 } // namespace lspnav

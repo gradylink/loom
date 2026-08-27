@@ -4,6 +4,7 @@
 #include "lspNav.hpp"
 #include "parser.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -141,6 +142,15 @@ int symbolKindFor(const std::string &kind) {
   return 13; // variable
 }
 
+const std::vector<std::string> SEMANTIC_TOKEN_TYPES = {"namespace", "type", "struct", "enum", "enumMember", "parameter", "variable", "property", "function", "method"};
+
+int semanticTokenTypeIndex(const std::string &kind) {
+  for (size_t i = 0; i < SEMANTIC_TOKEN_TYPES.size(); i++) {
+    if (SEMANTIC_TOKEN_TYPES[i] == kind) return static_cast<int>(i);
+  }
+  return -1;
+}
+
 int completionKindFor(const std::string &kind) {
   if (kind == "keyword") return 14;
   if (kind == "function") return 3;
@@ -213,6 +223,7 @@ private:
   nlohmann::json handleHover(const nlohmann::json &params);
   nlohmann::json handleDocumentSymbol(const nlohmann::json &params);
   nlohmann::json handleCompletion(const nlohmann::json &params);
+  nlohmann::json handleSemanticTokensFull(const nlohmann::json &params);
 };
 
 std::filesystem::path LspServer::baseDirForUri(const std::string &uri) const {
@@ -352,6 +363,45 @@ nlohmann::json LspServer::handleCompletion(const nlohmann::json &params) {
   return result;
 }
 
+nlohmann::json LspServer::handleSemanticTokensFull(const nlohmann::json &params) {
+  std::string uri = params.at("textDocument").at("uri").get<std::string>();
+  auto it = documents.find(uri);
+  if (it == documents.end()) return nlohmann::json{{"data", nlohmann::json::array()}};
+
+  auto program = parseForNav(it->second);
+  std::vector<lspnav::SemanticToken> tokens = lspnav::semanticTokens(*program, baseDirForUri(uri).string(), importLoader());
+
+  std::sort(tokens.begin(), tokens.end(), [](const lspnav::SemanticToken &a, const lspnav::SemanticToken &b) {
+    if (a.loc.line != b.loc.line) return a.loc.line < b.loc.line;
+    return a.loc.col < b.loc.col;
+  });
+
+  nlohmann::json data = nlohmann::json::array();
+  uint32_t prevLine = 0, prevCol = 0;
+  for (const auto &tok : tokens) {
+    int typeIdx = semanticTokenTypeIndex(tok.kind);
+    if (typeIdx < 0) continue;
+
+    uint32_t line0 = tok.loc.line > 0 ? tok.loc.line - 1 : 0;
+    uint32_t col0 = tok.loc.col > 0 ? tok.loc.col - 1 : 0;
+    uint32_t length = std::max<uint32_t>(1, tok.loc.endByte - tok.loc.startByte);
+
+    uint32_t deltaLine = line0 - prevLine;
+    uint32_t deltaCol = deltaLine == 0 ? col0 - prevCol : col0;
+
+    data.push_back(deltaLine);
+    data.push_back(deltaCol);
+    data.push_back(length);
+    data.push_back(typeIdx);
+    data.push_back(0);
+
+    prevLine = line0;
+    prevCol = col0;
+  }
+
+  return nlohmann::json{{"data", data}};
+}
+
 void LspServer::handleMessage(const nlohmann::json &msg) {
   if (!msg.contains("method")) return;
   const std::string method = msg.at("method").get<std::string>();
@@ -364,6 +414,7 @@ void LspServer::handleMessage(const nlohmann::json &msg) {
     result["capabilities"]["hoverProvider"] = true;
     result["capabilities"]["documentSymbolProvider"] = true;
     result["capabilities"]["completionProvider"] = nlohmann::json::object();
+    result["capabilities"]["semanticTokensProvider"] = {{"legend", {{"tokenTypes", SEMANTIC_TOKEN_TYPES}, {"tokenModifiers", nlohmann::json::array()}}}, {"full", true}};
     result["serverInfo"] = {{"name", "loom-lsp"}, {"version", "0.2.0"}};
     nlohmann::json response = makeResponse(msg.at("id"));
     response["result"] = result;
@@ -405,6 +456,12 @@ void LspServer::handleMessage(const nlohmann::json &msg) {
   if (method == "textDocument/completion") {
     nlohmann::json response = makeResponse(msg.at("id"));
     response["result"] = handleCompletion(params);
+    writeMessage(response);
+    return;
+  }
+  if (method == "textDocument/semanticTokens/full") {
+    nlohmann::json response = makeResponse(msg.at("id"));
+    response["result"] = handleSemanticTokensFull(params);
     writeMessage(response);
     return;
   }

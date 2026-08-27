@@ -44,7 +44,7 @@ struct GlobalIndex {
   std::unordered_map<std::string, std::vector<Tagged<FuncDeclStmt>>> funcs;
   std::unordered_map<std::string, Tagged<StructDeclStmt>> structs;
   std::unordered_map<std::string, Tagged<EnumDeclStmt>> enums;
-  std::unordered_map<std::string, const NamespaceStmt *> namespaces; // outline/local use only
+  std::unordered_map<std::string, const NamespaceStmt *> namespaces;
 };
 
 void indexBlock(
@@ -661,6 +661,211 @@ std::optional<Resolved> findResolved(const Block &program, const std::string &fr
   return found;
 }
 
+std::string semanticKindFor(const VarResolution &r) {
+  switch (r.kind) {
+  case VarResolution::Kind::Param:
+    return "parameter";
+  case VarResolution::Kind::ForIter:
+  case VarResolution::Kind::VarDecl:
+  case VarResolution::Kind::ImplicitThis:
+    return "variable";
+  case VarResolution::Kind::ImplicitField:
+    return "property";
+  case VarResolution::Kind::ImplicitMethod:
+    return "method";
+  default:
+    return "";
+  }
+}
+
+void addTypeToken(const GlobalIndex &idx, const std::string &typeText, SourceLoc loc, std::vector<SemanticToken> &out) {
+  std::string base = baseTypeName(typeText);
+  std::string kind = "type";
+  if (lookupStruct(idx, base)) kind = "struct";
+  else if (lookupEnum(idx, base)) kind = "enum";
+  out.push_back(SemanticToken{.loc = loc, .kind = kind});
+}
+
+void collectExprTokens(const Expr &expr, const WalkCtx &ctx, const GlobalIndex &idx, std::vector<SemanticToken> &out) {
+  std::visit(
+    [&](auto &&n) {
+      using T = std::decay_t<decltype(n)>;
+      if constexpr (std::is_same_v<T, BinaryExpr>) {
+        collectExprTokens(*n.left, ctx, idx, out);
+        collectExprTokens(*n.right, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, UnaryExpr>) {
+        collectExprTokens(*n.operand, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, TernaryExpr>) {
+        collectExprTokens(*n.condition, ctx, idx, out);
+        collectExprTokens(*n.ifTrue, ctx, idx, out);
+        collectExprTokens(*n.ifFalse, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, MemberExpr>) {
+        collectExprTokens(*n.object, ctx, idx, out);
+        bool tagged = false;
+        if (const auto *vr = std::get_if<VarRefExpr>(&n.object->data)) {
+          if (const Tagged<EnumDeclStmt> *e = lookupEnum(idx, vr->name)) {
+            if (findVariant(*e->decl, n.property)) {
+              out.push_back(SemanticToken{.loc = n.propertyLoc, .kind = "enumMember"});
+              tagged = true;
+            }
+          }
+        }
+        if (!tagged) out.push_back(SemanticToken{.loc = n.propertyLoc, .kind = "property"});
+      } else if constexpr (std::is_same_v<T, SliceExpr>) {
+        collectExprTokens(*n.target, ctx, idx, out);
+        if (n.start) collectExprTokens(*n.start, ctx, idx, out);
+        if (n.end) collectExprTokens(*n.end, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, ElementExpr>) {
+        collectExprTokens(*n.target, ctx, idx, out);
+        collectExprTokens(*n.index, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, CallExpr>) {
+        for (const auto &a : n.arguments) collectExprTokens(*a, ctx, idx, out);
+        size_t sep = n.name.rfind("::");
+        std::string kind = "function";
+        if (sep != std::string::npos) {
+          if (lookupStruct(idx, n.name.substr(0, sep))) kind = "method";
+        } else if (lookupStruct(idx, n.name)) {
+          kind = "struct";
+        }
+        out.push_back(SemanticToken{.loc = n.nameLoc, .kind = kind});
+      } else if constexpr (std::is_same_v<T, MethodCallExpr>) {
+        collectExprTokens(*n.object, ctx, idx, out);
+        for (const auto &a : n.arguments) collectExprTokens(*a, ctx, idx, out);
+        out.push_back(SemanticToken{.loc = n.methodLoc, .kind = "method"});
+      } else if constexpr (std::is_same_v<T, VarRefExpr>) {
+        VarResolution r = resolveVar(ctx, n.name);
+        std::string kind = semanticKindFor(r);
+        if (kind.empty()) {
+          if (lookupStruct(idx, n.name)) kind = "struct";
+          else if (lookupEnum(idx, n.name)) kind = "enum";
+          else if (idx.namespaces.count(n.name)) kind = "namespace";
+        }
+        if (!kind.empty()) out.push_back(SemanticToken{.loc = expr.loc, .kind = kind});
+      } else if constexpr (std::is_same_v<T, CastExpr>) {
+        collectExprTokens(*n.expression, ctx, idx, out);
+        addTypeToken(idx, n.typeText, n.typeLoc, out);
+      } else if constexpr (std::is_same_v<T, StructExpr>) {
+        for (const auto &f : n.fields) {
+          if (f.value) collectExprTokens(*f.value, ctx, idx, out);
+        }
+      } else if constexpr (std::is_same_v<T, ListExpr>) {
+        for (const auto &e : n.elements) collectExprTokens(*e, ctx, idx, out);
+      }
+    },
+    expr.data
+  );
+}
+
+void collectBlockTokens(const Block &block, WalkCtx ctx, const GlobalIndex &idx, std::vector<SemanticToken> &out);
+
+void collectStmtTokens(const Stmt &stmt, WalkCtx ctx, const GlobalIndex &idx, std::vector<SemanticToken> &out) {
+  std::visit(
+    [&](auto &&n) {
+      using T = std::decay_t<decltype(n)>;
+      if constexpr (std::is_same_v<T, IfStmt>) {
+        collectExprTokens(*n.condition, ctx, idx, out);
+        collectBlockTokens(*n.thenBlock, ctx, idx, out);
+        if (n.elseBranch) collectStmtTokens(**n.elseBranch, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, WhileStmt>) {
+        collectExprTokens(*n.condition, ctx, idx, out);
+        collectBlockTokens(*n.body, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, DoWhileStmt>) {
+        collectBlockTokens(*n.body, ctx, idx, out);
+        collectExprTokens(*n.condition, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, ForStmt>) {
+        out.push_back(SemanticToken{.loc = n.iteratorLoc, .kind = "variable"});
+        collectExprTokens(*n.start, ctx, idx, out);
+        collectExprTokens(*n.end, ctx, idx, out);
+        ctx.forIterators.emplace_back(n.iterator, n.iteratorLoc);
+        collectBlockTokens(*n.body, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, VarDeclStmt>) {
+        out.push_back(SemanticToken{.loc = n.nameLoc, .kind = "variable"});
+        if (n.typeText) addTypeToken(idx, *n.typeText, n.typeLoc, out);
+        collectExprTokens(*n.value, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, AssignStmt>) {
+        VarResolution r = resolveVar(ctx, n.name);
+        std::string kind = semanticKindFor(r);
+        if (!kind.empty()) out.push_back(SemanticToken{.loc = n.nameLoc, .kind = kind});
+        std::optional<std::string> curTy = declaredTypeOf(ctx, n.name);
+        for (const auto &pc : n.path) {
+          if (!pc.isIndex) {
+            out.push_back(SemanticToken{.loc = pc.loc, .kind = "property"});
+            if (curTy) {
+              if (const Tagged<StructDeclStmt> *s = lookupStruct(idx, *curTy)) {
+                if (const StructFieldDecl *f = findField(*s->decl, pc.propertyName)) curTy = baseTypeName(f->typeText);
+                else curTy.reset();
+              } else {
+                curTy.reset();
+              }
+            }
+          } else if (pc.index) {
+            collectExprTokens(*pc.index, ctx, idx, out);
+          }
+        }
+        collectExprTokens(*n.value, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, FuncDeclStmt>) {
+        out.push_back(SemanticToken{.loc = n.nameLoc, .kind = "function"});
+        for (const auto &p : n.params) {
+          out.push_back(SemanticToken{.loc = p.loc, .kind = "parameter"});
+          addTypeToken(idx, p.typeText, p.typeLoc, out);
+        }
+        if (n.returnTypeText) addTypeToken(idx, *n.returnTypeText, n.returnTypeLoc, out);
+        WalkCtx inner;
+        inner.params.reserve(n.params.size());
+        for (const auto &p : n.params) inner.params.push_back(&p);
+        collectBlockTokens(*n.body, inner, idx, out);
+      } else if constexpr (std::is_same_v<T, StructDeclStmt>) {
+        out.push_back(SemanticToken{.loc = n.nameLoc, .kind = "struct"});
+        for (const auto &f : n.fields) {
+          out.push_back(SemanticToken{.loc = f.nameLoc, .kind = "property"});
+          addTypeToken(idx, f.typeText, f.typeLoc, out);
+        }
+        for (const auto &m : n.methods) {
+          out.push_back(SemanticToken{.loc = m.nameLoc, .kind = "method"});
+          for (const auto &p : m.params) {
+            out.push_back(SemanticToken{.loc = p.loc, .kind = "parameter"});
+            addTypeToken(idx, p.typeText, p.typeLoc, out);
+          }
+          if (m.returnTypeText) addTypeToken(idx, *m.returnTypeText, m.returnTypeLoc, out);
+          WalkCtx inner;
+          inner.structCtx = &n;
+          inner.hasImplicitThis = true;
+          inner.params.reserve(m.params.size());
+          for (const auto &p : m.params) inner.params.push_back(&p);
+          collectBlockTokens(*m.body, inner, idx, out);
+        }
+      } else if constexpr (std::is_same_v<T, EnumDeclStmt>) {
+        out.push_back(SemanticToken{.loc = n.nameLoc, .kind = "enum"});
+        for (const auto &v : n.variants) {
+          out.push_back(SemanticToken{.loc = v.nameLoc, .kind = "enumMember"});
+          if (v.value) collectExprTokens(**v.value, ctx, idx, out);
+        }
+      } else if constexpr (std::is_same_v<T, NamespaceStmt>) {
+        out.push_back(SemanticToken{.loc = n.nameLoc, .kind = "namespace"});
+        collectBlockTokens(*n.body, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, ReturnStmt>) {
+        if (n.value) collectExprTokens(**n.value, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, CommandStmt>) {
+        for (const auto &part : n.parts) {
+          if (part.isInterpolation && part.interpExpr) collectExprTokens(*part.interpExpr, ctx, idx, out);
+        }
+      } else if constexpr (std::is_same_v<T, ContextStmt>) {
+        collectBlockTokens(*n.body, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, ExprStmt>) {
+        collectExprTokens(*n.expr, ctx, idx, out);
+      } else if constexpr (std::is_same_v<T, BlockStmt>) {
+        collectBlockTokens(*n.block, ctx, idx, out);
+      }
+    },
+    stmt.data
+  );
+}
+
+void collectBlockTokens(const Block &block, WalkCtx ctx, const GlobalIndex &idx, std::vector<SemanticToken> &out) {
+  ctx.blocks.push_back(&block);
+  for (const auto &stmtPtr : block.statements) collectStmtTokens(*stmtPtr, ctx, idx, out);
+}
+
 } // namespace
 
 std::optional<NavResult> findDefinition(const Block &program, const std::string &fromDir, const ImportLoader &loader, uint32_t offset) {
@@ -674,6 +879,13 @@ std::optional<NavResult> findHover(const Block &program, const std::string &from
   if (!found) return std::nullopt;
   outHover = found->hover;
   return NavResult{.targetLoc = found->targetLoc, .file = found->file};
+}
+
+std::vector<SemanticToken> semanticTokens(const Block &program, const std::string &fromDir, const ImportLoader &loader) {
+  GlobalIndex idx = buildIndex(program, fromDir, loader);
+  std::vector<SemanticToken> out;
+  collectBlockTokens(program, WalkCtx{}, idx, out);
+  return out;
 }
 
 namespace {
