@@ -530,7 +530,12 @@ std::unique_ptr<Block> Parser::parseBlock() {
     }
   }
   block->startByte = startByte;
-  block->endByte = expect(TokenKind::RBrace, "'}' to close block").endByte;
+  if (recoverFromErrors && check(TokenKind::EndOfFile)) {
+    diagnostics.push_back({.loc = locOf(peek()), .message = "Expected '}' to close block, found end of file"});
+    block->endByte = peek().endByte;
+  } else {
+    block->endByte = expect(TokenKind::RBrace, "'}' to close block").endByte;
+  }
   return block;
 }
 

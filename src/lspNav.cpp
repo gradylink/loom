@@ -146,6 +146,7 @@ const EnumVariantDecl *findVariant(const EnumDeclStmt &e, const std::string &nam
 struct WalkCtx {
   const StructDeclStmt *structCtx = nullptr;
   bool hasImplicitThis = false;
+  bool inExecutableScope = false;
   std::vector<const Param *> params;
   std::vector<std::pair<std::string, SourceLoc>> forIterators;
   std::vector<const Block *> blocks;
@@ -917,9 +918,11 @@ void collectSymbols(const Block &block, std::vector<SymbolEntry> &out) {
   }
 }
 
-const char *KEYWORDS[] = {"let",     "const",  "struct", "enum", "func",   "if",       "else",      "while",      "do",      "for",
-                          "in",      "return", "import", "as",   "export", "extern",   "namespace", "true",       "false",   "public",
-                          "private", "static", "this",   "at",   "align",  "anchored", "facing",    "positioned", "rotated", "on"};
+const char *DECLARATION_KEYWORDS[] = {"let", "const", "struct", "enum", "func", "import", "export", "extern", "namespace"};
+
+const char *CONTROL_FLOW_KEYWORDS[] = {"if", "while", "do", "for", "return", "as", "at", "align", "anchored", "facing", "positioned", "rotated", "on"};
+
+const char *EXPRESSION_KEYWORDS[] = {"true", "false", "at"};
 
 const char *PRIMITIVE_TYPES[] = {"int", "float", "bool", "string"};
 
@@ -928,7 +931,16 @@ enum class CompletionContext { Name, Type, MemberAccess, ScopeAccess, Expression
 struct PositionAnalysis {
   CompletionContext ctx = CompletionContext::Expression;
   std::vector<std::string> chain;
+
+  bool atStatementStart = false;
 };
+
+bool hasNewlineBetween(const std::string &text, uint32_t from, uint32_t to) {
+  for (uint32_t i = from; i < to && i < text.size(); i++) {
+    if (text[i] == '\n') return true;
+  }
+  return false;
+}
 
 std::vector<Token> tokensBefore(const std::string &text, uint32_t offset) {
   Lexer lexer(text);
@@ -940,7 +952,8 @@ std::vector<Token> tokensBefore(const std::string &text, uint32_t offset) {
     if (t.startByte >= offset) break;
     before.push_back(t);
   }
-  if (!before.empty() && before.back().endByte >= offset) before.pop_back();
+
+  if (!before.empty() && before.back().kind == TokenKind::Identifier && before.back().endByte >= offset) before.pop_back();
   return before;
 }
 
@@ -993,7 +1006,10 @@ std::vector<std::string> readChain(const std::vector<Token> &before, TokenKind s
 PositionAnalysis analyzePosition(const std::string &text, uint32_t offset) {
   PositionAnalysis result;
   std::vector<Token> before = tokensBefore(text, offset);
-  if (before.empty()) return result;
+  if (before.empty()) {
+    result.atStatementStart = true;
+    return result;
+  }
 
   const Token &prev = before.back();
 
@@ -1048,7 +1064,13 @@ PositionAnalysis analyzePosition(const std::string &text, uint32_t offset) {
   }
 
   EnclosureKind enc = enclosingConstruct(before, before.size());
-  if (enc == EnclosureKind::ParamList || enc == EnclosureKind::StructBody || enc == EnclosureKind::EnumBody) result.ctx = CompletionContext::Name;
+  if (enc == EnclosureKind::ParamList || enc == EnclosureKind::StructBody || enc == EnclosureKind::EnumBody) {
+    result.ctx = CompletionContext::Name;
+    return result;
+  }
+
+  result.atStatementStart =
+    prev.kind == TokenKind::LBrace || prev.kind == TokenKind::Semicolon || prev.kind == TokenKind::RBrace || hasNewlineBetween(text, prev.endByte, offset);
   return result;
 }
 
@@ -1066,24 +1088,33 @@ void scopeAtStmt(const Stmt &stmt, WalkCtx ctx, uint32_t offset, WalkCtx &result
     [&](auto &&n) {
       using T = std::decay_t<decltype(n)>;
       if constexpr (std::is_same_v<T, IfStmt>) {
-        scopeAtBlock(*n.thenBlock, ctx, offset, result);
-        if (n.elseBranch) scopeAtStmt(**n.elseBranch, ctx, offset, result);
+        WalkCtx inner = ctx;
+        inner.inExecutableScope = true;
+        scopeAtBlock(*n.thenBlock, inner, offset, result);
+        if (n.elseBranch) scopeAtStmt(**n.elseBranch, inner, offset, result);
       } else if constexpr (std::is_same_v<T, WhileStmt>) {
-        scopeAtBlock(*n.body, ctx, offset, result);
+        WalkCtx inner = ctx;
+        inner.inExecutableScope = true;
+        scopeAtBlock(*n.body, inner, offset, result);
       } else if constexpr (std::is_same_v<T, DoWhileStmt>) {
-        scopeAtBlock(*n.body, ctx, offset, result);
+        WalkCtx inner = ctx;
+        inner.inExecutableScope = true;
+        scopeAtBlock(*n.body, inner, offset, result);
       } else if constexpr (std::is_same_v<T, ForStmt>) {
         WalkCtx inner = ctx;
+        inner.inExecutableScope = true;
         inner.forIterators.emplace_back(n.iterator, n.iteratorLoc);
         scopeAtBlock(*n.body, inner, offset, result);
       } else if constexpr (std::is_same_v<T, FuncDeclStmt>) {
         WalkCtx inner;
+        inner.inExecutableScope = true;
         inner.params.reserve(n.params.size());
         for (const auto &p : n.params) inner.params.push_back(&p);
         scopeAtBlock(*n.body, inner, offset, result);
       } else if constexpr (std::is_same_v<T, StructDeclStmt>) {
         for (const auto &m : n.methods) {
           WalkCtx inner;
+          inner.inExecutableScope = true;
           inner.structCtx = &n;
           inner.hasImplicitThis = true;
           inner.params.reserve(m.params.size());
@@ -1093,7 +1124,9 @@ void scopeAtStmt(const Stmt &stmt, WalkCtx ctx, uint32_t offset, WalkCtx &result
       } else if constexpr (std::is_same_v<T, NamespaceStmt>) {
         scopeAtBlock(*n.body, ctx, offset, result);
       } else if constexpr (std::is_same_v<T, ContextStmt>) {
-        scopeAtBlock(*n.body, ctx, offset, result);
+        WalkCtx inner = ctx;
+        inner.inExecutableScope = true;
+        scopeAtBlock(*n.body, inner, offset, result);
       } else if constexpr (std::is_same_v<T, BlockStmt>) {
         scopeAtBlock(*n.block, ctx, offset, result);
       }
@@ -1242,9 +1275,17 @@ std::vector<CompletionEntry> completionItems(const Block &program, const std::st
     return items;
   }
 
-  for (const char *kw : KEYWORDS) items.push_back(CompletionEntry{.label = kw, .kind = "keyword", .detail = ""});
+  WalkCtx scope = scopeAt(program, offset);
+  if (!pos.atStatementStart) {
+    for (const char *kw : EXPRESSION_KEYWORDS) items.push_back(CompletionEntry{.label = kw, .kind = "keyword", .detail = ""});
+  } else {
+    for (const char *kw : DECLARATION_KEYWORDS) items.push_back(CompletionEntry{.label = kw, .kind = "keyword", .detail = ""});
+    if (scope.inExecutableScope) {
+      for (const char *kw : CONTROL_FLOW_KEYWORDS) items.push_back(CompletionEntry{.label = kw, .kind = "keyword", .detail = ""});
+    }
+  }
 
-  addLocalScopeCompletions(scopeAt(program, offset), items);
+  addLocalScopeCompletions(scope, items);
 
   for (const auto &[name, overloads] : idx.funcs) {
     if (overloads.empty()) continue;

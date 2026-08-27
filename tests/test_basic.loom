@@ -1,3 +1,6 @@
+let test: int = ;
+
 func main() {
+  return j
   say hi
 }
