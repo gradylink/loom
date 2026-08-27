@@ -66,12 +66,13 @@ public:
   struct StructData;
 
   struct Type {
-    enum Kind { Integer, Boolean, String, Enum, List, Float, Struct, Reference } kind = Integer;
+    enum Kind { Integer, Boolean, String, Enum, List, Float, Struct, Reference, Map } kind = Integer;
     const EnumData *enumRef = nullptr;
     const StructData *structRef = nullptr;
     bool isReference = false;
 
     std::unique_ptr<Type> baseType = nullptr;
+    std::unique_ptr<Type> mapValueType = nullptr;
 
     Type() = default;
 
@@ -85,8 +86,15 @@ public:
     static Type StructTypeOf(const StructData *ref) { return {Struct, nullptr, ref, nullptr}; }
     static Type ListTypeOf(Type type) { return {List, nullptr, nullptr, std::make_unique<Type>(std::move(type))}; }
     static Type RefTypeOf(Type type) { return {Reference, nullptr, nullptr, std::make_unique<Type>(std::move(type))}; }
+    static Type MapTypeOf(Type keyType, Type valueType) {
+      Type t{Map, nullptr, nullptr, std::make_unique<Type>(std::move(keyType))};
+      t.mapValueType = std::make_unique<Type>(std::move(valueType));
+      return t;
+    }
 
-    Type(const Type &o) : kind(o.kind), enumRef(o.enumRef), structRef(o.structRef), baseType(o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr) {}
+    Type(const Type &o)
+        : kind(o.kind), enumRef(o.enumRef), structRef(o.structRef), baseType(o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr),
+          mapValueType(o.mapValueType ? std::make_unique<Type>(*o.mapValueType) : nullptr) {}
 
     Type &operator=(const Type &o) {
       if (this != &o) {
@@ -94,6 +102,7 @@ public:
         enumRef = o.enumRef;
         structRef = o.structRef;
         baseType = o.baseType ? std::make_unique<Type>(*o.baseType) : nullptr;
+        mapValueType = o.mapValueType ? std::make_unique<Type>(*o.mapValueType) : nullptr;
       }
       return *this;
     }
@@ -103,8 +112,13 @@ public:
 
     bool operator==(const Type &o) const {
       if (kind != o.kind || enumRef != o.enumRef || structRef != o.structRef) return false;
-      if (baseType && o.baseType) return *baseType == *o.baseType;
-      return baseType == o.baseType;
+      if (baseType && o.baseType) {
+        if (*baseType != *o.baseType) return false;
+      } else if (baseType != o.baseType) {
+        return false;
+      }
+      if (mapValueType && o.mapValueType) return *mapValueType == *o.mapValueType;
+      return mapValueType == o.mapValueType;
     }
     bool operator!=(const Type &o) const { return !(*this == o); }
 
@@ -127,6 +141,7 @@ public:
     bool isList() const { return kind == List; }
     bool isStruct() const { return kind == Struct; }
     bool isRef() const { return kind == Reference; }
+    bool isMap() const { return kind == Map; }
 
     const Type &deref() const { return isRef() ? *baseType : *this; }
   };
@@ -286,6 +301,8 @@ private:
     SourceLoc loc
   );
 
+  ExpressionData compileMapGet(ExpressionData target, ExpressionData index, unsigned int id, SourceLoc loc);
+
 public:
   std::string prefixName(const std::string &name) const {
     if (currentNamespacePrefix.empty()) return name;
@@ -352,6 +369,8 @@ public:
   std::optional<VariableData> lookupVariable(const std::string &name) const;
 
   Type parseTypeFromString(const std::string &typeText) const;
+
+  std::string copyExprInto(const ExpressionData &expr, const std::string &destPath, unsigned int computedAtId) const;
 
   ExpressionData compileExpression(const Expr &node, unsigned int id = 1, bool precompute = true);
   ExpressionData compileExpressionImpl(const Expr &node, unsigned int id, bool precompute);

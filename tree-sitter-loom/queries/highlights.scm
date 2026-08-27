@@ -4,6 +4,8 @@
 ["export" "extern"] @keyword.storage
 ["public" "private" "static"] @keyword.storage
 ["let" "const" "enum" "struct" "namespace"] @keyword.storage
+(map_type "map" @type.builtin)
+(map_expression "map" @type.builtin)
 ["if" "else"] @keyword.conditional
 ["while" "do" "for"] @keyword.repeat
 (for "in" @keyword.repeat)
@@ -78,4 +80,4 @@
 
 (interpolation ["${" "}"] @punctuation.special)
 
-(function_call name: (namespaced_identifier) @function.builtin (#match? @function.builtin "^(append|remove|insert|len)$"))
+(function_call name: (namespaced_identifier) @function.builtin (#match? @function.builtin "^(append|remove|insert|len|contains)$"))

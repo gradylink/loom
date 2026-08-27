@@ -323,7 +323,21 @@ module.exports = grammar({
         $.list_expression,
         $.cast_expression,
         $.struct_expression,
+        $.map_expression,
         $.reference_expression,
+      ),
+
+    // `map<K, V>()` — always constructs an empty map; see mapHandler.cpp in the compiler.
+    map_expression: ($) =>
+      seq(
+        "map",
+        "<",
+        field("key", $.type),
+        ",",
+        field("value", $.type),
+        ">",
+        "(",
+        ")",
       ),
 
     ternary_expression: ($) =>
@@ -545,10 +559,19 @@ module.exports = grammar({
     identifier: () => /[a-z_][a-z0-9_]*/i,
 
     type: ($) =>
-      choice($.namespaced_identifier, $.list_type, $.ref_type, $.paren_type),
+      choice($.namespaced_identifier, $.list_type, $.ref_type, $.paren_type, $.map_type),
     list_type: ($) => seq($.type, "[]"),
     ref_type: ($) => prec(1, seq("&", $.type)),
     paren_type: ($) => seq("(", $.type, ")"),
+    map_type: ($) =>
+      seq(
+        "map",
+        "<",
+        field("key", $.type),
+        ",",
+        field("value", $.type),
+        ">",
+      ),
 
     string_literal: ($) =>
       choice(

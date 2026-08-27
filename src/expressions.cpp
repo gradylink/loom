@@ -30,7 +30,7 @@ Compiler::ExpressionData Compiler::compileExpression(const Expr &node, unsigned 
           if (precompute) {
             return {.data = targetVar->value.value(), .precomputed = true, .type = innerType};
           }
-          if (innerType.isString() || innerType.isList() || innerType.isStruct()) {
+          if (innerType.isString() || innerType.isList() || innerType.isMap() || innerType.isStruct()) {
             return {
               .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, targetVar->value.value()),
               .precomputed = false,
@@ -47,7 +47,7 @@ Compiler::ExpressionData Compiler::compileExpression(const Expr &node, unsigned 
           return {.data = std::format("scoreboard players set expr_output{} temp {}", id, targetVar->value.value()), .precomputed = false, .type = innerType};
         }
 
-        if (innerType.isString() || innerType.isList() || innerType.isStruct()) {
+        if (innerType.isString() || innerType.isList() || innerType.isMap() || innerType.isStruct()) {
           return {
             .data = std::format("data modify storage {0}:global expr_str{1} set from storage {0}:global vars.{2}", datapackNamespace, id, targetVar->getStorageName()),
             .precomputed = false,
@@ -69,7 +69,7 @@ Compiler::ExpressionData Compiler::compileExpression(const Expr &node, unsigned 
     derefCmds += std::format("data modify storage {0}:global macro_args set value {{out_id: {1}}}\n", datapackNamespace, id);
     derefCmds += std::format("data modify storage {0}:global macro_args.refname set from storage {0}:global expr_str{1}\n", datapackNamespace, id);
 
-    if (innerType.isString() || innerType.isList() || innerType.isStruct()) {
+    if (innerType.isString() || innerType.isList() || innerType.isMap() || innerType.isStruct()) {
       useInternalFunction("internal_deref_object");
       derefCmds += std::format("function {0}:internal/loom/internal_deref_object with storage {0}:global macro_args", datapackNamespace);
     } else if (innerType.isFloat()) {
@@ -264,7 +264,7 @@ Compiler::ExpressionData Compiler::compileFunctionInvocation(
       argPushData += std::format("data modify storage {}:stack regs append value {}\n", datapackNamespace, argExpr.data);
     } else {
       argPushData += argExpr.data + "\n";
-      if (argExpr.type.isString() || argExpr.type.isList() || argExpr.type.isRef()) {
+      if (argExpr.type.isString() || argExpr.type.isList() || argExpr.type.isMap() || argExpr.type.isRef()) {
         argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_str{}\n", datapackNamespace, datapackNamespace, id);
       } else if (argExpr.type.isFloat()) {
         argPushData += std::format("data modify storage {}:stack regs append from storage {}:global expr_float{}\n", datapackNamespace, datapackNamespace, id);
@@ -319,7 +319,7 @@ Compiler::ExpressionData Compiler::compileFunctionInvocation(
 
   std::string captureReturn = "";
   if (id != 1) {
-    if (funcType.isString() || funcType.isList() || funcType.isStruct() || funcType.isRef()) {
+    if (funcType.isString() || funcType.isList() || funcType.isMap() || funcType.isStruct() || funcType.isRef()) {
       captureReturn = std::format("\ndata modify storage {0}:global expr_str{1} set from storage {0}:global expr_str1", datapackNamespace, id);
     } else if (funcType.isFloat()) {
       captureReturn = std::format("\ndata modify storage {0}:global expr_float{1} set from storage {0}:global expr_float1", datapackNamespace, id);
@@ -327,6 +327,66 @@ Compiler::ExpressionData Compiler::compileFunctionInvocation(
   }
 
   return {.data = std::format("{}{}{}{}{}", push, argPushData, callCommand, captureReturn, pop), .precomputed = false, .type = funcType};
+}
+
+std::string Compiler::copyExprInto(const ExpressionData &expr, const std::string &destPath, unsigned int computedAtId) const {
+  if (expr.precomputed) {
+    return std::format("data modify storage {}:global {} set value {}\n", datapackNamespace, destPath, expr.data);
+  }
+  if (expr.type.isString() || expr.type.isList() || expr.type.isMap() || expr.type.isStruct() || expr.type.isRef()) {
+    return std::format("data modify storage {0}:global {1} set from storage {0}:global expr_str{2}\n", datapackNamespace, destPath, computedAtId);
+  }
+  if (expr.type.isFloat()) {
+    return std::format("data modify storage {0}:global {1} set from storage {0}:global expr_float{2}\n", datapackNamespace, destPath, computedAtId);
+  }
+  return std::format("execute store result storage {0}:global {1} int 1 run scoreboard players get expr_output{2} temp\n", datapackNamespace, destPath, computedAtId);
+}
+
+Compiler::ExpressionData Compiler::compileMapGet(ExpressionData target, ExpressionData index, unsigned int id, SourceLoc loc) {
+  const Type &keyType = *target.type.baseType;
+  Type resultType = *target.type.mapValueType;
+
+  if (index.type != keyType) throw std::runtime_error(formatError(loc, "Key type does not match this map's key type."));
+
+  if (target.precomputed) target.data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, target.data);
+  std::string cmds = target.data + "\n";
+
+  if (index.precomputed) {
+    std::string keyLit = keyType.isString() ? index.data : ("\"" + index.data + "\"");
+    std::string sourcePath = std::format("expr_str{}.{}", id, keyLit);
+
+    if (resultType.isFloat()) {
+      cmds += std::format("data modify storage {0}:global expr_float{1} set from storage {0}:global {2}", datapackNamespace, id, sourcePath);
+    } else if (resultType.isString() || resultType.isList() || resultType.isMap() || resultType.isStruct() || resultType.isRef()) {
+      cmds += std::format("data modify storage {0}:global expr_str{1} set from storage {0}:global {2}\n", datapackNamespace, id + 2, sourcePath);
+      cmds += std::format("data modify storage {0}:global expr_str{1} set from storage {0}:global expr_str{2}", datapackNamespace, id, id + 2);
+    } else {
+      cmds += std::format("execute store result score expr_output{0} temp run data get storage {1}:global {2}", id, datapackNamespace, sourcePath);
+    }
+    return {.data = cmds, .precomputed = false, .type = resultType};
+  }
+
+  cmds += index.data + "\n";
+  cmds += std::format("data modify storage {}:global macro_args set value {{}}\n", datapackNamespace);
+  cmds += std::format("data modify storage {0}:global macro_args.path set value \"expr_str{1}\"\n", datapackNamespace, id);
+  cmds += copyExprInto(index, "macro_args.key", id + 1);
+
+  if (resultType.isFloat()) {
+    cmds += std::format("data modify storage {}:global macro_args.out_id set value {}\n", datapackNamespace, id);
+    useInternalFunction("internal_map_get_float");
+    cmds += std::format("function {0}:internal/loom/internal_map_get_float with storage {0}:global macro_args", datapackNamespace);
+  } else if (resultType.isString() || resultType.isList() || resultType.isMap() || resultType.isStruct() || resultType.isRef()) {
+    cmds += std::format("data modify storage {}:global macro_args.out_id set value {}\n", datapackNamespace, id + 2);
+    useInternalFunction("internal_map_get_object");
+    cmds += std::format("function {0}:internal/loom/internal_map_get_object with storage {0}:global macro_args\n", datapackNamespace);
+    cmds += std::format("data modify storage {0}:global expr_str{1} set from storage {0}:global expr_str{2}", datapackNamespace, id, id + 2);
+  } else {
+    cmds += std::format("data modify storage {}:global macro_args.out_id set value {}\n", datapackNamespace, id);
+    useInternalFunction("internal_map_get_primitive");
+    cmds += std::format("function {0}:internal/loom/internal_map_get_primitive with storage {0}:global macro_args", datapackNamespace);
+  }
+
+  return {.data = cmds, .precomputed = false, .type = resultType};
 }
 
 Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsigned int id, bool precompute) {
@@ -414,7 +474,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           } else {
             runtimeCmds += elemData.data + "\n";
 
-            if (elemData.type.isString() || elemData.type.kind == Type::List) {
+            if (elemData.type.isString() || elemData.type.kind == Type::List || elemData.type.kind == Type::Map) {
               runtimeCmds +=
                 std::format("data modify storage {}:global expr_str{} append from storage {}:global expr_str{}\n", datapackNamespace, id, datapackNamespace, id + 1);
             } else {
@@ -492,7 +552,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
             runtimeCmds += std::format("data modify storage {}:global expr_str{}.{} set value {}\n", datapackNamespace, id, fieldName, elemData.data);
           } else {
             runtimeCmds += elemData.data + "\n";
-            if (elemData.type.isString() || elemData.type.isList() || elemData.type.isStruct()) {
+            if (elemData.type.isString() || elemData.type.isList() || elemData.type.isMap() || elemData.type.isStruct()) {
               runtimeCmds += std::format(
                 "data modify storage {}:global expr_str{}.{} set from storage {}:global expr_str{}\n",
                 datapackNamespace,
@@ -655,6 +715,15 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
       }
 
       else if constexpr (std::is_same_v<T, CallExpr>) {
+        if (n.name.size() > 4 && n.name.compare(0, 4, "map<") == 0 && n.name.back() == '>') {
+          if (!n.arguments.empty()) throw std::runtime_error(formatError(node.loc, "map<K, V>() takes no arguments — it always constructs an empty map."));
+          Type mapType = parseTypeFromString(n.name);
+          if (!(mapType.baseType->isInteger() || mapType.baseType->isFloat() || mapType.baseType->isBoolean() || mapType.baseType->isString())) {
+            throw std::runtime_error(formatError(node.loc, "Map keys must be int, float, bool, or string."));
+          }
+          return ExpressionData{.data = "{}", .precomputed = true, .type = std::move(mapType)};
+        }
+
         std::string targetFunc = n.name;
         std::transform(targetFunc.begin(), targetFunc.end(), targetFunc.begin(), ::tolower);
 
@@ -734,7 +803,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           if (precompute) {
             return {.data = varData.value.value(), .precomputed = true, .type = actualType};
           }
-          if (actualType.isString() || actualType.isList() || actualType.isStruct()) {
+          if (actualType.isString() || actualType.isList() || actualType.isMap() || actualType.isStruct()) {
             return {
               .data = std::format("data modify storage {}:global expr_str{} set value {}", datapackNamespace, id, varData.value.value()),
               .precomputed = false,
@@ -751,7 +820,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
           return {.data = std::format("scoreboard players set expr_output{} temp {}", id, varData.value.value()), .precomputed = false, .type = actualType};
         }
 
-        if (actualType.isString() || actualType.isList() || actualType.isStruct()) {
+        if (actualType.isString() || actualType.isList() || actualType.isMap() || actualType.isStruct()) {
           return {
             .data =
               std::format("data modify storage {}:global expr_str{} set from storage {}:global vars.{}", datapackNamespace, id, datapackNamespace, varData.getStorageName()),
@@ -843,11 +912,13 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
         ExpressionData target = compileExpression(*n.target, id, true);
         ExpressionData index = compileExpression(*n.index, id + 1, true);
 
+        if (target.type.isMap()) return compileMapGet(target, index, id, node.loc);
+
         if (!index.type.isInteger()) {
           throw std::runtime_error(formatError(node.loc, "Index must evaluate to an integer."));
         }
         if (!target.type.isString() && !target.type.isList()) {
-          throw std::runtime_error(formatError(node.loc, "Only strings and lists can be queried."));
+          throw std::runtime_error(formatError(node.loc, "Only strings, lists, and maps can be queried."));
         }
 
         Type resultType = target.type.isString() ? Type::StringType() : *target.type.baseType;
@@ -906,7 +977,7 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
             id + 1
           );
 
-          if (resultType.isString() || resultType.isList() || resultType.isStruct() || resultType.isRef()) {
+          if (resultType.isString() || resultType.isList() || resultType.isMap() || resultType.isStruct() || resultType.isRef()) {
             useInternalFunction("internal_list_get_object");
             runtimeCmds += std::format("function {}:internal/loom/internal_list_get_object with storage {}:global macro_args", datapackNamespace, datapackNamespace);
           } else {

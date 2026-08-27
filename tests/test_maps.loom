@@ -1,0 +1,56 @@
+struct Point {
+  x: int
+  y: int
+}
+
+func main() {
+  let m: map<string, int> = map<string, int>();
+  m["apple"] = 5;
+  m["banana"] = 7;
+
+  let hasApple: bool = contains(m, "apple");
+  let hasCherry: bool = contains(m, "cherry");
+  let appleCount: int = m["apple"];
+  let mapLen: int = len(m);
+
+  m["apple"] = 10;
+  let updatedApple: int = m["apple"];
+  let lenAfterOverwrite: int = len(m);
+
+  let dynamicKey: string = "banana";
+  m[dynamicKey] = 70;
+  let dynamicValue: int = m[dynamicKey];
+  let dynamicContains: bool = contains(m, dynamicKey);
+
+  let scores: map<int, string> = map<int, string>();
+  scores[1] = "first";
+  let firstPlace: string = scores[1];
+
+  let dynamicRank: int = 1;
+  scores[dynamicRank] = "still first";
+  let dynamicPlace: string = scores[dynamicRank];
+  let hasRank: bool = contains(scores, dynamicRank);
+
+  let ranks: map<int, int> = map<int, int>();
+  ranks[1] = 100;
+  let rankValue: int = ranks[dynamicRank];
+
+  let temps: map<string, float> = map<string, float>();
+  temps["morning"] = 12.5;
+  let tempKey: string = "morning";
+  let morningTemp: float = temps[tempKey];
+
+  let hourlyTemps: map<int, float> = map<int, float>();
+  let hour: int = 9;
+  hourlyTemps[hour] = 15.0;
+  let hourTemp: float = hourlyTemps[hour];
+
+  let points: map<string, Point> = map<string, Point>();
+  points["origin"] = Point{x: 0, y: 0};
+  let originKey: string = "origin";
+  let origin: Point = points[originKey];
+
+  ranks[2] = ranks[1];
+
+  say ${hasApple} ${hasCherry} ${appleCount} ${mapLen} ${updatedApple} ${lenAfterOverwrite} ${dynamicValue} ${dynamicContains} ${firstPlace} ${dynamicPlace} ${hasRank} ${rankValue} ${morningTemp} ${hourTemp} ${origin.x} ${origin.y};
+}

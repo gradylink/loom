@@ -61,3 +61,4 @@ std::unique_ptr<TypeHandler> createListHandler();
 std::unique_ptr<TypeHandler> createEnumHandler();
 std::unique_ptr<TypeHandler> createFloatHandler();
 std::unique_ptr<TypeHandler> createStructHandler();
+std::unique_ptr<TypeHandler> createMapHandler();

@@ -125,7 +125,7 @@ std::string Compiler::compileBlock(const Block &block) {
 
               if (expr.precomputed) {
                 ret += std::format("data modify storage {0}:global vars.{1}.{2} set value {3}\n", datapackNamespace, thisMangled, name, expr.data);
-              } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
+              } else if (expr.type.isString() || expr.type.isList() || expr.type.isMap() || expr.type.isStruct()) {
                 ret += std::format("{0}\ndata modify storage {1}:global vars.{2}.{3} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, thisMangled, name);
               } else if (expr.type.isFloat()) {
                 ret += std::format("{0}\ndata modify storage {1}:global vars.{2}.{3} set from storage {1}:global expr_float1\n", expr.data, datapackNamespace, thisMangled, name);
@@ -151,6 +151,47 @@ std::string Compiler::compileBlock(const Block &block) {
 
           if (isPathAssignment) {
             Type expectedType = varData.type.isRef() ? *varData.type.baseType : varData.type;
+
+            if (expectedType.isMap()) {
+              if (n.path.size() != 1 || !n.path[0].isIndex) {
+                throw std::runtime_error(
+                  formatError(stmt.loc, "Only a single 'map[key] = value' assignment is supported; chained/nested map index assignment is not yet implemented.")
+                );
+              }
+              const Type &keyType = *expectedType.baseType;
+              const Type &valueType = *expectedType.mapValueType;
+
+              ExpressionData keyExpr = compileExpression(*n.path[0].index, 2, true);
+              if (keyExpr.type != keyType) throw std::runtime_error(formatError(stmt.loc, "Key type does not match this map's key type."));
+
+              ExpressionData valueExpr = compileExpression(expNode, 1, true);
+              if (valueExpr.type != valueType) throw std::runtime_error(formatError(stmt.loc, "Type mismatch in assignment to map value."));
+
+              ret += keyExpr.data + "\n" + valueExpr.data + "\n";
+              std::string destPath = std::format("vars.{}", varData.getStorageName());
+
+              if (keyExpr.precomputed) {
+                std::string keyLit = keyType.isString() ? keyExpr.data : ("\"" + keyExpr.data + "\"");
+                ret += copyExprInto(valueExpr, std::format("{}.{}", destPath, keyLit), 1);
+              } else {
+                ret += std::format("data modify storage {}:global macro_args set value {{}}\n", datapackNamespace);
+                ret += std::format("data modify storage {0}:global macro_args.path set value \"{1}\"\n", datapackNamespace, destPath);
+                ret += copyExprInto(keyExpr, "macro_args.key", 2);
+
+                if (valueExpr.type.isFloat()) {
+                  useInternalFunction("internal_map_set_float");
+                  ret += std::format("function {0}:internal/loom/internal_map_set_float with storage {0}:global macro_args\n", datapackNamespace);
+                } else if (valueExpr.type.isString() || valueExpr.type.isList() || valueExpr.type.isMap() || valueExpr.type.isStruct() || valueExpr.type.isRef()) {
+                  useInternalFunction("internal_map_set_object");
+                  ret += std::format("function {0}:internal/loom/internal_map_set_object with storage {0}:global macro_args\n", datapackNamespace);
+                } else {
+                  useInternalFunction("internal_map_set_primitive");
+                  ret += std::format("function {0}:internal/loom/internal_map_set_primitive with storage {0}:global macro_args\n", datapackNamespace);
+                }
+              }
+              return;
+            }
+
             bool endsInStringSubscript = false;
 
             for (size_t i = 0; i < n.path.size(); i++) {
@@ -271,7 +312,7 @@ std::string Compiler::compileBlock(const Block &block) {
             if (allIndicesPrecomputed) {
               if (expr.precomputed) {
                 ret += std::format("data modify storage {0}:global vars.{1}{2} set value {3}\n", datapackNamespace, varData.getStorageName(), pathSuffix, expr.data);
-              } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
+              } else if (expr.type.isString() || expr.type.isList() || expr.type.isMap() || expr.type.isStruct()) {
                 ret +=
                   std::format("data modify storage {0}:global vars.{1}{2} set from storage {0}:global expr_str1\n", datapackNamespace, varData.getStorageName(), pathSuffix);
               } else if (expr.type.isFloat()) {
@@ -318,7 +359,7 @@ std::string Compiler::compileBlock(const Block &block) {
                   datapackNamespace,
                   expr.data
                 );
-              } else if (expr.type.isString() || expr.type.isList() || expr.type.isStruct()) {
+              } else if (expr.type.isString() || expr.type.isList() || expr.type.isMap() || expr.type.isStruct()) {
                 useInternalFunction("internal_list_nested_set_object");
                 ret += std::format("function {0}:internal/loom/internal_list_nested_set_object with storage {0}:global macro_args\n", datapackNamespace);
               } else {
@@ -349,7 +390,7 @@ std::string Compiler::compileBlock(const Block &block) {
           bool usedCompoundOp = false;
 
           if (expr.precomputed) {
-            if (actualType.isString() || actualType.isFloat() || actualType.isList() || actualType.isStruct()) {
+            if (actualType.isString() || actualType.isFloat() || actualType.isList() || actualType.isMap() || actualType.isStruct()) {
               ret += std::format("data modify storage {0}:global vars.{1} set value {2}\n", datapackNamespace, varData.getStorageName(), expr.data);
             } else {
               ret += std::format("scoreboard players set {} vars {}\n", varData.getStorageName(), expr.data);
@@ -381,7 +422,7 @@ std::string Compiler::compileBlock(const Block &block) {
             }
 
             if (!usedCompoundOp) {
-              if (actualType.isString() || actualType.isList() || actualType.isStruct()) {
+              if (actualType.isString() || actualType.isList() || actualType.isMap() || actualType.isStruct()) {
                 ret +=
                   std::format("{0}\ndata modify storage {1}:global vars.{2} set from storage {1}:global expr_str1\n", expr.data, datapackNamespace, varData.getStorageName());
               } else if (actualType.isFloat()) {
@@ -492,7 +533,7 @@ std::string Compiler::compileBlock(const Block &block) {
                   macroBody += std::format("$(var_{})", macroVarId);
                   macroSetup += expr.data + "\n";
 
-                  if (expr.type.isString() || expr.type.isList()) {
+                  if (expr.type.isString() || expr.type.isList() || expr.type.isMap()) {
                     macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_str1\n", datapackNamespace, macroVarId);
                   } else if (expr.type.isFloat()) {
                     macroSetup += std::format("data modify storage {0}:function_input var_{1} set from storage {0}:global expr_float1\n", datapackNamespace, macroVarId);

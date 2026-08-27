@@ -14,7 +14,7 @@ A programming language that compiles to Minecraft datapacks.
 - [x] Namespaces
 - [x] Function overloading
 - [x] References
-- [ ] Maps
+- [x] Maps
 - [x] Missing math funcs (`floor`, `round`, `ceil`, `sqrt`, `atan`, `atan2`,
       `sin`, `cos`, `tan`, `asin`, `acos`)
 - [x] Boolean conditional optimizations

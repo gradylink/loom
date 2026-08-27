@@ -87,7 +87,21 @@ static void parseTypeTextInner(Parser &self) {
     self.expect(TokenKind::RParen, "')' to close type");
     return;
   }
-  self.parseNamespacedIdentifier();
+  std::string ident = self.parseNamespacedIdentifier();
+  if (ident == "map" && self.check(TokenKind::Lt)) {
+    self.advance();
+    auto parseInnerType = [&self] {
+      parseTypeTextInner(self);
+      while (self.check(TokenKind::LBracket)) {
+        self.advance();
+        self.expect(TokenKind::RBracket, "']' to close list type");
+      }
+    };
+    parseInnerType();
+    self.expect(TokenKind::Comma, "',' between map key and value types");
+    parseInnerType();
+    self.expect(TokenKind::Gt, "'>' to close map type");
+  }
 }
 
 std::string Parser::parseSelectorText() {
@@ -395,6 +409,16 @@ std::unique_ptr<Expr> Parser::parsePrimary() {
     std::string name = parseNamespacedIdentifier();
     SourceLoc nameLoc = locOf(tok);
     nameLoc.endByte = previous().endByte;
+
+    if (name == "map" && check(TokenKind::Lt)) {
+      advance();
+      std::string keyType = parseTypeText();
+      expect(TokenKind::Comma, "',' between map key and value types");
+      std::string valueType = parseTypeText();
+      expect(TokenKind::Gt, "'>' to close map type");
+      name = "map<" + keyType + "," + valueType + ">";
+      nameLoc.endByte = previous().endByte;
+    }
 
     if (check(TokenKind::LParen)) {
       advance();

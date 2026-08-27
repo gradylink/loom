@@ -13,7 +13,7 @@ public:
       "len",
       [](Compiler &c, const std::vector<const Expr *> &args, unsigned int id, bool precompute, SourceLoc loc) -> std::optional<Compiler::ExpressionData> {
         Compiler::ExpressionData listExpr = c.compileExpression(*args[0], id, true);
-        if (!listExpr.type.isList()) return std::nullopt;
+        if (!listExpr.type.isList() && !listExpr.type.isMap()) return std::nullopt;
 
         if (listExpr.precomputed) {
           size_t length = std::count(listExpr.data.begin(), listExpr.data.end(), ',') + 1;

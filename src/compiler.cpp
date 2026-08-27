@@ -41,6 +41,7 @@ void Compiler::registerDefaultTypeHandlers() {
   typeRegistry->registerHandler(*this, createListHandler());
   typeRegistry->registerHandler(*this, createEnumHandler());
   typeRegistry->registerHandler(*this, createStructHandler());
+  typeRegistry->registerHandler(*this, createMapHandler());
 }
 
 TypeHandler *Compiler::getHandler(const Type &type) { return const_cast<TypeHandler *>(typeRegistry->findHandler(type)); }
@@ -70,6 +71,23 @@ Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const 
 
   if (t.size() >= 2 && t.substr(t.size() - 2) == "[]") {
     return Type::ListTypeOf(parseTypeFromString(t.substr(0, t.size() - 2)));
+  }
+
+  if (t.size() > 4 && t.compare(0, 4, "map<") == 0 && t.back() == '>') {
+    std::string inner = t.substr(4, t.size() - 5);
+    int depth = 0;
+    size_t splitPos = std::string::npos;
+    for (size_t i = 0; i < inner.size(); i++) {
+      char c = inner[i];
+      if (c == '<' || c == '(' || c == '[') depth++;
+      else if (c == '>' || c == ')' || c == ']') depth--;
+      else if (c == ',' && depth == 0) {
+        splitPos = i;
+        break;
+      }
+    }
+    if (splitPos == std::string::npos) throw std::runtime_error(std::format("Invalid map type: {}", t));
+    return Type::MapTypeOf(parseTypeFromString(inner.substr(0, splitPos)), parseTypeFromString(inner.substr(splitPos + 1)));
   }
 
   if (t == "int") return Type::IntegerType();
@@ -150,13 +168,13 @@ std::string Compiler::compileVariableDeclaration(const VarDeclStmt &decl, Source
 
   if (!value.has_value() || !constant || isExport) {
     if (expr.precomputed) {
-      if (varType.isString() || varType.isList() || varType.isStruct() || varType.isFloat()) {
+      if (varType.isString() || varType.isList() || varType.isMap() || varType.isStruct() || varType.isFloat()) {
         ret += std::format("data modify storage {}:global vars.{} set value {}\n", datapackNamespace, mangled, expr.data);
       } else {
         ret += std::format("scoreboard players set {} vars {}\n", mangled, expr.data);
       }
     } else {
-      if (varType.isString() || varType.isList() || varType.isStruct()) {
+      if (varType.isString() || varType.isList() || varType.isMap() || varType.isStruct()) {
         ret += std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_str1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
       } else if (varType.isFloat()) {
         ret += std::format("{}\ndata modify storage {}:global vars.{} set from storage {}:global expr_float1\n", expr.data, datapackNamespace, mangled, datapackNamespace);
@@ -610,6 +628,33 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
      )}
   );
 
+  internalFunctions.push_back(
+    {.name = "internal_map_get_primitive",
+     .data = std::format("$execute store result score expr_output$(out_id) temp run data get storage {0}:global $(path).\"$(key)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_map_get_float",
+     .data = std::format("$data modify storage {0}:global expr_float$(out_id) set from storage {0}:global $(path).\"$(key)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_map_get_object",
+     .data = std::format("$data modify storage {0}:global expr_str$(out_id) set from storage {0}:global $(path).\"$(key)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_map_contains",
+     .data = std::format("$execute store success score expr_output$(out_id) temp if data storage {0}:global $(path).\"$(key)\"", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_map_set_primitive",
+     .data = std::format("$execute store result storage {0}:global $(path).\"$(key)\" int 1 run scoreboard players get expr_output1 temp", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_map_set_float", .data = std::format("$data modify storage {0}:global $(path).\"$(key)\" set from storage {0}:global expr_float1", datapackNamespace)}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_map_set_object", .data = std::format("$data modify storage {0}:global $(path).\"$(key)\" set from storage {0}:global expr_str1", datapackNamespace)}
+  );
+
   currentNamespacePrefix = "";
   processDeclarations(*program);
 
@@ -973,7 +1018,7 @@ Compiler::ParamSetupResult Compiler::setupIncomingParameter(const std::string &p
     const Type &innerType = *paramType.baseType;
 
     std::string copyInFuncName = "_ref_copyin_" + randomFunctionMangleString();
-    if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
+    if (innerType.isString() || innerType.isList() || innerType.isMap() || innerType.isStruct() || innerType.isFloat()) {
       compiledFunctions.push_back(
         {.name = copyInFuncName, .data = std::format("$data modify storage {0}:global vars.{1} set from storage {0}:global vars.$(refname)\n", datapackNamespace, mangledName)}
       );
@@ -982,7 +1027,7 @@ Compiler::ParamSetupResult Compiler::setupIncomingParameter(const std::string &p
     }
 
     std::string copyBackFuncName = "_ref_copyback_" + randomFunctionMangleString();
-    if (innerType.isString() || innerType.isList() || innerType.isStruct() || innerType.isFloat()) {
+    if (innerType.isString() || innerType.isList() || innerType.isMap() || innerType.isStruct() || innerType.isFloat()) {
       compiledFunctions.push_back(
         {.name = copyBackFuncName,
          .data = std::format("$data modify storage {0}:global vars.$(refname) set from storage {0}:global vars.{1}\n", datapackNamespace, mangledName)}
@@ -1002,7 +1047,7 @@ Compiler::ParamSetupResult Compiler::setupIncomingParameter(const std::string &p
     result.setup += std::format("function {}:internal/{} with storage {}:global {}\n", datapackNamespace, copyInFuncName, datapackNamespace, argsKey);
 
   } else {
-    if (paramType.isString() || paramType.isList() || paramType.isFloat()) {
+    if (paramType.isString() || paramType.isList() || paramType.isMap() || paramType.isFloat()) {
       result.setup += std::format("data modify storage {0}:global vars.{1} set from storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);
     } else {
       result.setup += std::format("execute store result score {1} vars run data get storage {0}:stack regs[-1]\n", datapackNamespace, mangledName);

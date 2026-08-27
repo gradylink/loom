@@ -993,6 +993,24 @@ EnclosureKind enclosingConstruct(const std::vector<Token> &toks, size_t fromIdxE
   return EnclosureKind::None;
 }
 
+bool insideMapTypeArgs(const std::vector<Token> &toks, size_t uptoExclusive) {
+  int depth = 0;
+  for (size_t i = uptoExclusive; i-- > 0;) {
+    TokenKind k = toks[i].kind;
+    if (k == TokenKind::Semicolon || k == TokenKind::LBrace || k == TokenKind::RBrace) return false;
+    if (k == TokenKind::Gt) {
+      depth++;
+    } else if (k == TokenKind::Lt) {
+      if (depth > 0) {
+        depth--;
+      } else {
+        return i > 0 && toks[i - 1].kind == TokenKind::Identifier && toks[i - 1].text == "map";
+      }
+    }
+  }
+  return false;
+}
+
 std::vector<std::string> readChain(const std::vector<Token> &before, TokenKind sepKind) {
   std::vector<std::string> chain;
   int idx = static_cast<int>(before.size()) - 1;
@@ -1043,6 +1061,11 @@ PositionAnalysis analyzePosition(const std::string &text, uint32_t offset) {
       result.ctx = CompletionContext::ScopeAccess;
       result.chain = std::move(chain);
     }
+    return result;
+  }
+
+  if ((prev.kind == TokenKind::Lt || prev.kind == TokenKind::Comma) && insideMapTypeArgs(before, before.size())) {
+    result.ctx = CompletionContext::Type;
     return result;
   }
 
@@ -1199,6 +1222,7 @@ std::vector<CompletionEntry> completionItems(const Block &program, const std::st
 
   if (pos.ctx == CompletionContext::Type) {
     for (const char *ty : PRIMITIVE_TYPES) items.push_back(CompletionEntry{.label = ty, .kind = "keyword", .detail = ""});
+    items.push_back(CompletionEntry{.label = "map", .kind = "keyword", .detail = "map<K, V>"});
     for (const auto &[name, s] : idx.structs) items.push_back(CompletionEntry{.label = name, .kind = "struct", .detail = "struct"});
     for (const auto &[name, e] : idx.enums) items.push_back(CompletionEntry{.label = name, .kind = "enum", .detail = "enum"});
     for (const auto &[name, ns] : idx.namespaces) items.push_back(CompletionEntry{.label = name, .kind = "namespace", .detail = "namespace"});
