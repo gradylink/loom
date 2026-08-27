@@ -180,23 +180,14 @@ nlohmann::json documentSymbolToJson(const lspnav::SymbolEntry &sym) {
 nlohmann::json diagnosticsFor(const std::string &text, const std::filesystem::path &baseDir) {
   nlohmann::json diagnostics = nlohmann::json::array();
 
-  Lexer lexer(text);
-  Parser parser(text, lexer.tokenize());
-  parser.enableErrorRecovery();
-  parser.parseProgram();
-
-  if (!parser.getDiagnostics().empty()) {
-    for (const ParseDiagnostic &d : parser.getDiagnostics()) diagnostics.push_back(makeDiagnostic(d.loc, d.message));
-    return diagnostics;
-  }
-
+  Compiler::globalExternVars.clear();
+  Compiler compiler(text, "loom", baseDir);
   try {
-    Compiler::globalExternVars.clear();
-    Compiler compiler(text, "loom", baseDir);
     compiler.compile();
   } catch (const std::exception &e) {
     diagnostics.push_back(makeDiagnosticFromMessage(e.what()));
   }
+  for (const std::string &msg : compiler.getDiagnostics()) diagnostics.push_back(makeDiagnosticFromMessage(msg));
 
   return diagnostics;
 }

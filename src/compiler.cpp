@@ -23,7 +23,9 @@ Compiler::Compiler(const std::string_view &source, const std::string &datapackNa
     : source(source), datapackNamespace(datapackNamespace), currentDir(currentDir) {
   Lexer lexer(this->source);
   Parser parser(this->source, lexer.tokenize());
+  parser.enableErrorRecovery();
   program = parser.parseProgram();
+  for (const ParseDiagnostic &d : parser.getDiagnostics()) diagnostics.push_back(formatError(d.loc, d.message));
 
   typeRegistry = std::make_unique<TypeRegistry>();
   registerDefaultTypeHandlers();
@@ -617,6 +619,19 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   return compiledFunctions;
 }
 
+void Compiler::runRecoverable(const Stmt &stmt, const std::function<void()> &fn) {
+  if (!recoverFromErrors) {
+    fn();
+    return;
+  }
+  try {
+    fn();
+  } catch (const std::exception &e) {
+    diagnostics.push_back(e.what());
+    failedDecls.insert(&stmt);
+  }
+}
+
 void Compiler::processDeclarations(const Block &block) {
   for (const auto &stmtPtr : block.statements) {
     const Stmt &stmt = *stmtPtr;
@@ -629,13 +644,13 @@ void Compiler::processDeclarations(const Block &block) {
           processDeclarations(*node.body);
           currentNamespacePrefix = oldPrefix;
         } else if constexpr (std::is_same_v<T, ImportStmt>) {
-          processImportDecl(node, stmt.loc);
+          runRecoverable(stmt, [&] { processImportDecl(node, stmt.loc); });
         } else if constexpr (std::is_same_v<T, EnumDeclStmt>) {
-          processEnumDecl(node, stmt.loc);
+          runRecoverable(stmt, [&] { processEnumDecl(node, stmt.loc); });
         } else if constexpr (std::is_same_v<T, StructDeclStmt>) {
-          processStructDecl(node, stmt.loc);
+          runRecoverable(stmt, [&] { processStructDecl(node, stmt.loc); });
         } else if constexpr (std::is_same_v<T, FuncDeclStmt>) {
-          processFuncDeclDeclaration(node, stmt.loc);
+          runRecoverable(stmt, [&] { processFuncDeclDeclaration(node, stmt.loc); });
         }
       },
       stmt.data
@@ -911,6 +926,8 @@ void Compiler::processFuncDeclDeclaration(const FuncDeclStmt &decl, SourceLoc lo
 void Compiler::processCompilation(const Block &block) {
   for (const auto &stmtPtr : block.statements) {
     const Stmt &stmt = *stmtPtr;
+    if (failedDecls.contains(&stmt)) continue;
+
     std::visit(
       [&](auto &&node) {
         using T = std::decay_t<decltype(node)>;
@@ -920,15 +937,15 @@ void Compiler::processCompilation(const Block &block) {
           processCompilation(*node.body);
           currentNamespacePrefix = oldPrefix;
         } else if constexpr (std::is_same_v<T, VarDeclStmt>) {
-          globalInit += compileVariableDeclaration(node, stmt.loc, program.get(), true);
+          runRecoverable(stmt, [&] { globalInit += compileVariableDeclaration(node, stmt.loc, program.get(), true); });
         } else if constexpr (std::is_same_v<T, FuncDeclStmt>) {
-          compileFuncDecl(node, stmt.loc);
+          runRecoverable(stmt, [&] { compileFuncDecl(node, stmt.loc); });
         } else if constexpr (std::is_same_v<T, StructDeclStmt>) {
-          compileStructDecl(node, stmt.loc);
+          runRecoverable(stmt, [&] { compileStructDecl(node, stmt.loc); });
         } else if constexpr (std::is_same_v<T, EnumDeclStmt> || std::is_same_v<T, ImportStmt>) {
 
         } else {
-          throw std::runtime_error(formatError(stmt.loc, "Invalid global statement."));
+          runRecoverable(stmt, [&] { throw std::runtime_error(formatError(stmt.loc, "Invalid global statement.")); });
         }
       },
       stmt.data

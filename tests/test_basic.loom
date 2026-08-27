@@ -1,6 +1,6 @@
-let test: int = ;
+let test: int = 1;
 
 func main() {
-  return j
+  return test
   say hi
 }

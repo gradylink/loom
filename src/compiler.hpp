@@ -34,6 +34,10 @@ public:
 
   std::vector<CompiledFunction> compile();
 
+  void enableErrorRecovery() { recoverFromErrors = true; }
+  void disableErrorRecovery() { recoverFromErrors = false; }
+  const std::vector<std::string> &getDiagnostics() const { return diagnostics; }
+
   // The abritrary numbers here are "loom" obfuscated in different ways.
   // X coord: Math.floor(Math.pow(asciiSum("loom"), 2.75))
   // Z coord: Math.floor(asciiProduct("loom") / 10) // asciiProduct starts with 1
@@ -245,6 +249,12 @@ private:
   int controlFlowDepth = 0;
 
   const StructData *currentStructContext = nullptr;
+
+  bool recoverFromErrors = true;
+  std::vector<std::string> diagnostics;
+  std::unordered_set<const Stmt *> failedDecls;
+
+  void runRecoverable(const Stmt &stmt, const std::function<void()> &fn);
 
   void processDeclarations(const Block &block);
   void processCompilation(const Block &block);

@@ -27,6 +27,11 @@ bool runCompilation(const std::string &source, const std::filesystem::path &base
     Compiler compiler(source, config.namespaceStr, baseDir);
     const auto &compiledFunctions = compiler.compile();
 
+    if (!compiler.getDiagnostics().empty()) {
+      for (const std::string &msg : compiler.getDiagnostics()) std::cerr << "Compilation Error: " << msg << "\n";
+      return false;
+    }
+
     if (std::filesystem::exists(outputPath)) {
       std::filesystem::remove_all(outputPath);
     }
@@ -209,8 +214,7 @@ int main(int argc, char *argv[]) {
 
     std::filesystem::path resolvedBaseDir = baseDir.empty() ? std::filesystem::current_path() : std::filesystem::path(baseDir);
 
-    runCompilation(buf.str(), resolvedBaseDir, outputPath, config);
-    return 0;
+    return runCompilation(buf.str(), resolvedBaseDir, outputPath, config) ? 0 : 1;
   }
 
   if (inputPath.empty()) {
@@ -223,7 +227,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  compileFromFile(inputPath, baseDir, outputPath, config);
+  bool ok = compileFromFile(inputPath, baseDir, outputPath, config);
 
   if (watch) {
     std::cout << "Watching " << inputPath << " for changes... Press Ctrl+C to stop.\n";
@@ -243,5 +247,5 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  return 0;
+  return ok ? 0 : 1;
 }
