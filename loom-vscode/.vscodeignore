@@ -2,6 +2,7 @@
 .vscode-test/**
 src/**
 node_modules/**
+!node_modules/web-tree-sitter/**
 out/**/*.map
 .gitignore
 tsconfig.json

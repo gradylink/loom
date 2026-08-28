@@ -70,6 +70,25 @@
         }
       }
     },
+    "semanticTokenTypes": [
+      { "id": "namespace", "description": "A namespace or module alias" },
+      { "id": "type", "description": "A struct or enum type" },
+      { "id": "parameter", "description": "A function parameter" },
+      { "id": "variable", "description": "A variable" },
+      { "id": "property", "description": "A struct field" },
+      { "id": "function", "description": "A function or command" },
+      { "id": "method", "description": "A struct method" },
+      { "id": "keyword", "description": "A keyword or boolean literal" },
+      { "id": "comment", "description": "A comment" },
+      { "id": "string", "description": "A string literal" },
+      { "id": "number", "description": "A numeric literal" },
+      { "id": "operator", "description": "An operator" },
+      { "id": "decorator", "description": "An attribute or entity annotation" }
+    ],
+    "semanticTokenModifiers": [
+      { "id": "readonly", "description": "A constant" },
+      { "id": "defaultLibrary", "description": "A built-in provided by the language" }
+    ],
     "commands": [
       {
         "command": "loom.restartServer",
@@ -89,13 +108,14 @@
   },
   "scripts": {
     "vscode:prepublish": "bun run compile",
-    "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
-    "watch": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "compile": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --external:web-tree-sitter --format=cjs --platform=node && node scripts/copy-grammar-assets.mjs",
+    "watch": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --external:web-tree-sitter --format=cjs --platform=node --watch",
     "package": "bun run compile && bunx vsce package --no-dependencies",
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
-    "vscode-languageclient": "^9.0.1"
+    "vscode-languageclient": "^9.0.1",
+    "web-tree-sitter": "^0.26.10"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",

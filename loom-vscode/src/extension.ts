@@ -1,10 +1,18 @@
-import { commands, ExtensionContext, window, workspace } from "vscode";
+import {
+  commands,
+  ExtensionContext,
+  languages,
+  window,
+  workspace,
+} from "vscode";
 import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
   TransportKind,
 } from "vscode-languageclient/node";
+import { loadLoomGrammar } from "./parser";
+import { createSemanticTokensProvider, legend } from "./semanticTokens";
 
 let client: LanguageClient | undefined;
 
@@ -14,6 +22,28 @@ export async function activate(context: ExtensionContext) {
 
   if (lspEnabled) {
     await startLanguageServer();
+  }
+
+  try {
+    const { parser, query } = await loadLoomGrammar(
+      context.extensionUri.fsPath,
+    );
+    context.subscriptions.push(
+      languages.registerDocumentSemanticTokensProvider(
+        { language: "loom" },
+        createSemanticTokensProvider(parser, query),
+        legend,
+      ),
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(
+      "Loom: failed to load tree-sitter grammar for semantic highlighting.",
+      err,
+    );
+    window.showErrorMessage(
+      `Loom: failed to load tree-sitter grammar for semantic highlighting. ${message}`,
+    );
   }
 
   context.subscriptions.push(
@@ -49,8 +79,6 @@ export async function activate(context: ExtensionContext) {
   );
 }
 
-// The language server is the `loom` compiler itself, run as `loom --lsp` and spoken to over
-// stdio - there's no separate server process or WASM parser to bundle (see loom's src/lsp.cpp).
 async function startLanguageServer(): Promise<void> {
   const config = workspace.getConfiguration("loom");
   const loomExecutable = config.get<string>("executablePath", "loom");
