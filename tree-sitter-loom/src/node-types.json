@@ -3873,6 +3873,10 @@
     "named": false
   },
   {
+    "type": "@entity",
+    "named": false
+  },
+  {
     "type": "@n",
     "named": false
   },

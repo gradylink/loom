@@ -101,9 +101,20 @@ Compiler::Type Compiler::parseTypeFromString(const std::string &typeText) const 
   throw std::runtime_error(std::format("Unknown type: {}", t));
 }
 
+std::string Compiler::ensureEntityIdInfraCmds() {
+  if (entityIdInfraEmitted) return "";
+  entityIdInfraEmitted = true;
+  return "scoreboard objectives add loom_id dummy\n"
+         "scoreboard players set #ctr loom_id 0\n";
+}
+
 std::string Compiler::compileVariableDeclaration(const VarDeclStmt &decl, SourceLoc loc, const Block *scope, bool isGlobal) {
   const std::string &name = decl.name;
   if (isBuiltin(name)) throw std::runtime_error(formatError(loc, "Reserved name."));
+
+  if (decl.isEntityLocal && !isGlobal) {
+    throw std::runtime_error(formatError(loc, "'@entity' variables must be declared at global scope."));
+  }
 
   const ExpressionData expr = compileExpression(*decl.value);
   const bool constant = decl.isConst;
@@ -119,12 +130,18 @@ std::string Compiler::compileVariableDeclaration(const VarDeclStmt &decl, Source
     value = expr.data;
   }
 
+  if (decl.isEntityLocal) {
+    if (varType.isRef()) throw std::runtime_error(formatError(loc, "'@entity' variables cannot be reference types."));
+    if (!expr.precomputed) throw std::runtime_error(formatError(loc, "'@entity' variables must be initialized with a compile-time constant default value."));
+  }
+
   bool isExport = isGlobal && decl.isExport;
   bool isExtern = isGlobal && decl.isExtern;
 
   const std::string fullVarName = isGlobal ? prefixName(name) : name;
   std::string mangled = name;
   if (!isExtern) mangled += "_" + randomMangleString();
+  if (decl.isEntityLocal && !isExtern) mangled = "el_" + randomMangleString();
 
   if (vars.contains(fullVarName)) {
     throw std::runtime_error(formatError(loc, "Variable '" + name + "' is already defined in this scope."));
@@ -154,15 +171,27 @@ std::string Compiler::compileVariableDeclaration(const VarDeclStmt &decl, Source
       .mangledName = mangled,
       .type = varType,
       .scope = scope,
-      .value = value,
+      .value = decl.isEntityLocal ? std::nullopt : value,
       .constant = constant,
       .exported = isExport,
+      .isEntityLocal = decl.isEntityLocal,
+      .entityLocalDefaultLiteral = decl.isEntityLocal ? expr.data : "",
       .refTargetMangledName = refTargetMangledName
     }
   );
 
   std::string ret = "";
   if (varType.isRef()) {
+    return ret;
+  }
+
+  if (decl.isEntityLocal) {
+    ret += ensureEntityIdInfraCmds();
+    if (varType.isString() || varType.isList() || varType.isMap() || varType.isStruct() || varType.isFloat()) {
+      ret += std::format("data modify storage {}:global vars.{} set value {{}}\n", datapackNamespace, mangled);
+    } else {
+      ret += std::format("scoreboard objectives add {} dummy\n", mangled);
+    }
     return ret;
   }
 
@@ -653,6 +682,16 @@ std::vector<Compiler::CompiledFunction> Compiler::compile() {
   );
   internalFunctions.push_back(
     {.name = "internal_map_set_object", .data = std::format("$data modify storage {0}:global $(path).\"$(key)\" set from storage {0}:global expr_str1", datapackNamespace)}
+  );
+
+  internalFunctions.push_back(
+    {.name = "internal_loom_assign_entity_id",
+     .data = "scoreboard players operation @s loom_id = #ctr loom_id\n"
+             "scoreboard players add #ctr loom_id 1"}
+  );
+  internalFunctions.push_back(
+    {.name = "internal_loom_ensure_entity_id",
+     .data = std::format("execute unless score @s loom_id matches -2147483648..2147483647 run function {}:internal/loom/internal_loom_assign_entity_id", datapackNamespace)}
   );
 
   currentNamespacePrefix = "";

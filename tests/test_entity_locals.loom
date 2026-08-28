@@ -1,0 +1,18 @@
+@entity let health: int = 20;
+@entity let nickname: string = "unnamed";
+
+func main() {
+  as @e[type=zombie,limit=1] {
+    health = health - 5;
+    let currentHealth: int = health;
+    nickname = "grumpy";
+    let currentName: string = nickname;
+    say ${currentHealth} ${currentName};
+  }
+
+  as @e[type=skeleton,limit=1] {
+    let defaultHealth: int = health;
+    let defaultName: string = nickname;
+    say ${defaultHealth} ${defaultName};
+  }
+}

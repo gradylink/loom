@@ -218,8 +218,9 @@ std::optional<Resolved> resolveVarHover(const WalkCtx &ctx, const std::string &n
   case VarResolution::Kind::VarDecl: {
     const VarDeclStmt &vd = *r.varDecl;
     std::string kw = vd.isConst ? "const" : "let";
+    std::string prefix = vd.isEntityLocal ? "@entity " : "";
     std::string ty = vd.typeText ? *vd.typeText : "(inferred)";
-    return Resolved{.targetLoc = vd.nameLoc, .hover = wrap(kw + " " + vd.name + ": " + ty)};
+    return Resolved{.targetLoc = vd.nameLoc, .hover = wrap(prefix + kw + " " + vd.name + ": " + ty)};
   }
   case VarResolution::Kind::ImplicitThis:
     return Resolved{.targetLoc = ctx.structCtx->nameLoc, .hover = wrap("this: &" + ctx.structCtx->name + " (implicit)")};
@@ -403,8 +404,9 @@ bool walkStmt(const Stmt &stmt, WalkCtx ctx, const GlobalIndex &idx, uint32_t of
       } else if constexpr (std::is_same_v<T, VarDeclStmt>) {
         if (inSpan(n.nameLoc, offset)) {
           std::string kw = n.isConst ? "const" : "let";
+          std::string prefix = n.isEntityLocal ? "@entity " : "";
           std::string ty = n.typeText ? *n.typeText : "(inferred)";
-          out = Resolved{.targetLoc = n.nameLoc, .hover = wrap(kw + " " + n.name + ": " + ty)};
+          out = Resolved{.targetLoc = n.nameLoc, .hover = wrap(prefix + kw + " " + n.name + ": " + ty)};
           return true;
         }
         if (n.typeText && inSpan(n.typeLoc, offset)) {
@@ -918,7 +920,7 @@ void collectSymbols(const Block &block, std::vector<SymbolEntry> &out) {
   }
 }
 
-const char *DECLARATION_KEYWORDS[] = {"let", "const", "struct", "enum", "func", "import", "export", "extern", "namespace"};
+const char *DECLARATION_KEYWORDS[] = {"let", "const", "struct", "enum", "func", "import", "export", "extern", "namespace", "@entity"};
 
 const char *CONTROL_FLOW_KEYWORDS[] = {"if", "while", "do", "for", "return", "as", "at", "align", "anchored", "facing", "positioned", "rotated", "on"};
 

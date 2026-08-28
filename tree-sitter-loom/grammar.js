@@ -634,7 +634,7 @@ module.exports = grammar({
 
     namespaced_arg: ($) => seq(optional(seq($.identifier, ":")), $.identifier),
 
-    _modifier: () => choice("export", "extern"),
+    _modifier: () => choice("export", "extern", "@entity"),
 
     comment: () => token(seq("--", /.*/)),
 

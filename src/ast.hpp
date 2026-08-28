@@ -171,6 +171,7 @@ struct VarDeclStmt {
   bool isConst = false;
   bool isExport = false;
   bool isExtern = false;
+  bool isEntityLocal = false;
   std::string name;
   SourceLoc nameLoc;
   std::optional<std::string> typeText;

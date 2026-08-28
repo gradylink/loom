@@ -69,7 +69,7 @@ private:
   std::unique_ptr<Stmt> parseWhile();
   std::unique_ptr<Stmt> parseDoWhile();
   std::unique_ptr<Stmt> parseFor();
-  std::unique_ptr<Stmt> parseVarDecl(bool isExport, bool isExtern);
+  std::unique_ptr<Stmt> parseVarDecl(bool isExport, bool isExtern, bool isEntityLocal = false);
   std::unique_ptr<Stmt> parseFuncDecl(std::optional<std::string> tag, bool isExport, bool isExtern);
   std::unique_ptr<Stmt> parseStructDecl(bool isExport);
   std::unique_ptr<Stmt> parseEnumDecl(bool isExport);

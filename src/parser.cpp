@@ -636,9 +636,10 @@ std::unique_ptr<Stmt> Parser::parseFor() {
   return makeStmt(startTok, ForStmt{.iterator = std::move(iterator), .iteratorLoc = iteratorLoc, .start = std::move(start), .end = std::move(end), .body = std::move(body)});
 }
 
-std::unique_ptr<Stmt> Parser::parseVarDecl(bool isExport, bool isExtern) {
+std::unique_ptr<Stmt> Parser::parseVarDecl(bool isExport, bool isExtern, bool isEntityLocal) {
   const Token &startTok = peek();
   bool isConst = check(TokenKind::KwConst);
+  if (isEntityLocal && isConst) error(peek(), "'@entity' variables cannot be 'const'; they are inherently per-entity mutable state");
   advance();
   const Token &nameTok = expect(TokenKind::Identifier, "variable name");
   std::string name(nameTok.text);
@@ -654,6 +655,7 @@ std::unique_ptr<Stmt> Parser::parseVarDecl(bool isExport, bool isExtern) {
       .isConst = isConst,
       .isExport = isExport,
       .isExtern = isExtern,
+      .isEntityLocal = isEntityLocal,
       .name = std::move(name),
       .nameLoc = nameLoc,
       .typeText = std::move(typeText),
@@ -1020,6 +1022,13 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
     match(TokenKind::Newline);
   }
 
+  bool isEntityLocal = false;
+  if (check(TokenKind::At) && peek(1).kind == TokenKind::Identifier && peek(1).text == "entity") {
+    advance();
+    advance();
+    isEntityLocal = true;
+  }
+
   bool isExport = false, isExtern = false;
   while (check(TokenKind::KwExport) || check(TokenKind::KwExtern)) {
     if (match(TokenKind::KwExport)) isExport = true;
@@ -1030,6 +1039,10 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
   }
 
   std::unique_ptr<Stmt> stmt;
+
+  if (isEntityLocal && !check(TokenKind::KwLet)) {
+    error(peek(), "'@entity' can only precede a 'let' variable declaration");
+  }
 
   if (check(TokenKind::KwImport)) {
     if (tag.has_value() || isExport || isExtern) error(peek(), "'import' cannot be preceded by a tag or modifiers");
@@ -1042,10 +1055,10 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
     stmt = parseStructDecl(isExport);
   } else if (check(TokenKind::KwLet) || check(TokenKind::KwConst)) {
     if (tag.has_value()) error(peek(), "Variable declarations cannot be preceded by a tag");
-    stmt = parseVarDecl(isExport, isExtern);
+    stmt = parseVarDecl(isExport, isExtern, isEntityLocal);
   } else if (check(TokenKind::KwFunc)) {
     stmt = parseFuncDecl(tag, isExport, isExtern);
-  } else if (tag.has_value() || isExport || isExtern) {
+  } else if (tag.has_value() || isExport || isExtern || isEntityLocal) {
     error(peek(), "Expected a declaration ('func', 'let', 'const', 'struct', or 'enum') after a tag/modifier");
   } else if (check(TokenKind::KwIf)) {
     stmt = parseIf();

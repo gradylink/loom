@@ -69,7 +69,17 @@ std::string Compiler::compileBlock(const Block &block) {
             }
           }
 
+          bool hasAsModifier = false;
+          for (const auto &mod : n.modifiers) {
+            if (mod.keyword == "as") {
+              hasAsModifier = true;
+              break;
+            }
+          }
+          const bool prevInsideEntityContext = insideEntityContext;
+          if (hasAsModifier) insideEntityContext = true;
           const std::string innerBlockData = compileBlock(*n.body);
+          insideEntityContext = prevInsideEntityContext;
           std::vector<std::string> validLines;
           std::stringstream ss(innerBlockData);
           std::string currentLine;
@@ -148,6 +158,51 @@ std::string Compiler::compileBlock(const Block &block) {
 
           const Expr &expNode = *n.value;
           const bool isPathAssignment = !n.path.empty();
+
+          if (varData.isEntityLocal) {
+            if (isPathAssignment) {
+              throw std::runtime_error(formatError(stmt.loc, "Indexed/path assignment to an '@entity' variable is not supported; assign the whole value instead."));
+            }
+            if (!insideEntityContext) {
+              throw std::runtime_error(formatError(stmt.loc, "Entity-local variable '" + name + "' can only be assigned inside a 'context ... as ...' block."));
+            }
+
+            const Type &actualType = varData.type;
+            const ExpressionData expr = compileExpression(expNode);
+            if (expr.type != actualType) {
+              throw std::runtime_error(formatError(stmt.loc, "Type mismatch in assignment to entity-local variable: " + name));
+            }
+
+            useInternalFunction("internal_loom_ensure_entity_id");
+            useInternalFunction("internal_loom_assign_entity_id");
+            ret += std::format("function {}:internal/loom/internal_loom_ensure_entity_id\n", datapackNamespace);
+
+            if (actualType.isString() || actualType.isList() || actualType.isMap() || actualType.isStruct() || actualType.isFloat()) {
+              if (!expr.precomputed) ret += expr.data + "\n";
+              ret += copyExprInto(expr, actualType.isFloat() ? "expr_float1" : "expr_str1", 1);
+
+              ret += std::format("data modify storage {}:global macro_args set value {{}}\n", datapackNamespace);
+              ret += std::format("data modify storage {0}:global macro_args.path set value \"vars.{1}\"\n", datapackNamespace, varData.mangledName);
+              ret += "scoreboard players operation expr_output2 temp = @s loom_id\n";
+              ret += std::format("execute store result storage {0}:global macro_args.key int 1 run scoreboard players get expr_output2 temp\n", datapackNamespace);
+
+              if (actualType.isFloat()) {
+                useInternalFunction("internal_map_set_float");
+                ret += std::format("function {0}:internal/loom/internal_map_set_float with storage {0}:global macro_args\n", datapackNamespace);
+              } else {
+                useInternalFunction("internal_map_set_object");
+                ret += std::format("function {0}:internal/loom/internal_map_set_object with storage {0}:global macro_args\n", datapackNamespace);
+              }
+            } else {
+              if (expr.precomputed) {
+                ret += std::format("scoreboard players set @s {} {}\n", varData.mangledName, expr.data);
+              } else {
+                ret += expr.data + "\n";
+                ret += std::format("scoreboard players operation @s {} = expr_output1 temp\n", varData.mangledName);
+              }
+            }
+            return;
+          }
 
           if (isPathAssignment) {
             Type expectedType = varData.type.isRef() ? *varData.type.baseType : varData.type;

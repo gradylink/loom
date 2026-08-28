@@ -203,6 +203,9 @@ public:
     bool constant = false;
     bool exported = false;
 
+    bool isEntityLocal = false;
+    std::string entityLocalDefaultLiteral;
+
     std::optional<std::string> refTargetMangledName = std::nullopt;
 
     std::string getStorageName() const { return refTargetMangledName.value_or(mangledName); }
@@ -268,6 +271,10 @@ private:
   bool recoverFromErrors = true;
   std::vector<std::string> diagnostics;
   std::unordered_set<const Stmt *> failedDecls;
+
+  bool insideEntityContext = false;
+  bool entityIdInfraEmitted = false;
+  std::string ensureEntityIdInfraCmds();
 
   void runRecoverable(const Stmt &stmt, const std::function<void()> &fn);
 

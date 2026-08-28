@@ -3128,6 +3128,10 @@
         {
           "type": "STRING",
           "value": "extern"
+        },
+        {
+          "type": "STRING",
+          "value": "@entity"
         }
       ]
     },

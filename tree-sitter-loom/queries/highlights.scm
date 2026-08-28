@@ -2,6 +2,7 @@
 "return" @keyword.return
 "import" @keyword.import
 ["export" "extern"] @keyword.storage
+"@entity" @attribute
 ["public" "private" "static"] @keyword.storage
 ["let" "const" "enum" "struct" "namespace"] @keyword.storage
 (map_type "map" @type.builtin)

@@ -799,6 +799,63 @@ Compiler::ExpressionData Compiler::compileExpressionImpl(const Expr &node, unsig
         const auto &varData = varIt->second;
         const Type &actualType = varData.type.isRef() ? *varData.type.baseType : varData.type;
 
+        if (varData.isEntityLocal) {
+          if (!insideEntityContext) {
+            throw std::runtime_error(formatError(node.loc, "Entity-local variable '" + targetVar + "' can only be accessed inside a 'context ... as ...' block."));
+          }
+          useInternalFunction("internal_loom_ensure_entity_id");
+          useInternalFunction("internal_loom_assign_entity_id");
+          const std::string ensureCmd = std::format("function {}:internal/loom/internal_loom_ensure_entity_id", datapackNamespace);
+
+          if (actualType.isString() || actualType.isList() || actualType.isMap() || actualType.isStruct() || actualType.isFloat()) {
+            std::string cmds = ensureCmd + "\n";
+            cmds += std::format("data modify storage {}:global macro_args set value {{}}\n", datapackNamespace);
+            cmds += std::format("data modify storage {0}:global macro_args.path set value \"vars.{1}\"\n", datapackNamespace, varData.mangledName);
+            cmds += std::format("scoreboard players operation expr_output{} temp = @s loom_id\n", id);
+            cmds += std::format("execute store result storage {0}:global macro_args.key int 1 run scoreboard players get expr_output{1} temp\n", datapackNamespace, id);
+            cmds += std::format("data modify storage {}:global macro_args.out_id set value {}\n", datapackNamespace, id + 10);
+            useInternalFunction("internal_map_contains");
+            cmds += std::format("function {0}:internal/loom/internal_map_contains with storage {0}:global macro_args\n", datapackNamespace);
+
+            if (actualType.isFloat()) {
+              cmds += std::format(
+                "execute if score expr_output{0} temp matches 0 run data modify storage {1}:global expr_float1 set value {2}f\n", id + 10, datapackNamespace,
+                varData.entityLocalDefaultLiteral
+              );
+              useInternalFunction("internal_map_set_float");
+              cmds += std::format(
+                "execute if score expr_output{0} temp matches 0 run function {1}:internal/loom/internal_map_set_float with storage {1}:global macro_args\n", id + 10,
+                datapackNamespace
+              );
+              cmds += std::format("data modify storage {}:global macro_args.out_id set value {}\n", datapackNamespace, id);
+              useInternalFunction("internal_map_get_float");
+              cmds += std::format("function {0}:internal/loom/internal_map_get_float with storage {0}:global macro_args", datapackNamespace);
+            } else {
+              cmds += std::format(
+                "execute if score expr_output{0} temp matches 0 run data modify storage {1}:global expr_str1 set value {2}\n", id + 10, datapackNamespace,
+                varData.entityLocalDefaultLiteral
+              );
+              useInternalFunction("internal_map_set_object");
+              cmds += std::format(
+                "execute if score expr_output{0} temp matches 0 run function {1}:internal/loom/internal_map_set_object with storage {1}:global macro_args\n", id + 10,
+                datapackNamespace
+              );
+              cmds += std::format("data modify storage {}:global macro_args.out_id set value {}\n", datapackNamespace, id);
+              useInternalFunction("internal_map_get_object");
+              cmds += std::format("function {0}:internal/loom/internal_map_get_object with storage {0}:global macro_args", datapackNamespace);
+            }
+
+            return {.data = cmds, .precomputed = false, .type = actualType};
+          }
+
+          std::string cmds = ensureCmd + "\n";
+          cmds += std::format(
+            "execute unless score @s {0} matches -2147483648..2147483647 run scoreboard players set @s {0} {1}\n", varData.mangledName, varData.entityLocalDefaultLiteral
+          );
+          cmds += std::format("scoreboard players operation expr_output{} temp = @s {}", id, varData.mangledName);
+          return {.data = cmds, .precomputed = false, .type = actualType};
+        }
+
         if (varData.value.has_value()) {
           if (precompute) {
             return {.data = varData.value.value(), .precomputed = true, .type = actualType};
