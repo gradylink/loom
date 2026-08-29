@@ -175,8 +175,8 @@ int main(int argc, char *argv[]) {
     ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(data));
     ryml::ConstNodeRef root = tree.rootref();
 
-    if (root.has_child("namespace")) root["namespace"] >> config.namespaceStr;
-    if (root.has_child("description")) root["description"] >> config.descriptionStr;
+    if (root.has_child("namespace")) root["namespace"].load(&config.namespaceStr);
+    if (root.has_child("description")) root["description"].load(&config.descriptionStr);
   }
 
   std::string inputPath;
@@ -190,8 +190,7 @@ int main(int argc, char *argv[]) {
   auto cli = lyra::help(help) | lyra::opt(outputPath, "output")["-o"]["--output"]("Folder to output the datapack into.") |
              lyra::opt(baseDir, "base directory")["-b"]["--base-dir"]("Base directory for resolving imports.") |
              lyra::opt(useStdin)["--stdin"]("Read source from standard input.") | lyra::opt(watch)["-w"]["--watch"]("Watch the input file for changes, and recompile.") |
-             lyra::opt(lspMode)["--lsp"]("Run as a language server (JSON-RPC over stdio).") |
-             lyra::arg(inputPath, "source file")("Path to a .loom file to compile.");
+             lyra::opt(lspMode)["--lsp"]("Run as a language server (JSON-RPC over stdio).") | lyra::arg(inputPath, "source file")("Path to a .loom file to compile.");
 
   auto res = cli.parse({argc, argv});
   if (!res.is_ok()) {
